@@ -1,0 +1,167 @@
+#include "pmlocale.h"
+#include "compilers.h"
+
+#include <stdio.h>
+#include <proto/locale.h>
+#include <libraries/locale.h>
+
+/*
+ * Default English strings - MUST stay in the same order as the MSG_* enum.
+ * C89: no designated initializers, sequential only.
+ */
+static const char *defaultStrings[MSG_COUNT] = {
+    /* MSG_WINDOW_TITLE = 0 */
+    "Petmate",
+    /* MSG_ABOUT_TITLE */
+    "About Petmate",
+    /* MSG_ABOUT_TEXT */
+    "Petmate - C64 PETSCII Art Editor\nAmiga port v0.1",
+
+    /* MSG_MENU_PROJECT */
+    "Project",
+    /* MSG_FILE_NEW */
+    "New",
+    /* MSG_FILE_OPEN */
+    "Open...",
+    /* MSG_FILE_SAVEAS */
+    "Save As...",
+    /* MSG_FILE_SAVE */
+    "Save",
+    /* MSG_MENU_ABOUT */
+    "About",
+    /* MSG_MENU_QUIT */
+    "Quit",
+
+    /* MSG_MENU_EDIT */
+    "Edit",
+    /* MSG_EDIT_UNDO */
+    "Undo",
+    /* MSG_EDIT_REDO */
+    "Redo",
+    /* MSG_EDIT_COPY_SCREEN */
+    "Copy Screen",
+    /* MSG_EDIT_PASTE_SCREEN */
+    "Paste Screen",
+    /* MSG_EDIT_CLEAR_SCREEN */
+    "Clear Screen",
+    /* MSG_EDIT_SHIFT_LEFT */
+    "Shift Left",
+    /* MSG_EDIT_SHIFT_RIGHT */
+    "Shift Right",
+    /* MSG_EDIT_SHIFT_UP */
+    "Shift Up",
+    /* MSG_EDIT_SHIFT_DOWN */
+    "Shift Down",
+
+    /* MSG_MENU_SCREEN */
+    "Screen",
+    /* MSG_SCREEN_ADD */
+    "Add Screen",
+    /* MSG_SCREEN_CLONE */
+    "Clone Screen",
+    /* MSG_SCREEN_REMOVE */
+    "Remove Screen",
+    /* MSG_SCREEN_PREV */
+    "Previous Screen",
+    /* MSG_SCREEN_NEXT */
+    "Next Screen",
+
+    /* MSG_MENU_VIEW */
+    "View",
+    /* MSG_VIEW_TOGGLE_GRID */
+    "Toggle Grid",
+    /* MSG_VIEW_CHARSET_UPPER */
+    "Uppercase Charset",
+    /* MSG_VIEW_CHARSET_LOWER */
+    "Lowercase Charset",
+
+    /* MSG_MENU_PALETTE */
+    "Palette",
+    /* MSG_PALETTE_PETMATE */
+    "Petmate",
+    /* MSG_PALETTE_COLODORE */
+    "Colodore",
+    /* MSG_PALETTE_PEPTO */
+    "Pepto",
+    /* MSG_PALETTE_VICE */
+    "VICE",
+
+    /* MSG_STATUS_READY */
+    "Ready",
+    /* MSG_STATUS_LOADING */
+    "Loading...",
+    /* MSG_STATUS_SAVING */
+    "Saving...",
+    /* MSG_STATUS_ERROR */
+    "Error",
+
+    /* MSG_ERROR_OPENFILE */
+    "Cannot open file",
+    /* MSG_ERROR_SAVEFILE */
+    "Cannot save file",
+    /* MSG_ERROR_NOMEMORY */
+    "Out of memory",
+    /* MSG_ERROR_INVALIDFILE */
+    "Invalid file format",
+
+    /* MSG_TOOL_DRAW */
+    "Draw",
+    /* MSG_TOOL_COLORIZE */
+    "Color",
+    /* MSG_TOOL_CHARDRAW */
+    "Char",
+    /* MSG_TOOL_BRUSH */
+    "Brush",
+    /* MSG_TOOL_TEXT */
+    "Text",
+
+    /* MSG_BTN_CLEAR */
+    "Clear",
+    /* MSG_BTN_CHARSET_UPPER */
+    "Upper",
+    /* MSG_BTN_CHARSET_LOWER */
+    "Lower"
+};
+
+/* LocaleBase declared in petmate.c */
+extern struct LocaleBase *LocaleBase;
+
+static struct Catalog *catalog = NULL;
+
+BOOL PmLocale_Init(const char *catalogName, ULONG version)
+{
+    if (LocaleBase) {
+        if (catalogName) {
+            catalog = OpenCatalog(NULL, (STRPTR)catalogName,
+                                  OC_Version, version,
+                                  OC_BuiltInLanguage, (ULONG)"english",
+                                  TAG_DONE);
+            if (!catalog) {
+                printf("Warning: Could not open catalog '%s', using defaults\n",
+                       catalogName);
+            }
+        }
+    } else {
+        printf("locale.library not found, using default strings\n");
+    }
+    return TRUE;
+}
+
+void PmLocale_Close(void)
+{
+    if (catalog) {
+        CloseCatalog(catalog);
+        catalog = NULL;
+    }
+}
+
+const char *PmLocale_GetString(ULONG stringID)
+{
+    if (stringID >= MSG_COUNT) return "???";
+
+    if (LocaleBase && catalog) {
+        return GetCatalogStr(catalog, stringID,
+                             (STRPTR)defaultStrings[stringID]);
+    }
+    return defaultStrings[stringID];
+}

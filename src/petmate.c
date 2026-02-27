@@ -1,0 +1,990 @@
+/*
+ * Petmate Amiga - C64 PETSCII Art Editor
+ * Main application: library init, window creation, event loop, cleanup.
+ * Architecture follows aukboopsi/aukboopsi.c patterns.
+ */
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include <clib/alib_protos.h>
+
+#include <intuition/screens.h>
+#include <intuition/icclass.h>
+
+#include <proto/exec.h>
+#include <proto/graphics.h>
+#include <proto/intuition.h>
+#include <proto/utility.h>
+#include <proto/dos.h>
+#include <proto/icon.h>
+#include <proto/locale.h>
+#include <libraries/locale.h>
+
+#include <proto/window.h>
+#include <classes/window.h>
+
+#include <proto/layout.h>
+#include <gadgets/layout.h>
+
+#include <proto/button.h>
+#include <gadgets/button.h>
+
+#include <proto/label.h>
+#include <images/label.h>
+
+#include <proto/asl.h>
+#include <libraries/asl.h>
+
+#include "compilers.h"
+#include "bdbprintf.h"
+#include "gadgetid.h"
+#include "petmate.h"
+#include "petscii_screen.h"
+#include "petscii_project.h"
+#include "petscii_palette.h"
+#include "petscii_charset.h"
+
+/* Phase 2 */
+#include "petscii_style.h"
+#include "pmlocale.h"
+#include "pmaction.h"
+#include "pmmenu.h"
+#include "boopsimessage.h"
+
+/* Phase 4 */
+#include "petscii_canvas.h"
+
+/* Phase 5 */
+#include "char_selector.h"
+#include "color_picker.h"
+
+/* Phase 7 */
+#include "pmtoolbar.h"
+#include "pmscreentabs.h"
+
+/* Phase 8 */
+#include "petscii_undo.h"
+
+/* Phase 9 */
+#include "petscii_fileio.h"
+
+INLINE struct Window *boopsi_OpenWindow(Object *owin) {
+    return (struct Window *)DoMethod(owin, WM_OPEN, NULL);
+}
+
+struct Task *myTask = NULL;
+
+const char *pVersion = "$VER: Petmate 0.1 (18.02.2026)";
+
+/* Library bases */
+struct IntuitionBase   *IntuitionBase = NULL;
+struct GfxBase         *GfxBase       = NULL;
+struct Library         *UtilityBase   = NULL;
+struct Library         *LayersBase    = NULL;
+struct Library         *IconBase      = NULL;
+struct Library         *AslBase       = NULL;
+struct Library         *GadToolsBase  = NULL;
+struct LocaleBase      *LocaleBase    = NULL; /* optional */
+
+/* BOOPSI class bases */
+struct Library *WindowBase = NULL;
+struct Library *LayoutBase = NULL;
+struct Library *ButtonBase = NULL;
+struct Library *LabelBase  = NULL;
+
+/* Library table for automated opening/closing */
+typedef struct {
+    const char    *name;
+    ULONG          version;
+    struct Library **base;
+} LibraryEntry;
+
+static LibraryEntry libraryTable[] = {
+    /* System libraries */
+    {"intuition.library", 39, (struct Library **)&IntuitionBase},
+    {"graphics.library",  39, (struct Library **)&GfxBase},
+    {"utility.library",   39, &UtilityBase},
+    {"layers.library",    39, &LayersBase},
+    {"icon.library",      39, &IconBase},
+    {"asl.library",       39, &AslBase},
+    {"gadtools.library",  39, &GadToolsBase},
+    /* BOOPSI class libraries */
+    {"window.class",           45, &WindowBase},
+    {"images/label.image",     45, &LabelBase},
+    {"gadgets/layout.gadget",  45, &LayoutBase},
+    {"gadgets/button.gadget",  45, &ButtonBase},
+    {NULL, 0, NULL} /* Terminator */
+};
+
+/* Clipboard for Edit > Copy/Paste Screen */
+static PetsciiScreen *g_clipScreen = NULL;
+
+/* Application struct */
+struct App {
+    Object *window_obj;
+    struct MsgPort *app_port;
+    struct Screen *lockedscreen;
+    struct DrawInfo *drawInfo;
+
+    Object *mainvlayout;
+
+    /* Status bar */
+    Object *statusBarLayout;
+    Object *statusBarLabel;
+
+    /* Application state */
+    PetsciiProject *project;
+    ToolState toolState;
+
+    /* Phase 2 */
+    PetsciiStyle      style;       /* 16 C64 color pens */
+    PmMenu            menu;        /* GadTools menus */
+    PmActionContext   actionCtx;   /* Context passed to all actions */
+
+    /* Phase 4 */
+    Object           *canvasGadget;        /* PetsciiCanvas BOOPSI instance  */
+
+    /* Phase 5 */
+    Object           *charSelectorGadget;  /* CharSelector BOOPSI instance   */
+    Object           *colorPickerFgGadget; /* ColorPicker (fg) BOOPSI instance */
+    Object           *colorPickerBgGadget; /* ColorPicker (bg) BOOPSI instance */
+
+    /* Phase 7 */
+    PmToolbar         toolbar;             /* left-side tool button panel    */
+    PmScreenTabs      screenTabs;          /* top screen-tab button bar      */
+    Object           *charsetUpperBtn;     /* charset "Upper" toggle button  */
+    Object           *charsetLowerBtn;     /* charset "Lower" toggle button  */
+
+    /* Phase 8 */
+    PetsciiUndoBuffer *undoBufs[PETSCII_MAX_SCREENS]; /* one per screen slot */
+};
+
+struct App *app = NULL;
+struct Window *CurrentMainWindow = NULL;
+
+/* Forward declarations */
+void cleanexit(const char *pmessage);
+void exitclose(void);
+static void refreshUI(void);
+static void rebuildUndoBuffers(void);
+
+void cleanexit(const char *pmessage)
+{
+    if (pmessage) printf("%s\n", pmessage);
+    exit(0);
+}
+
+/*
+ * refreshUI - sync all gadgets with the current project state.
+ * Call after any action that may change the current screen, charset,
+ * screen count, or other visible state.
+ */
+static void refreshUI(void)
+{
+    PetsciiScreen *scr;
+    UBYTE          charset;
+
+    if (!app || !app->project) return;
+
+    scr = PetsciiProject_GetCurrentScreen(app->project);
+    if (!scr) return;
+
+    charset = scr->charset;
+
+    /* Sync canvas to the current screen */
+    SetAttrs(app->canvasGadget,
+        PCA_Screen,   (ULONG)scr,
+        PCA_ShowGrid, (ULONG)(BOOL)app->toolState.showGrid,
+        PCA_Dirty,    (ULONG)TRUE,
+        TAG_END);
+    if (CurrentMainWindow)
+        RefreshGList((struct Gadget *)app->canvasGadget,
+                     CurrentMainWindow, NULL, 1);
+
+    /* Sync CharSelector charset */
+    SetAttrs(app->charSelectorGadget,
+        CHSA_Charset, (ULONG)charset,
+        TAG_END);
+    if (CurrentMainWindow)
+        RefreshGList((struct Gadget *)app->charSelectorGadget,
+                     CurrentMainWindow, NULL, 1);
+
+    /* Sync charset toggle buttons */
+    if (CurrentMainWindow && app->charsetUpperBtn && app->charsetLowerBtn) {
+        SetGadgetAttrs((struct Gadget *)app->charsetUpperBtn,
+            CurrentMainWindow, NULL,
+            GA_Selected, (ULONG)(charset == PETSCII_CHARSET_UPPER),
+            TAG_END);
+        SetGadgetAttrs((struct Gadget *)app->charsetLowerBtn,
+            CurrentMainWindow, NULL,
+            GA_Selected, (ULONG)(charset == PETSCII_CHARSET_LOWER),
+            TAG_END);
+    }
+
+    /* Sync screen tabs */
+    PmScreenTabs_Update(&app->screenTabs,
+                        app->project->screenCount,
+                        app->project->currentScreen,
+                        CurrentMainWindow);
+
+    /* Sync toolbar selected tool */
+    PmToolbar_SetActiveTool(&app->toolbar,
+                            app->toolState.currentTool,
+                            CurrentMainWindow);
+
+    /* Sync canvas undo buffer for the current screen */
+    SetAttrs(app->canvasGadget,
+        PCA_UndoBuffer,
+        (ULONG)app->undoBufs[app->project->currentScreen],
+        TAG_END);
+}
+
+/*
+ * rebuildUndoBuffers - destroy all undo history and create fresh empty
+ * buffers for every screen currently in the project.
+ * Call after screen management operations (add/clone/remove) where
+ * screen slot indices may shift, making old history invalid.
+ */
+static void rebuildUndoBuffers(void)
+{
+    UWORD i;
+
+    if (!app) return;
+
+    /* Destroy all existing buffers */
+    for (i = 0; i < PETSCII_MAX_SCREENS; i++) {
+        if (app->undoBufs[i]) {
+            PetsciiUndoBuffer_Destroy(app->undoBufs[i]);
+            app->undoBufs[i] = NULL;
+        }
+    }
+
+    if (!app->project) return;
+
+    /* Create fresh empty buffers for each active screen */
+    for (i = 0; i < app->project->screenCount; i++) {
+        app->undoBufs[i] = PetsciiUndoBuffer_Create();
+        /* NULL is acceptable - undo simply won't work for that screen */
+    }
+}
+
+/* - - - - - - - - - MAIN - - - - - - - - - */
+
+int main(int argc, char **argv)
+{
+    int y;
+    (void)argc; (void)argv;
+
+    myTask = FindTask(NULL);
+    atexit(&exitclose);
+
+    /* Open all required libraries via table */
+    {
+        LibraryEntry *entry;
+        char errorMsg[80];
+
+        for (entry = libraryTable; entry->name != NULL; entry++) {
+            *(entry->base) = OpenLibrary(entry->name, entry->version);
+            if (!*(entry->base)) {
+                snprintf(errorMsg, 79, "Can't open %s", entry->name);
+                cleanexit(errorMsg);
+            }
+        }
+    }
+
+    /* Open locale.library (optional - soft failure) */
+    LocaleBase = (struct LocaleBase *)OpenLibrary("locale.library", 38);
+
+    /* Allocate app struct (zero-initialized so disposeQ.count = 0 etc.) */
+    app = (struct App *)AllocVec(sizeof(struct App), MEMF_CLEAR);
+    if (!app) cleanexit("Can't allocate app");
+
+    /* Initialize tool state defaults */
+    app->toolState.currentTool = TOOL_DRAW;
+    app->toolState.selectedChar = 32;   /* space */
+    app->toolState.fgColor = C64_LIGHTBLUE;
+    app->toolState.bgColor = C64_BLUE;
+    app->toolState.showGrid = 0;
+
+    /* Create initial project */
+    app->project = PetsciiProject_Create();
+    if (!app->project) cleanexit("Can't create project");
+
+    /* Initialize locale (no catalog for now - English built-in) */
+    PmLocale_Init(NULL, 0);
+
+    /* Initialize action system (localizes action names) */
+    PmAction_Init();
+
+    /* Lock public screen and get draw info */
+    app->lockedscreen = LockPubScreen(NULL);
+    if (!app->lockedscreen) cleanexit("Can't lock screen");
+
+    app->drawInfo = GetScreenDrawInfo(app->lockedscreen);
+
+    /* Initialize style from the project's current palette and obtain pens */
+    PetsciiStyle_Init(&app->style, app->project->currentPalette);
+    PetsciiStyle_Apply(&app->style, app->lockedscreen);
+
+    /* Create initial undo buffers (one per screen in the fresh project) */
+    rebuildUndoBuffers();
+
+    /* Set up action context */
+    app->actionCtx.pproject  = &app->project;
+    app->actionCtx.toolState = (void *)&app->toolState;
+    app->actionCtx.style     = (void *)&app->style;
+    app->actionCtx.screen    = (void *)app->lockedscreen;
+    app->actionCtx.clipScreen = (void *)&g_clipScreen;
+    app->actionCtx.undoBufs  = (void *)app->undoBufs;
+
+    /* Initialize the BOOPSI message target model */
+    if (!initMessageTargetModel()) cleanexit("Can't create BOOPSI message target");
+
+    /* Initialize PetsciiCanvas BOOPSI class */
+    if (!PetsciiCanvas_Init()) cleanexit("Can't create PetsciiCanvas class");
+
+    /* Initialize CharSelector and ColorPicker BOOPSI classes */
+    if (!CharSelector_Init()) cleanexit("Can't create CharSelector class");
+    if (!ColorPicker_Init())  cleanexit("Can't create ColorPicker class");
+
+    /* Create canvas gadget for the main editing area */
+    app->canvasGadget = (Object *)NewObject(PetsciiCanvasClass, NULL,
+        GA_ID,           (ULONG)GAD_CANVAS,
+        GA_DrawInfo,     (ULONG)app->drawInfo,
+        PCA_Screen,      (ULONG)app->project->screens[0],
+        PCA_Style,       (ULONG)&app->style,
+        PCA_ZoomLevel,   (ULONG)1,
+        PCA_ShowGrid,    (ULONG)FALSE,
+        PCA_KeepRatio,   (ULONG)TRUE,
+        PCA_CurrentTool, (ULONG)app->toolState.currentTool,
+        PCA_SelectedChar,(ULONG)app->toolState.selectedChar,
+        PCA_FgColor,     (ULONG)app->toolState.fgColor,
+        PCA_BgColor,     (ULONG)app->toolState.bgColor,
+        PCA_UndoBuffer,  (ULONG)app->undoBufs[0],
+        TAG_END);
+    if (!app->canvasGadget) cleanexit("Can't create canvas gadget");
+
+    /* Create character selector gadget */
+    app->charSelectorGadget = (Object *)NewObject(CharSelectorClass, NULL,
+        GA_ID,             (ULONG)GAD_CHARSELECTOR,
+        GA_DrawInfo,       (ULONG)app->drawInfo,
+        ICA_TARGET,        (ULONG)TargetInstance,
+        CHSA_Style,        (ULONG)&app->style,
+        CHSA_Charset,      (ULONG)app->project->screens[0]->charset,
+        CHSA_SelectedChar, (ULONG)app->toolState.selectedChar,
+        CHSA_FgColor,      (ULONG)app->toolState.fgColor,
+        CHSA_BgColor,      (ULONG)app->toolState.bgColor,
+        CHSA_KeepRatio,    (ULONG)TRUE,
+        TAG_END);
+    if (!app->charSelectorGadget) cleanexit("Can't create char selector gadget");
+
+    /* Create foreground colour picker gadget */
+    app->colorPickerFgGadget = (Object *)NewObject(ColorPickerClass, NULL,
+        GA_ID,             (ULONG)GAD_COLORPICKER_FG,
+        GA_DrawInfo,       (ULONG)app->drawInfo,
+        ICA_TARGET,        (ULONG)TargetInstance,
+        CPA_Style,         (ULONG)&app->style,
+        CPA_SelectedColor, (ULONG)app->toolState.fgColor,
+        TAG_END);
+    if (!app->colorPickerFgGadget) cleanexit("Can't create fg color picker");
+
+    /* Create background colour picker gadget */
+    app->colorPickerBgGadget = (Object *)NewObject(ColorPickerClass, NULL,
+        GA_ID,             (ULONG)GAD_COLORPICKER_BG,
+        GA_DrawInfo,       (ULONG)app->drawInfo,
+        ICA_TARGET,        (ULONG)TargetInstance,
+        CPA_Style,         (ULONG)&app->style,
+        CPA_SelectedColor, (ULONG)app->toolState.bgColor,
+        TAG_END);
+    if (!app->colorPickerBgGadget) cleanexit("Can't create bg color picker");
+
+    /* Phase 7: create toolbar and screen-tab bar */
+    if (!PmToolbar_Create(&app->toolbar, app->drawInfo))
+        cleanexit("Can't create toolbar");
+
+    if (!PmScreenTabs_Create(&app->screenTabs, app->project->screenCount,
+                              app->drawInfo))
+        cleanexit("Can't create screen tabs");
+
+    /* Charset toggle buttons (placed at bottom of right panel) */
+    app->charsetUpperBtn = (Object *)NewObject(BUTTON_GetClass(), NULL,
+        GA_ID,       (ULONG)GAD_CHARSET_UPPER,
+        GA_DrawInfo, (ULONG)app->drawInfo,
+        GA_Selected, (ULONG)TRUE,  /* default: upper charset */
+        GA_Text,     (ULONG)LOC(MSG_BTN_CHARSET_UPPER),
+        TAG_END);
+    if (!app->charsetUpperBtn) cleanexit("Can't create charset upper button");
+
+    app->charsetLowerBtn = (Object *)NewObject(BUTTON_GetClass(), NULL,
+        GA_ID,       (ULONG)GAD_CHARSET_LOWER,
+        GA_DrawInfo, (ULONG)app->drawInfo,
+        GA_Selected, (ULONG)FALSE,
+        GA_Text,     (ULONG)LOC(MSG_BTN_CHARSET_LOWER),
+        TAG_END);
+    if (!app->charsetLowerBtn) cleanexit("Can't create charset lower button");
+
+    /* Create status bar */
+    app->statusBarLabel = (Object *)NewObject(BUTTON_GetClass(), NULL,
+        GA_DrawInfo, (ULONG)app->drawInfo,
+        GA_ReadOnly, TRUE,
+        BUTTON_BevelStyle, BVS_NONE,
+        BUTTON_Transparent, TRUE,
+        BUTTON_Justification, BCJ_LEFT,
+        GA_Text, (ULONG)LOC(MSG_STATUS_READY),
+        TAG_END);
+
+    app->statusBarLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
+        GA_DrawInfo, (ULONG)app->drawInfo,
+        LAYOUT_Orientation, LAYOUT_ORIENT_HORIZ,
+        LAYOUT_BevelStyle, BVS_SBAR_VERT,
+        LAYOUT_AddChild, (ULONG)app->statusBarLabel,
+        TAG_END);
+
+    /*
+     * Create main layout - Phase 7 full layout:
+     *
+     *   [ScreenTabs        - WeightedHeight=0]
+     *   HLayout
+     *     [Toolbar         - WeightedWidth=0]
+     *     [PetsciiCanvas   - WeightedWidth=1000]
+     *     VLayout (right panel)
+     *       [ColorPicker FG - WeightedHeight=0]
+     *       [ColorPicker BG - WeightedHeight=0]
+     *       [CharSelector   - WeightedHeight=1000]
+     *       HLayout (charset)
+     *         [Upper] [Lower]
+     *   [StatusBar         - WeightedHeight=0]
+     */
+    {
+        Object *charsetLayout;
+        Object *rightPanelLayout;
+        Object *workAreaLayout;
+
+        /* Charset toggle buttons (bottom of right panel) */
+        charsetLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
+            GA_DrawInfo,         (ULONG)app->drawInfo,
+            LAYOUT_Orientation,  LAYOUT_ORIENT_HORIZ,
+            LAYOUT_InnerSpacing, 1,
+
+            LAYOUT_AddChild, (ULONG)app->charsetUpperBtn,
+                CHILD_WeightedWidth, 1000,
+            LAYOUT_AddChild, (ULONG)app->charsetLowerBtn,
+                CHILD_WeightedWidth, 1000,
+            TAG_END);
+
+        /* Right panel: pickers on top, char selector, charset at bottom */
+        rightPanelLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
+            GA_DrawInfo,         (ULONG)app->drawInfo,
+            LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
+            LAYOUT_InnerSpacing, 2,
+
+            LAYOUT_AddChild, (ULONG)app->colorPickerFgGadget,
+                CHILD_WeightedHeight, 0,
+                CHILD_MinHeight,      24,
+                CHILD_MaxHeight,      40,
+
+            LAYOUT_AddChild, (ULONG)app->colorPickerBgGadget,
+                CHILD_WeightedHeight, 0,
+                CHILD_MinHeight,      24,
+                CHILD_MaxHeight,      40,
+
+            LAYOUT_AddChild, (ULONG)app->charSelectorGadget,
+                CHILD_WeightedHeight, 1000,
+                CHILD_MinHeight,      128,
+                CHILD_MinWidth,       128,
+
+            LAYOUT_AddChild, (ULONG)charsetLayout,
+                CHILD_WeightedHeight, 0,
+                CHILD_MinHeight,      20,
+                CHILD_MaxHeight,      28,
+            TAG_END);
+
+        /* Work area: toolbar | canvas | right panel */
+        workAreaLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
+            GA_DrawInfo,         (ULONG)app->drawInfo,
+            LAYOUT_Orientation,  LAYOUT_ORIENT_HORIZ,
+            LAYOUT_InnerSpacing, 2,
+
+            LAYOUT_AddChild, (ULONG)app->toolbar.layout,
+                CHILD_WeightedWidth, 0,
+                CHILD_MinWidth,      52,
+                CHILD_MaxWidth,      72,
+
+            LAYOUT_AddChild, (ULONG)app->canvasGadget,
+                CHILD_WeightedWidth, 1000,
+
+            LAYOUT_AddChild, (ULONG)rightPanelLayout,
+                CHILD_WeightedWidth, 0,
+                CHILD_MinWidth,      128,
+                CHILD_MaxWidth,      160,
+            TAG_END);
+
+        /* Main vertical layout: screen tabs | work area | status bar */
+        app->mainvlayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
+            GA_DrawInfo,          (ULONG)app->drawInfo,
+            LAYOUT_DeferLayout,   TRUE,
+            LAYOUT_SpaceOuter,    TRUE,
+            LAYOUT_BottomSpacing, 2,
+            LAYOUT_TopSpacing,    0,
+            LAYOUT_LeftSpacing,   0,
+            LAYOUT_RightSpacing,  0,
+            LAYOUT_InnerSpacing,  2,
+            LAYOUT_Orientation,   LAYOUT_ORIENT_VERT,
+
+            LAYOUT_AddChild, (ULONG)app->screenTabs.layout,
+                CHILD_WeightedHeight, 0,
+                CHILD_MinHeight,      20,
+                CHILD_MaxHeight,      28,
+
+            LAYOUT_AddChild, (ULONG)workAreaLayout,
+                CHILD_WeightedHeight, 1000,
+
+            LAYOUT_AddChild, (ULONG)app->statusBarLayout,
+                CHILD_WeightedHeight, 0,
+            TAG_END);
+    }
+
+    if (!app->mainvlayout) cleanexit("Layout error");
+
+    /* Create message port */
+    app->app_port = CreateMsgPort();
+
+    /* Calculate window Y position below screen title bar */
+    y = 12;
+    if (app->lockedscreen->Font)
+        y = (app->lockedscreen->Font->ta_YSize) + 3 + 16;
+
+    /* Create window object */
+    app->window_obj = (Object *)NewObject(WINDOW_GetClass(), NULL,
+        WA_Left, 40,
+        WA_Top, (ULONG)y,
+        WA_Width, 640,
+        WA_Height, 400,
+        WA_CustomScreen, (ULONG)app->lockedscreen,
+        WA_IDCMP, IDCMP_CLOSEWINDOW | IDCMP_MENUPICK | IDCMP_RAWKEY |
+                  IDCMP_GADGETDOWN | IDCMP_GADGETUP | IDCMP_MOUSEMOVE,
+        WA_Flags, WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET |
+                  WFLG_SIZEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH,
+        WA_Title, (ULONG)LOC(MSG_WINDOW_TITLE),
+        WINDOW_ParentGroup, (ULONG)app->mainvlayout,
+        WINDOW_IconifyGadget, TRUE,
+        WINDOW_IconTitle, (ULONG)"Petmate",
+        WINDOW_AppPort, (ULONG)app->app_port,
+        TAG_END);
+
+    if (!app->window_obj) cleanexit("Can't create window");
+
+    /* Open the window */
+    CurrentMainWindow = boopsi_OpenWindow(app->window_obj);
+    if (!CurrentMainWindow) cleanexit("Can't open window");
+
+    /* Create and attach menus */
+    if (!PmMenu_Create(&app->menu, app->lockedscreen, CurrentMainWindow)) {
+        cleanexit("Can't create menus");
+    }
+
+    bdbprintf("Petmate started. Project has %d screen(s).\n",
+              (int)app->project->screenCount);
+
+    /* - - - Input Event Loop - - - */
+    {
+        ULONG winsignal;
+        BOOL ok = TRUE;
+
+        GetAttr(WINDOW_SigMask, app->window_obj, &winsignal);
+
+        while (ok)
+        {
+            ULONG result, waitedSignals,currentSignals;
+
+            flushbdbprint();
+
+            waitedSignals = winsignal |
+                (1L << app->app_port->mp_SigBit) |
+                SIGBREAKF_CTRL_C |
+                SIGBREAKF_CTRL_F;
+
+            currentSignals = Wait(waitedSignals);
+
+            /* exit app at any moment from Ctrl-C signal, atexit() magic does anything needed. */
+            if(currentSignals & SIGBREAKF_CTRL_C) exit(0);
+
+            while ((result = DoMethod(app->window_obj, WM_HANDLEINPUT, NULL))
+                   != WMHI_LASTMSG)
+            {
+                flushbdbprint();
+
+                switch (result & WMHI_CLASSMASK)
+                {
+                    case WMHI_RAWKEY:
+                        /* ESC key to quit */
+                        if ((result & WMHI_KEYMASK) == 0x45)
+                            ok = FALSE;
+                        break;
+
+                    case WMHI_CLOSEWINDOW:
+                        ok = FALSE;
+                        break;
+
+                    case WMHI_GADGETUP:
+                    {
+                        /* Queue gadget-up event for dispatch on main task context,
+                         * alongside OM_NOTIFY messages from ICA_TARGET gadgets. */
+                        ULONG senderId = result & WMHI_GADGETMASK;
+                        BoopsiDelay_BeginMessage(DelayQueue, senderId);
+                        BoopsiDelay_AddTag(DelayQueue, WMHI_GADGETUP, 1);
+                        BoopsiDelay_EndMessage(DelayQueue);
+                        break;
+                    }
+
+                    case WMHI_ICONIFY:
+                    {
+                        /* Remove menus before iconifying */
+                        PmMenu_Close(&app->menu, CurrentMainWindow);
+                        if (DoMethod(app->window_obj, WM_ICONIFY, NULL))
+                            CurrentMainWindow = NULL;
+                        break;
+                    }
+
+                    case WMHI_UNICONIFY:
+                    {
+                        CurrentMainWindow = boopsi_OpenWindow(app->window_obj);
+                        if (!CurrentMainWindow)
+                            cleanexit("Can't re-open window");
+                        /* Re-attach menus */
+                        PmMenu_Create(&app->menu, app->lockedscreen,
+                                      CurrentMainWindow);
+                        break;
+                    }
+
+                    case WMHI_MENUPICK:
+                    {
+                        /* Dispatch menu selection to action system */
+                        UWORD menuCode = (UWORD)(result & WMHI_MENUMASK);
+                        if (menuCode != MENUNULL) {
+                            LONG actionID = PmMenu_ToActionID(&app->menu,
+                                                              menuCode);
+                            if (actionID >= 0) {
+                                /* Snapshot before actions that modify screen data */
+                                if (actionID == ACTION_EDIT_CLEAR_SCREEN ||
+                                    actionID == ACTION_EDIT_SHIFT_LEFT   ||
+                                    actionID == ACTION_EDIT_SHIFT_RIGHT  ||
+                                    actionID == ACTION_EDIT_SHIFT_UP     ||
+                                    actionID == ACTION_EDIT_SHIFT_DOWN   ||
+                                    actionID == ACTION_EDIT_PASTE_SCREEN) {
+                                    PetsciiScreen *mscr =
+                                        PetsciiProject_GetCurrentScreen(
+                                            app->project);
+                                    if (mscr &&
+                                        app->undoBufs[app->project->currentScreen]) {
+                                        PetsciiUndoBuffer_Push(
+                                            app->undoBufs[app->project->currentScreen],
+                                            mscr);
+                                    }
+                                }
+
+                                PmAction_Execute((ULONG)actionID,
+                                                 &app->actionCtx);
+                                /* Screen management and project load/new
+                                 * change slot indices; rebuild undo history */
+                                if (actionID == ACTION_SCREEN_ADD    ||
+                                    actionID == ACTION_SCREEN_CLONE  ||
+                                    actionID == ACTION_SCREEN_REMOVE ||
+                                    actionID == ACTION_PROJECT_NEW   ||
+                                    actionID == ACTION_PROJECT_OPEN) {
+                                    rebuildUndoBuffers();
+                                }
+                                /* Sync all gadgets with project state */
+                                refreshUI();
+                            }
+                        }
+                        break;
+                    }
+
+                    default:
+                        break;
+                }
+            } /* end WM_HANDLEINPUT loop */
+
+            /* Process delayed BOOPSI notifications.
+             * Both WMHI_GADGETUP events (queued above) and OM_NOTIFY from
+             * gadgets that have ICA_TARGET=TargetInstance land here, serialised
+             * on the main task so it is safe to call any Intuition/gadget API. */
+            if (DelayQueue && BoopsiDelay_HasMessages(DelayQueue)) {
+                struct TagItem *msg;
+                while ((msg = BoopsiDelay_NextMessage(DelayQueue)) != NULL) {
+                    struct TagItem *ptag;
+                    ULONG sender_ID = 0;
+
+                    ptag = FindTagItem(GA_ID, msg);
+                    if (ptag) sender_ID = ptag->ti_Data;
+
+                    /* Screen tab range */
+                    if (sender_ID >= GAD_SCREENTAB_FIRST &&
+                        sender_ID <= GAD_SCREENTAB_LAST) {
+                        UWORD tabIdx = (UWORD)(sender_ID - GAD_SCREENTAB_FIRST);
+                        if (tabIdx < app->project->screenCount) {
+                            PetsciiProject_SetCurrentScreen(app->project, tabIdx);
+                            refreshUI();
+                        }
+                    }
+
+                    /* Tool select button range */
+                    else if (sender_ID >= GAD_TOOL_FIRST &&
+                             sender_ID <= GAD_TOOL_LAST) {
+                        UBYTE newTool = (UBYTE)(sender_ID - GAD_TOOL_FIRST);
+                        app->toolState.currentTool = newTool;
+                        SetAttrs(app->canvasGadget,
+                            PCA_CurrentTool, (ULONG)newTool,
+                            TAG_END);
+                        PmToolbar_SetActiveTool(&app->toolbar, newTool,
+                                                CurrentMainWindow);
+                    }
+
+                    else {
+                        switch (sender_ID) {
+                            case GAD_CANVAS:
+                                /* Draw stroke complete - canvas updated in-place */
+                                break;
+
+                            case GAD_CHARSELECTOR:
+                            {
+                                /* Value comes from OM_NOTIFY (preferred) or WMHI_GADGETUP */
+                                ULONG newChar = 0;
+                                ptag = FindTagItem(CHSA_SelectedChar, msg);
+                                if (ptag) newChar = ptag->ti_Data;
+                                else GetAttr(CHSA_SelectedChar,
+                                             app->charSelectorGadget, &newChar);
+                                app->toolState.selectedChar = (UBYTE)newChar;
+                                SetAttrs(app->canvasGadget,
+                                    PCA_SelectedChar, newChar,
+                                    TAG_END);
+                                break;
+                            }
+
+                            case GAD_COLORPICKER_FG:
+                            {
+                                ULONG newColor = 0;
+                                ptag = FindTagItem(CPA_SelectedColor, msg);
+                                if (ptag) newColor = ptag->ti_Data;
+                                else GetAttr(CPA_SelectedColor,
+                                             app->colorPickerFgGadget, &newColor);
+                                app->toolState.fgColor = (UBYTE)newColor;
+                                SetAttrs(app->canvasGadget,
+                                    PCA_FgColor, newColor,
+                                    TAG_END);
+                                break;
+                            }
+
+                            case GAD_COLORPICKER_BG:
+                            {
+                                ULONG newColor = 0;
+                                ptag = FindTagItem(CPA_SelectedColor, msg);
+                                if (ptag) newColor = ptag->ti_Data;
+                                else GetAttr(CPA_SelectedColor,
+                                             app->colorPickerBgGadget, &newColor);
+                                app->toolState.bgColor = (UBYTE)newColor;
+                                SetAttrs(app->canvasGadget,
+                                    PCA_BgColor, newColor,
+                                    TAG_END);
+                                break;
+                            }
+
+                            case GAD_CHARSET_UPPER:
+                            {
+                                PetsciiScreen *scr =
+                                    PetsciiProject_GetCurrentScreen(app->project);
+                                if (scr) {
+                                    scr->charset = PETSCII_CHARSET_UPPER;
+                                    app->project->modified = 1;
+                                    SetAttrs(app->charSelectorGadget,
+                                        CHSA_Charset, (ULONG)PETSCII_CHARSET_UPPER,
+                                        TAG_END);
+                                    SetAttrs(app->canvasGadget,
+                                        PCA_Dirty, (ULONG)TRUE,
+                                        TAG_END);
+                                    RefreshGList((struct Gadget *)app->canvasGadget,
+                                                 CurrentMainWindow, NULL, 1);
+                                    if (CurrentMainWindow)
+                                        SetGadgetAttrs(
+                                            (struct Gadget *)app->charsetUpperBtn,
+                                            CurrentMainWindow, NULL,
+                                            GA_Selected, TRUE, TAG_END);
+                                    if (CurrentMainWindow)
+                                        SetGadgetAttrs(
+                                            (struct Gadget *)app->charsetLowerBtn,
+                                            CurrentMainWindow, NULL,
+                                            GA_Selected, FALSE, TAG_END);
+                                }
+                                break;
+                            }
+
+                            case GAD_CHARSET_LOWER:
+                            {
+                                PetsciiScreen *scr =
+                                    PetsciiProject_GetCurrentScreen(app->project);
+                                if (scr) {
+                                    scr->charset = PETSCII_CHARSET_LOWER;
+                                    app->project->modified = 1;
+                                    SetAttrs(app->charSelectorGadget,
+                                        CHSA_Charset, (ULONG)PETSCII_CHARSET_LOWER,
+                                        TAG_END);
+                                    SetAttrs(app->canvasGadget,
+                                        PCA_Dirty, (ULONG)TRUE,
+                                        TAG_END);
+                                    RefreshGList((struct Gadget *)app->canvasGadget,
+                                                 CurrentMainWindow, NULL, 1);
+                                    if (CurrentMainWindow)
+                                        SetGadgetAttrs(
+                                            (struct Gadget *)app->charsetUpperBtn,
+                                            CurrentMainWindow, NULL,
+                                            GA_Selected, FALSE, TAG_END);
+                                    if (CurrentMainWindow)
+                                        SetGadgetAttrs(
+                                            (struct Gadget *)app->charsetLowerBtn,
+                                            CurrentMainWindow, NULL,
+                                            GA_Selected, TRUE, TAG_END);
+                                }
+                                break;
+                            }
+
+                            case GAD_TOOL_UNDO:
+                                PmAction_Execute(ACTION_EDIT_UNDO, &app->actionCtx);
+                                refreshUI();
+                                break;
+
+                            case GAD_TOOL_REDO:
+                                PmAction_Execute(ACTION_EDIT_REDO, &app->actionCtx);
+                                refreshUI();
+                                break;
+
+                            case GAD_TOOL_CLEAR:
+                            {
+                                /* Snapshot before clear so it's undoable */
+                                PetsciiScreen *clrScr =
+                                    PetsciiProject_GetCurrentScreen(app->project);
+                                if (clrScr &&
+                                    app->undoBufs[app->project->currentScreen]) {
+                                    PetsciiUndoBuffer_Push(
+                                        app->undoBufs[app->project->currentScreen],
+                                        clrScr);
+                                }
+                                PmAction_Execute(ACTION_EDIT_CLEAR_SCREEN,
+                                                 &app->actionCtx);
+                                refreshUI();
+                                break;
+                            }
+
+                            default:
+                                bdbprintf("BoopsiDelay: unhandled GA_ID=%ld\n",
+                                          (long)sender_ID);
+                                break;
+                        }
+                    }
+                } /* end while BoopsiDelay_NextMessage */
+            } /* end if BoopsiDelay_HasMessages */
+
+        } /* end main loop */
+    }
+
+    return 0;
+}
+
+/* - - - - - - - - - CLEANUP - - - - - - - - - */
+
+void exitclose(void)
+{
+    flushbdbprint();
+    printf("exitclose()\n");
+
+    if (app)
+    {
+        /* Destroy undo buffers (before project, as buffers clone screens) */
+        {
+            UWORD i;
+            for (i = 0; i < PETSCII_MAX_SCREENS; i++) {
+                if (app->undoBufs[i]) {
+                    PetsciiUndoBuffer_Destroy(app->undoBufs[i]);
+                    app->undoBufs[i] = NULL;
+                }
+            }
+        }
+
+        /* Destroy project */
+        if (app->project) {
+            PetsciiProject_Destroy(app->project);
+            app->project = NULL;
+        }
+
+        /* Close menus */
+        PmMenu_Close(&app->menu, CurrentMainWindow);
+
+        /* Dispose window (cascades to all attached BOOPSI objects) */
+        if (app->window_obj) {
+            DisposeObject(app->window_obj);
+            app->window_obj = NULL;
+        }
+        CurrentMainWindow = NULL;
+
+        /* Free BOOPSI classes (instances disposed by window cascade above) */
+        PetsciiCanvas_Exit();
+        CharSelector_Exit();
+        ColorPicker_Exit();
+
+        /* Close the BOOPSI message target */
+        closeMessageTargetModel();
+
+        /* Release C64 color pens */
+        PetsciiStyle_Release(&app->style);
+
+        /* Release screen resources */
+        if (app->drawInfo)
+            FreeScreenDrawInfo(app->lockedscreen, app->drawInfo);
+        if (app->lockedscreen)
+            UnlockPubScreen(0, app->lockedscreen);
+
+        /* Delete message port */
+        if (app->app_port)
+            DeleteMsgPort(app->app_port);
+
+        FreeVec(app);
+        app = NULL;
+    }
+
+    /* Free clipboard screen */
+    if (g_clipScreen) {
+        PetsciiScreen_Destroy(g_clipScreen);
+        g_clipScreen = NULL;
+    }
+
+    /* Close locale */
+    PmLocale_Close();
+    if (LocaleBase) {
+        CloseLibrary((struct Library *)LocaleBase);
+        LocaleBase = NULL;
+    }
+
+    /* Debug leak reports */
+    bdbprintf_report_leaks();
+    bdbprintf_report_classes();
+    flushbdbprint();
+
+    /* Close all other libraries in reverse order */
+    {
+        LibraryEntry *entry;
+        int i;
+
+        for (i = 0; libraryTable[i].name != NULL; i++)
+            ;
+
+        for (i = i - 1; i >= 0; i--) {
+            entry = &libraryTable[i];
+            if (*(entry->base)) {
+                CloseLibrary(*(entry->base));
+                *(entry->base) = NULL;
+            }
+        }
+    }
+}
