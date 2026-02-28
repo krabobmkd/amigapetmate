@@ -109,7 +109,8 @@ int PetsciiFileIO_Save(const PetsciiProject *proj, const char *path)
         cJSON_AddItemToArray(framebufs, fb);
     }
 
-    jsonStr = cJSON_PrintUnformatted(root);
+    //jsonStr = cJSON_PrintUnformatted(root);
+    jsonStr = cJSON_Print(root);
     cJSON_Delete(root);
 
     if (!jsonStr) return PETSCII_FILEIO_EALLOC;

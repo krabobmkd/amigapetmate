@@ -43,6 +43,9 @@ typedef struct PetsciiCanvasData {
     /* Aspect-ratio preservation */
     BOOL              keepRatio;  /* TRUE = preserve screenbuf pixel ratio */
 
+    /* trick, kept here so it pads 4bytes */
+    BOOL              refreshExtraMarge;
+
     /* Content sub-rectangle within the gadget bounds (gadget-relative).
      * Updated by GM_LAYOUT; safety-recomputed in GM_RENDER.
      * When keepRatio=FALSE: X=0, Y=0, W/H = full gadget size.        */
@@ -54,8 +57,10 @@ typedef struct PetsciiCanvasData {
     /* Drawing tool state - set via OM_SET from the main event loop */
     UBYTE             currentTool;   /* TOOL_DRAW / TOOL_COLORIZE / ...  */
     UBYTE             selectedChar;  /* 0-255 screen code to paint        */
-    UBYTE             fgColor;       /* 0-15 foreground color             */
-    UBYTE             bgColor;       /* 0-15 background (informational)   */
+    UBYTE             fgColor;       /* 0-15 foreground color, to draw with */
+
+    /* bgColor removed, belong to struct PetsciiScreen */
+    UBYTE       dummy;
 
     /* Cursor cell (-1 = not shown); updated by input handler            */
     WORD              cursorCol;
@@ -68,6 +73,8 @@ typedef struct PetsciiCanvasData {
 
     /* Undo/redo buffer (not owned; managed by petmate.c)               */
     PetsciiUndoBuffer *undoBuf;
+
+
 } PetsciiCanvasData;
 
 /* ------------------------------------------------------------------

@@ -22,7 +22,7 @@
 #include <proto/intuition.h>
 #include <intuition/gadgetclass.h>
 #include "char_selector_private.h"
-
+#include <graphics/gfx.h>
 /* ------------------------------------------------------------------ */
 /* Static: rebuild the 128x128 native buffer from charset + style      */
 /* ------------------------------------------------------------------ */
@@ -191,32 +191,54 @@ static void updateContentRect(CharSelectorData *inst, WORD gadW, WORD gadH)
 static void drawSelection(struct RastPort *rp,
                           WORD left, WORD top,
                           WORD width, WORD height,
-                          UBYTE selectedChar)
+                          UBYTE selectedChar,
+                          int selpen)
 {
+    WORD x = (WORD)(selectedChar & 0x0F);
+    WORD y = (WORD)(selectedChar >>4);
     UBYTE savedMode;
-    WORD  cellW;
-    WORD  cellH;
+    int lw = (width>=128+64)?2:1;
     WORD  selX;
     WORD  selY;
 
-    cellW = width  / CHARSELECTOR_COLS;
-    cellH = height / CHARSELECTOR_ROWS;
-    if (cellW < 1 || cellH < 1) return;
-
-    selX = left + (WORD)(selectedChar & 0x0F) * cellW;
-    selY = top  + (WORD)(selectedChar >> 4)   * cellH;
+    WORD  cx1  = (WORD)(left + ((x*8*width)/128) )-1;
+    WORD  cy1  = (WORD)(top + ((y*8*height)/128) )-1;
+    WORD  cx2  = (WORD)(left + (((x+1)*8*width)/128) );
+    WORD  cy2  = (WORD)(top + (((y+1)*8*height)/128) );
 
     savedMode = rp->DrawMode;
-    SetDrMd(rp, COMPLEMENT);
-    SetAPen(rp, 1);
+    //SetDrMd(rp, COMPLEMENT);
+    SetAPen(rp, selpen);
+    if( lw == 1 )
+    {
+        Move(rp, (LONG)cx1, (LONG)cy1);
 
-    Move(rp, (LONG)selX,               (LONG)selY);
-    Draw(rp, (LONG)(selX + cellW - 1), (LONG)selY);
-    Draw(rp, (LONG)(selX + cellW - 1), (LONG)(selY + cellH - 1));
-    Draw(rp, (LONG)selX,               (LONG)(selY + cellH - 1));
-    Draw(rp, (LONG)selX,               (LONG)selY);
+        Draw(rp, (LONG)cx2, (LONG)cy1);
+        Draw(rp, (LONG)cx2, (LONG)cy2);
+        Draw(rp, (LONG)cx1, (LONG)cy2);
+        Draw(rp, (LONG)cx1, (LONG)cy1+1); /* do not trace 2 times the first pixel, we're in complement mode */
+    } else
+    {
+        cx1++; cy1++;
+        RectFill(rp,
+            (LONG)cx1-lw,(LONG)cy1-lw,
+            (LONG)(cx2+lw),(LONG)(cy1));
+        RectFill(rp,
+            (LONG)cx1-lw,(LONG)cy2,
+            (LONG)(cx2+lw),(LONG)(cy2+lw));
 
-    SetDrMd(rp, (LONG)savedMode);
+        RectFill(rp,
+            (LONG)cx1-lw,(LONG)cy1+1,
+            (LONG)(cx1),(LONG)(cy2+lw));
+
+        RectFill(rp,
+            (LONG)cx2,(LONG)cy1+1,
+            (LONG)(cx2+lw),(LONG)(cy2+lw));
+
+    }
+
+
+   // SetDrMd(rp, (LONG)savedMode);
 }
 
 /* ------------------------------------------------------------------ */
@@ -233,8 +255,62 @@ ULONG CharSelector_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
         updateContentRect(inst, w, h);
         ensureScaledBuf(inst, (UWORD)inst->contentW, (UWORD)inst->contentH);
     }
+    /* when a rastport is given or created rto draw on gadget,
+        It is most often delivered with no clipping at layer level.
+        Optionally during draw we can force installation of a clipping rect,
+        that will cut any graphics.library drawing cals using RastPort.
+        Here we refresh a Region geometry that is used as clipping at draw.
+      */
+    if (inst->clipRegion)
+    {
+        struct Rectangle framerect;
+        framerect.MinX = G(o)->LeftEdge + inst->contentX;
+        framerect.MinY = G(o)->TopEdge + inst->contentY;
+        framerect.MaxX = G(o)->LeftEdge + inst->contentX + inst->contentW -1;
+        framerect.MaxY = G(o)->TopEdge + inst->contentY + inst->contentH -1;
+
+        /* note you can go wild with Or/And boolean operation on geometry.
+           But a single rect (should be) enough at Gadget level.
+           Note there are issues on "Virtual.class" up to OS3.2.2 with this.
+           One of the reason we don't use Virtual.class.
+           */
+        ClearRegion(inst->clipRegion);
+        OrRectRegion(inst->clipRegion, &framerect);
+    }
+
+    inst->refreshExtraMarge = 1;
 
     return DoSuperMethodA(cl, o, (APTR)msg);
+}
+
+
+ULONG CharSelector_OnDomain(Class *cl, Object *o, struct gpDomain  *msg)
+{
+    struct IBox *domain = &msg->gpd_Domain;
+
+    // Set default dimensions
+    domain->Left = 0;
+    domain->Top = 0;
+    domain->Width = 128;  // Nominal width
+    domain->Height = 128;  // Nominal height
+
+    // Adjust based on gpd_Which
+    switch (msg->gpd_Which) {
+        case GDOMAIN_MINIMUM:
+            domain->Width = 128;
+            domain->Height = 128;
+            break;
+        case GDOMAIN_MAXIMUM:
+            domain->Width = 128*4;
+            domain->Height = 128*4;
+            break;
+        case GDOMAIN_NOMINAL:
+        default:
+            // Use default values
+            break;
+    }
+
+    return 1;
 }
 
 /* ------------------------------------------------------------------ */
@@ -273,9 +349,14 @@ ULONG CharSelector_OnRender(Class *cl, Object *o, struct gpRender *msg)
         rebuildCbuf(inst);
 
     /* Erase letterbox/pillarbox margins (no-op when keepRatio=FALSE) */
-    eraseMargins(rp, left, top, width, height,
+    if(inst->refreshExtraMarge)
+    {
+        eraseMargins(rp, left, top, width, height,
                  inst->contentX, inst->contentY,
                  inst->contentW, inst->contentH);
+
+        inst->refreshExtraMarge = 0;
+    }
 
     absX = left + inst->contentX;
     absY = top  + inst->contentY;
@@ -300,9 +381,28 @@ ULONG CharSelector_OnRender(Class *cl, Object *o, struct gpRender *msg)
     }
 
     /* Highlight the currently selected character */
-    drawSelection(rp, absX, absY,
-                  inst->contentW, inst->contentH, inst->selectedChar);
+    {
+        struct Region *oldClipRegion;
+        int nbUse[2]={0,0}; // black, white =0,nb1=0;
+        int selpen = 1;
 
+        /* use white to tell selction, but if white use dark or red */
+        if(inst->fgColor<2) nbUse[inst->fgColor]++;
+        if(inst->bgColor<2) nbUse[inst->bgColor]++;
+
+        if(nbUse[1]==0) selpen = 1;
+        else if(nbUse[0]==0)  selpen = 0;
+        else selpen = 2;
+
+        oldClipRegion = InstallClipRegion( rp->Layer, inst->clipRegion);
+
+            drawSelection(rp, absX, absY,
+                      inst->contentW, inst->contentH, inst->selectedChar,
+                      inst->style->c64pens[selpen].pen );
+
+        /* important to pass NULL if oldClipRegion was NULL.*/
+        InstallClipRegion( rp->Layer,oldClipRegion);
+    }
     return 0;
 }
 

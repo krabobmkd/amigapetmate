@@ -7,7 +7,7 @@
 #include <proto/intuition.h>
 #include <proto/utility.h>
 #include "petscii_canvas_private.h"
-
+#include <bdbprintf.h>
 ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg);
 /* ------------------------------------------------------------------ */
 /* OM_NEW                                                               */
@@ -47,6 +47,7 @@ ULONG PetsciiCanvas_OnNew(Class *cl, Object *o, struct opSet *msg)
     inst->scaledW    = 0;
     inst->scaledH    = 0;
     inst->keepRatio  = FALSE;
+    inst->refreshExtraMarge = 0;
     inst->contentX   = 0;
     inst->contentY   = 0;
     inst->contentW   = 0;
@@ -56,7 +57,7 @@ ULONG PetsciiCanvas_OnNew(Class *cl, Object *o, struct opSet *msg)
     inst->currentTool   = TOOL_DRAW;
     inst->selectedChar  = 32;   /* space */
     inst->fgColor       = 14;   /* C64_LIGHTBLUE */
-    inst->bgColor       = 6;    /* C64_BLUE */
+    screen->backgroundColor = 6;    /* C64_BLUE */
 
     /* Cursor not shown until input begins */
     inst->cursorCol     = -1;
@@ -119,7 +120,7 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
     PetsciiCanvasData *inst;
     struct TagItem    *state;
     struct TagItem    *tag;
-    ULONG              result=0;
+    ULONG              result=0,redraw=0;
     ULONG              newPixW;
     ULONG              newPixH;
 
@@ -195,12 +196,20 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
 
             case PCA_FgColor:
                 inst->fgColor = (UBYTE)tag->ti_Data;
-                result = 1;
+                result = 1; /* no need for redraw, just change the drawing prefs */
                 break;
 
             case PCA_BgColor:
-                inst->bgColor = (UBYTE)tag->ti_Data;
-                result = 1;
+                if(inst->screen)
+                {
+                    if(inst->screen->backgroundColor != (UBYTE)tag->ti_Data)
+                    {
+                        inst->screen->backgroundColor = (UBYTE)tag->ti_Data;
+                        if(inst->screenbuf) inst->screenbuf->valid = 0;
+                        redraw = 1; /* need a total redraw, background color affect all */
+                    }
+                }
+                result = 1;                
                 break;
 
             case PCA_UndoBuffer:
@@ -210,6 +219,29 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
 
             default:
                 break;
+        }
+    }
+   /* I'm not fan of sending redraws under setAttribs,
+     * because render are better send up down on the right process.
+     * any process or context can originate a SetAttrs() or SetGAdgetAttrs()
+     * would be better trigger an external redraw event up->down from the process.
+     * Yet, sending redraw under Setttrs is the documented way,
+     * Even if it's very clear that is generate bugs when done from HandleInput.
+     * well let's go.... */
+    if(redraw && msg->ops_GInfo)
+    {
+        struct RastPort *rp = ObtainGIRPort(msg->ops_GInfo);
+        if (rp)
+        {
+            struct gpRender  renderMsg;
+            renderMsg.MethodID   = GM_RENDER;
+            renderMsg.gpr_GInfo  = msg->ops_GInfo;
+            renderMsg.gpr_RPort  = rp;
+            renderMsg.gpr_Redraw = GREDRAW_UPDATE;
+
+            DoMethodA(o, (Msg)&renderMsg);
+
+            ReleaseGIRPort(rp);
         }
     }
 
@@ -251,9 +283,12 @@ ULONG PetsciiCanvas_OnGet(Class *cl, Object *o, struct opGet *msg)
             return TRUE;
 
         case PCA_BgColor:
-            *msg->opg_Storage = (ULONG)inst->bgColor;
-            return TRUE;
-
+            if(inst->screen)
+            {
+                *msg->opg_Storage = (ULONG)inst->screen->backgroundColor;
+                return TRUE;
+            } else
+            return FALSE;
         case PCA_CursorCol:
             *msg->opg_Storage = (ULONG)(LONG)inst->cursorCol;
             return TRUE;

@@ -11,6 +11,39 @@
 #include <intuition/gadgetclass.h>
 #include "color_picker_private.h"
 
+
+
+
+ULONG ColorPicker_OnDomain(Class *cl, Object *o, struct gpDomain  *msg)
+{
+    struct IBox *domain = &msg->gpd_Domain;
+
+    // Set default dimensions
+    domain->Left = 0;
+    domain->Top = 0;
+    domain->Width = 128;  // Nominal width
+    domain->Height = 128;  // Nominal height
+
+    // Adjust based on gpd_Which
+    switch (msg->gpd_Which) {
+        case GDOMAIN_MINIMUM:
+            domain->Width = 128;
+            domain->Height = 128;
+            break;
+        case GDOMAIN_MAXIMUM:
+            domain->Width = 128*4;
+            domain->Height = 128*4;
+            break;
+        case GDOMAIN_NOMINAL:
+        default:
+            // Use default values
+            break;
+    }
+
+    return 1;
+}
+
+
 /* ------------------------------------------------------------------ */
 /* GM_RENDER                                                            */
 /* ------------------------------------------------------------------ */

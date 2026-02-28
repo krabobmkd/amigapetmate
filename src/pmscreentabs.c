@@ -12,6 +12,9 @@
 #include <gadgets/button.h>
 #include <clib/alib_protos.h>
 
+#include <intuition/icclass.h>
+
+#include "boopsimessage.h"
 #include "pmscreentabs.h"
 #include "gadgetid.h"
 
@@ -28,8 +31,7 @@ static const char *tabLabels[SCREENTABS_MAX] = {
 /* PmScreenTabs_Create                                                  */
 /* ------------------------------------------------------------------ */
 
-int PmScreenTabs_Create(PmScreenTabs *st, UWORD screenCount,
-                         struct DrawInfo *di)
+int PmScreenTabs_Create(PmScreenTabs *st, UWORD screenCount)
 {
     int i;
     Object *lo;
@@ -45,7 +47,9 @@ int PmScreenTabs_Create(PmScreenTabs *st, UWORD screenCount,
 
         st->tabs[i] = (Object *)NewObject(BUTTON_GetClass(), NULL,
             GA_ID,       (ULONG)(GAD_SCREENTAB_FIRST + i),
-            GA_DrawInfo, (ULONG)di,
+            ICA_TARGET,TargetInstance,
+            BUTTON_PushButton,TRUE,
+            GA_RELVERIFY, TRUE, /* want gadget up events */
             GA_Disabled, (ULONG)(!enabled),
             GA_Selected, (ULONG)selected,
             GA_Text,     (ULONG)tabLabels[i],
@@ -56,7 +60,6 @@ int PmScreenTabs_Create(PmScreenTabs *st, UWORD screenCount,
 
     /* Build HLayout - all tabs equal width */
     lo = (Object *)NewObject(LAYOUT_GetClass(), NULL,
-        GA_DrawInfo,         (ULONG)di,
         LAYOUT_Orientation,  LAYOUT_ORIENT_HORIZ,
         LAYOUT_InnerSpacing, 1,
         LAYOUT_BevelStyle,   BVS_SBAR_VERT,
@@ -81,27 +84,28 @@ int PmScreenTabs_Create(PmScreenTabs *st, UWORD screenCount,
 /* ------------------------------------------------------------------ */
 
 void PmScreenTabs_Update(PmScreenTabs *st, UWORD screenCount,
-                          UWORD currentScreen, struct Window *win)
+                          UWORD currentScreen, struct Window *win, int alsoCurrent)
 {
     int i;
 
     if (!st) return;
 
     for (i = 0; i < SCREENTABS_MAX; i++) {
-        BOOL enabled  = (UWORD)i < screenCount;
+        BOOL disabled  = (UWORD)(i >= screenCount);
         BOOL selected = ((UWORD)i == currentScreen);
-
         if (!st->tabs[i]) continue;
+        if (
+            !alsoCurrent && selected) continue;
 
         if (win) {
             SetGadgetAttrs((struct Gadget *)st->tabs[i], win, NULL,
-                GA_Disabled, (ULONG)(!enabled),
-                GA_Selected, (ULONG)selected,
+                GA_Disabled, (ULONG)(disabled),
+                GA_Selected,(ULONG)selected ,
                 TAG_END);
         } else {
             SetAttrs(st->tabs[i],
-                GA_Disabled, (ULONG)(!enabled),
-                GA_Selected, (ULONG)selected,
+                GA_Disabled, (ULONG)(disabled),
+                GA_Selected,(ULONG)selected,
                 TAG_END);
         }
     }

@@ -15,13 +15,16 @@
 #include <intuition/classes.h>
 
 /* Grid geometry */
-#define COLORPICKER_COLS  4
-#define COLORPICKER_ROWS  4
+//#define COLORPICKER_COLS  4
+//#define COLORPICKER_ROWS  4
+#define COLORPICKER_COLS  8
+#define COLORPICKER_ROWS  2
 
 /* Attribute tags */
 #define CPA_Dummy         (TAG_USER | 0x0300)
 #define CPA_Style         (CPA_Dummy + 1)   /* PetsciiStyle * (not owned) */
 #define CPA_SelectedColor (CPA_Dummy + 2)   /* UBYTE 0..15                */
+#define CPA_ColorsPerWidth (CPA_Dummy + 3)   /* 4 or 8   */
 
 extern Class *ColorPickerClass;
 

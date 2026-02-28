@@ -11,11 +11,11 @@
  */
 static const char *defaultStrings[MSG_COUNT] = {
     /* MSG_WINDOW_TITLE = 0 */
-    "Petmate",
+    "PetMate",
     /* MSG_ABOUT_TITLE */
-    "About Petmate",
+    "About PetMate",
     /* MSG_ABOUT_TEXT */
-    "Petmate - C64 PETSCII Art Editor\nAmiga port v0.1",
+    "PetMate - C64 PETSCII Art Editor\nAmiga port v0.1",
 
     /* MSG_MENU_PROJECT */
     "Project",
@@ -86,6 +86,13 @@ static const char *defaultStrings[MSG_COUNT] = {
     /* MSG_PALETTE_VICE */
     "VICE",
 
+    "Draw Color",
+    "Background Color",
+    "Border Color",
+     // MSG_LABEL_DRAWCOLOR,
+     // MSG_LABEL_BACKGROUNDCOLOR,
+     // MSG_LABEL_BORDERCOLOR,
+
     /* MSG_STATUS_READY */
     "Ready",
     /* MSG_STATUS_LOADING */
@@ -105,11 +112,11 @@ static const char *defaultStrings[MSG_COUNT] = {
     "Invalid file format",
 
     /* MSG_TOOL_DRAW */
-    "Draw",
+    "Char & Color",
     /* MSG_TOOL_COLORIZE */
-    "Color",
+    "Color only",
     /* MSG_TOOL_CHARDRAW */
-    "Char",
+    "Char only",
     /* MSG_TOOL_BRUSH */
     "Brush",
     /* MSG_TOOL_TEXT */

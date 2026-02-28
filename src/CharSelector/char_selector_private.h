@@ -19,6 +19,8 @@
 
 typedef struct CharSelectorData {
     PetsciiStyle *style;
+    struct Region *clipRegion;
+
     UBYTE         charset;       /* PETSCII_CHARSET_UPPER or _LOWER */
     UBYTE         fgColor;       /* 0-15 */
     UBYTE         bgColor;       /* 0-15 */
@@ -44,12 +46,18 @@ typedef struct CharSelectorData {
     WORD          contentY;
     WORD          contentW;
     WORD          contentH;
+
+    /* draw optimisation */
+    BOOL              refreshExtraMarge;
+
+
 } CharSelectorData;
 
 ULONG CharSelector_OnNew        (Class *cl, Object *o, struct opSet     *msg);
 ULONG CharSelector_OnDispose    (Class *cl, Object *o, Msg               msg);
 ULONG CharSelector_OnSet        (Class *cl, Object *o, struct opSet     *msg);
 ULONG CharSelector_OnGet        (Class *cl, Object *o, struct opGet     *msg);
+ULONG CharSelector_OnDomain     (Class *cl, Object *o, struct gpDomain  *msg);
 ULONG CharSelector_OnRender     (Class *cl, Object *o, struct gpRender  *msg);
 ULONG CharSelector_OnLayout     (Class *cl, Object *o, struct gpLayout  *msg);
 ULONG CharSelector_OnHitTest    (Class *cl, Object *o, struct gpHitTest *msg);

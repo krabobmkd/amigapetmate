@@ -27,13 +27,12 @@ typedef struct PmScreenTabs {
 /* Build the tab layout.
  * screenCount: how many screens are in the project (1..SCREENTABS_MAX).
  * Returns 1 on success, 0 on failure. */
-int  PmScreenTabs_Create(PmScreenTabs *st, UWORD screenCount,
-                          struct DrawInfo *di);
+int  PmScreenTabs_Create(PmScreenTabs *st, UWORD screenCount);
 
 /* Refresh enabled/disabled state and selected highlight.
  * Call after any screen-count or current-screen change.
  * win may be NULL if the window is not yet open. */
 void PmScreenTabs_Update(PmScreenTabs *st, UWORD screenCount,
-                          UWORD currentScreen, struct Window *win);
+                          UWORD currentScreen, struct Window *win, int alsoCurrent);
 
 #endif /* PMSCREENTABS_H */

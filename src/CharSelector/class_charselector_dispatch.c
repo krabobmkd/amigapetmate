@@ -22,6 +22,8 @@ ULONG ASM SAVEDS CharSelector_Dispatch(
             return result | CharSelector_OnSet(cl, o, (struct opSet *)msg);
         }
         case OM_GET:          return CharSelector_OnGet(cl, o, (struct opGet *)msg);
+
+        case GM_DOMAIN:       return CharSelector_OnDomain(cl, o, (struct gpDomain *)msg);
         case GM_RENDER:       return CharSelector_OnRender(cl, o, (struct gpRender *)msg);
         case GM_LAYOUT:       return CharSelector_OnLayout(cl, o, (struct gpLayout *)msg);
         case GM_HITTEST:      return CharSelector_OnHitTest(cl, o, (struct gpHitTest *)msg);

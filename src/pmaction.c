@@ -52,7 +52,7 @@ static BOOL confirmDiscard(PmActionContext *ctx)
 {
     static struct EasyStruct es = {
         sizeof(struct EasyStruct), 0,
-        (STRPTR)"Petmate",
+        (STRPTR)"PetMate",
         (STRPTR)"Save changes to the current project?",
         (STRPTR)"Save|Discard|Cancel"
     };
@@ -139,7 +139,7 @@ BOOL Action_ProjectOpen(PmActionContext *ctx)
 
     if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
 
-    if (!confirmDiscard(ctx)) return FALSE;
+ //   if (!confirmDiscard(ctx)) return FALSE;
 
     if (!aslFileRequest(FALSE, pathbuf)) return FALSE; /* user cancelled */
 

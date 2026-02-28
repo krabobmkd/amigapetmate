@@ -33,6 +33,7 @@ ULONG ColorPicker_OnNew(Class *cl, Object *o, struct opSet *msg)
     inst                = (ColorPickerData *)INST_DATA(cl, newObj);
     inst->style         = style;
     inst->selectedColor = selectedColor;
+    inst->ColorsPerWidth = 8;
 
     return (ULONG)newObj;
 }

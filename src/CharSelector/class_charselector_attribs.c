@@ -4,9 +4,10 @@
 
 #include <proto/exec.h>
 #include <proto/intuition.h>
+#include <proto/graphics.h>
 #include <proto/utility.h>
 #include "char_selector_private.h"
-
+#include <bdbprintf.h>
 #define CBUF_SIZE  ((ULONG)CHARSELECTOR_NATIVE_W * CHARSELECTOR_NATIVE_H)
 
 ULONG CharSelector_OnSet(Class *cl, Object *o, struct opSet *msg);
@@ -31,6 +32,7 @@ ULONG CharSelector_OnNew(Class *cl, Object *o, struct opSet *msg)
 
     inst               = (CharSelectorData *)INST_DATA(cl, newObj);
     inst->style        = NULL;
+    inst->clipRegion   =  NewRegion();
     inst->charset      = 0;//charset;
     inst->fgColor      = 1;
     inst->bgColor      = 0;
@@ -67,6 +69,7 @@ ULONG CharSelector_OnDispose(Class *cl, Object *o, Msg msg)
 
     if (inst->cbuf)      { FreeVec(inst->cbuf);      inst->cbuf      = NULL; }
     if (inst->scaledBuf) { FreeVec(inst->scaledBuf); inst->scaledBuf = NULL; }
+    if (inst->clipRegion) { DisposeRegion(inst->clipRegion); inst->clipRegion = NULL; }
 
     return DoSuperMethodA(cl, o, (APTR)msg);
 }
@@ -81,6 +84,7 @@ ULONG CharSelector_OnSet(Class *cl, Object *o, struct opSet *msg)
     struct TagItem   *state;
     struct TagItem   *tag;
     ULONG             result = 0;
+    ULONG           redraw = 0;
 
     inst   = (CharSelectorData *)INST_DATA(cl, o);
     state  = msg->ops_AttrList;
@@ -93,31 +97,46 @@ ULONG CharSelector_OnSet(Class *cl, Object *o, struct opSet *msg)
                 inst->style  = (PetsciiStyle *)tag->ti_Data;
                 inst->valid  = 0;
                 result = 1;
+                redraw = 1;
                 break;
             case CHSA_Charset:
-                inst->charset = (UBYTE)tag->ti_Data;
-                inst->valid   = 0;
+                if(inst->charset != (UBYTE)tag->ti_Data)
+                {
+                    inst->charset = (UBYTE)tag->ti_Data;
+                    inst->valid   = 0;
+                    redraw = 1;
+                }
                 result = 1;
                 break;
             case CHSA_FgColor:
-                inst->fgColor = (UBYTE)tag->ti_Data;
+                if(inst->fgColor != (UBYTE)tag->ti_Data)
+                {
+                    inst->fgColor = (UBYTE)tag->ti_Data;
+                    redraw = 1;
+                }
                 inst->valid   = 0;
                 result = 1;
                 break;
             case CHSA_BgColor:
-                inst->bgColor = (UBYTE)tag->ti_Data;
-                inst->valid   = 0;
+                if(inst->bgColor != (UBYTE)tag->ti_Data)
+                {
+                    inst->bgColor = (UBYTE)tag->ti_Data;
+                    redraw = 1;
+                }
+                inst->valid = 0;
                 result = 1;
                 break;
             case CHSA_SelectedChar:
                 inst->selectedChar = (UBYTE)tag->ti_Data;
                 result = 1;
+                redraw = 1;
                 break;
             case CHSA_Dirty:
                 if (tag->ti_Data)
                 {
                     inst->valid = 0;
                     result = 1;
+                    redraw = 1;
                 }
                 break;
             case CHSA_KeepRatio:
@@ -132,6 +151,29 @@ ULONG CharSelector_OnSet(Class *cl, Object *o, struct opSet *msg)
                 break;
             default:
                 break;
+        }
+    }
+    /* I'm not fan of sending redraws under setAttribs,
+     * because render are better send up down on the right process.
+     * any process or context can originate a SetAttrs() or SetGAdgetAttrs()
+     * would be better trigger an external redraw event up->down from the process.
+     * Yet, sending redraw under Setttrs is the documented way,
+     * Even if it's very clear that is generate bugs when done from HandleInput.
+     * well let's go.... */
+    if(redraw && msg->ops_GInfo)
+    {
+        struct RastPort *rp = ObtainGIRPort(msg->ops_GInfo);
+        if (rp)
+        {
+            struct gpRender  renderMsg;
+            renderMsg.MethodID   = GM_RENDER;
+            renderMsg.gpr_GInfo  = msg->ops_GInfo;
+            renderMsg.gpr_RPort  = rp;
+            renderMsg.gpr_Redraw = GREDRAW_UPDATE;
+
+            DoMethodA(o, (Msg)&renderMsg);
+
+            ReleaseGIRPort(rp);
         }
     }
 

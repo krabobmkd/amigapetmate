@@ -35,7 +35,7 @@
 #include <proto/intuition.h>
 #include <intuition/gadgetclass.h>
 #include "petscii_canvas_private.h"
-
+#include <bdbprintf.h>
 /* ------------------------------------------------------------------ */
 /* Static: ensure inst->scaledBuf is (w x h) bytes.                   */
 /* ------------------------------------------------------------------ */
@@ -205,24 +205,34 @@ static void updateContentRect(PetsciiCanvasData *inst, WORD gadW, WORD gadH)
 static void drawGrid(struct RastPort *rp,
                      WORD left, WORD top,
                      WORD width, WORD height,
-                     WORD cellW, WORD cellH)
+                     PetsciiCanvasData *inst
+                     )
 {
     UBYTE savedMode;
-    WORD  x;
-    WORD  y;
+    WORD  x=0;
+    WORD  y=0;
 
     savedMode = rp->DrawMode;
     SetDrMd(rp, COMPLEMENT);
     SetAPen(rp, 1);
 
-    for (x = left + cellW; x < left + width; x = (WORD)(x + cellW)) {
-        Move(rp, (LONG)x, (LONG)top);
-        Draw(rp, (LONG)x, (LONG)(top + height - 1));
+    while(1) {
+        WORD  xx  = (WORD)(left + ((x*8*width)/inst->screenbuf->pixW) );
+        if(xx>=(left+width)) break;
+
+        Move(rp, (LONG)xx, (LONG)top);
+        Draw(rp, (LONG)xx, (LONG)(top + height - 1));
+
+        x++;
     }
 
-    for (y = top + cellH; y < top + height; y = (WORD)(y + cellH)) {
-        Move(rp, (LONG)left, (LONG)y);
-        Draw(rp, (LONG)(left + width - 1), (LONG)y);
+   while(1) {
+        WORD  yy  = (WORD)(top + ((y*8*height)/inst->screenbuf->pixH) );
+        if(yy>=(top+height)) break;
+
+        Move(rp, (LONG)left, (LONG)yy);
+        Draw(rp, (LONG)(left + width - 1), (LONG)yy);
+        y++;
     }
 
     SetDrMd(rp, (LONG)savedMode);
@@ -242,6 +252,7 @@ ULONG PetsciiCanvas_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
         updateContentRect(inst, w, h);
         ensureScaledBuf(inst, (UWORD)inst->contentW, (UWORD)inst->contentH);
     }
+    inst->refreshExtraMarge = 1;
 
     return DoSuperMethodA(cl, o, (APTR)msg);
 }
@@ -299,9 +310,12 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
         WORD outerH = (WORD)(inst->contentH + 2 * cellH);
 
         /* Erase letterbox/pillarbox strips OUTSIDE the outer frame */
-        eraseMargins(rp, left, top, width, height,
-                     outerX, outerY, outerW, outerH);
-
+        if(inst->refreshExtraMarge)
+        {
+            eraseMargins(rp, left, top, width, height,
+                         outerX, outerY, outerW, outerH);
+            inst->refreshExtraMarge = 0;
+        }
         /* Fill the four C64 border strips with the border pen.
          * PetsciiStyle_Pen maps C64 color index -> Amiga screen pen.  */
         if (cellW >= 1 && cellH >= 1) {
@@ -369,21 +383,26 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
     /* Character grid overlay (inside inner content rect only) */
     if (inst->showGrid && cellW >= 2 && cellH >= 2) {
         drawGrid(rp, absX, absY,
-                 inst->contentW, inst->contentH, cellW, cellH);
+                 inst->contentW, inst->contentH, inst);
     }
 
     /* Cursor highlight: complement box drawn around current cell */
     if (inst->cursorCol >= 0 && inst->cursorRow >= 0 && cellW >= 1 && cellH >= 1) {
-        WORD  cx2  = (WORD)(absX + inst->cursorCol * cellW);
-        WORD  cy2  = (WORD)(absY + inst->cursorRow * cellH);
+        // WORD  cx2  = (WORD)(absX + inst->cursorCol * cellW);
+        // WORD  cy2  = (WORD)(absY + inst->cursorRow * cellH);
+        WORD  cx1  = (WORD)(absX + ((inst->cursorCol*8*inst->contentW)/inst->screenbuf->pixW) )-1;
+        WORD  cy1  = (WORD)(absY + ((inst->cursorRow*8*inst->contentH)/inst->screenbuf->pixH) )-1;
+        WORD  cx2  = (WORD)(absX + (((inst->cursorCol+1)*8*inst->contentW)/inst->screenbuf->pixW) );
+        WORD  cy2  = (WORD)(absY + (((inst->cursorRow+1)*8*inst->contentH)/inst->screenbuf->pixH) );
+
         UBYTE saved = rp->DrawMode;
         SetDrMd(rp, COMPLEMENT);
         SetAPen(rp, 1);
-        Move(rp, (LONG)cx2,             (LONG)cy2);
-        Draw(rp, (LONG)(cx2 + cellW-1), (LONG)cy2);
-        Draw(rp, (LONG)(cx2 + cellW-1), (LONG)(cy2 + cellH-1));
-        Draw(rp, (LONG)cx2,             (LONG)(cy2 + cellH-1));
-        Draw(rp, (LONG)cx2,             (LONG)cy2);
+        Move(rp, (LONG)cx1,             (LONG)cy1);
+        Draw(rp, (LONG)cx2, (LONG)cy1);
+        Draw(rp, (LONG)cx2, (LONG)cy2);
+        Draw(rp, (LONG)cx1, (LONG)cy2);
+        Draw(rp, (LONG)cx1, (LONG)cy1+1); /* do not trace 2 times the first pixel, we're in complement mode */
         SetDrMd(rp, (LONG)saved);
     }
 

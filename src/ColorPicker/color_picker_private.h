@@ -26,6 +26,8 @@
 typedef struct ColorPickerData {
     PetsciiStyle *style;          /* colour palette (not owned) */
     UBYTE         selectedColor;  /* currently selected C64 colour index 0..15 */
+    UBYTE         ColorsPerWidth;
+
 } ColorPickerData;
 
 /* ------------------------------------------------------------------

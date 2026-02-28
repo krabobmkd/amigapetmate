@@ -60,6 +60,11 @@ enum {
     MSG_PALETTE_PEPTO,
     MSG_PALETTE_VICE,
 
+     /* Labels */
+     MSG_LABEL_DRAWCOLOR,
+     MSG_LABEL_BACKGROUNDCOLOR,
+     MSG_LABEL_BORDERCOLOR,
+
     /* Status messages */
     MSG_STATUS_READY,
     MSG_STATUS_LOADING,

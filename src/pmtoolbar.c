@@ -11,10 +11,14 @@
 #include <gadgets/button.h>
 #include <clib/alib_protos.h>
 
+#include <intuition/icclass.h>
+
+#include "boopsimessage.h"
 #include "pmtoolbar.h"
 #include "pmlocale.h"
 #include "gadgetid.h"
 #include "petscii_types.h"
+
 
 /* Library bases declared in petmate.c */
 extern struct Library *LayoutBase;
@@ -24,13 +28,25 @@ extern struct Library *ButtonBase;
 /* Static helper: create one labeled button                            */
 /* ------------------------------------------------------------------ */
 
-static Object *makeBtn(struct DrawInfo *di, ULONG gadID,
+static Object *makeBtnSwitch( ULONG gadID,
                        const char *label, BOOL selected)
 {
     return (Object *)NewObject(BUTTON_GetClass(), NULL,
         GA_ID,       gadID,
-        GA_DrawInfo, (ULONG)di,
+        BUTTON_PushButton, TRUE, /*toggle*/
+        ICA_TARGET,TargetInstance,
         GA_Selected, (ULONG)selected,
+        GA_Text,     (ULONG)label,
+        TAG_END);
+}
+/* thise buttons send gadgetup events */
+static Object *makeBtnActionUp( ULONG gadID,
+                       const char *label)
+{
+    return (Object *)NewObject(BUTTON_GetClass(), NULL,
+        GA_ID,       gadID,
+        GA_RelVerify, TRUE, /* needed for gadgetUp event */
+        ICA_TARGET,TargetInstance,
         GA_Text,     (ULONG)label,
         TAG_END);
 }
@@ -39,7 +55,7 @@ static Object *makeBtn(struct DrawInfo *di, ULONG gadID,
 /* PmToolbar_Create                                                    */
 /* ------------------------------------------------------------------ */
 
-int PmToolbar_Create(PmToolbar *tb, struct DrawInfo *di)
+int PmToolbar_Create(PmToolbar *tb)
 {
     Object *toolGroup;
     Object *actionGroup;
@@ -53,21 +69,21 @@ int PmToolbar_Create(PmToolbar *tb, struct DrawInfo *di)
     tb->layout   = NULL;
 
     /* Tool buttons (TOOL_DRAW is initially selected) */
-    tb->toolBtns[TOOL_DRAW]     = makeBtn(di, GAD_TOOL_DRAW,
+    tb->toolBtns[TOOL_DRAW]     = makeBtnSwitch( GAD_TOOL_DRAW,
                                            LOC(MSG_TOOL_DRAW),     TRUE);
-    tb->toolBtns[TOOL_COLORIZE] = makeBtn(di, GAD_TOOL_COLORIZE,
+    tb->toolBtns[TOOL_COLORIZE] = makeBtnSwitch( GAD_TOOL_COLORIZE,
                                            LOC(MSG_TOOL_COLORIZE), FALSE);
-    tb->toolBtns[TOOL_CHARDRAW] = makeBtn(di, GAD_TOOL_CHARDRAW,
+    tb->toolBtns[TOOL_CHARDRAW] = makeBtnSwitch( GAD_TOOL_CHARDRAW,
                                            LOC(MSG_TOOL_CHARDRAW), FALSE);
-    tb->toolBtns[TOOL_BRUSH]    = makeBtn(di, GAD_TOOL_BRUSH,
+    tb->toolBtns[TOOL_BRUSH]    = makeBtnSwitch( GAD_TOOL_BRUSH,
                                            LOC(MSG_TOOL_BRUSH),    FALSE);
-    tb->toolBtns[TOOL_TEXT]     = makeBtn(di, GAD_TOOL_TEXT,
+    tb->toolBtns[TOOL_TEXT]     = makeBtnSwitch( GAD_TOOL_TEXT,
                                            LOC(MSG_TOOL_TEXT),     FALSE);
 
     /* Action buttons */
-    tb->undoBtn  = makeBtn(di, GAD_TOOL_UNDO,  LOC(MSG_EDIT_UNDO), FALSE);
-    tb->redoBtn  = makeBtn(di, GAD_TOOL_REDO,  LOC(MSG_EDIT_REDO), FALSE);
-    tb->clearBtn = makeBtn(di, GAD_TOOL_CLEAR, LOC(MSG_BTN_CLEAR), FALSE);
+    tb->undoBtn  = makeBtnActionUp( GAD_TOOL_UNDO,  LOC(MSG_EDIT_UNDO));
+    tb->redoBtn  = makeBtnActionUp( GAD_TOOL_REDO,  LOC(MSG_EDIT_REDO));
+    tb->clearBtn = makeBtnActionUp( GAD_TOOL_CLEAR, LOC(MSG_BTN_CLEAR));
 
     /* Verify all objects were created */
     for (i = 0; i < TOOLBAR_TOOL_COUNT; i++) {
@@ -77,7 +93,7 @@ int PmToolbar_Create(PmToolbar *tb, struct DrawInfo *di)
 
     /* Tool group VLayout */
     toolGroup = (Object *)NewObject(LAYOUT_GetClass(), NULL,
-        GA_DrawInfo,         (ULONG)di,
+
         LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
         LAYOUT_InnerSpacing, 1,
 
@@ -97,7 +113,7 @@ int PmToolbar_Create(PmToolbar *tb, struct DrawInfo *di)
 
     /* Action group VLayout */
     actionGroup = (Object *)NewObject(LAYOUT_GetClass(), NULL,
-        GA_DrawInfo,         (ULONG)di,
+
         LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
         LAYOUT_InnerSpacing, 1,
 
@@ -113,7 +129,7 @@ int PmToolbar_Create(PmToolbar *tb, struct DrawInfo *di)
 
     /* Outer VLayout: tool group then action group, filler eats remaining */
     tb->layout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
-        GA_DrawInfo,         (ULONG)di,
+
         LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
         LAYOUT_InnerSpacing, 2,
 
@@ -135,16 +151,34 @@ int PmToolbar_Create(PmToolbar *tb, struct DrawInfo *di)
 
 void PmToolbar_SetActiveTool(PmToolbar *tb, UBYTE tool, struct Window *win)
 {
+    /* really just unselect the other  */
     int i;
     for (i = 0; i < TOOLBAR_TOOL_COUNT; i++) {
         if (!tb->toolBtns[i]) continue;
+        if(i == (int)tool) continue;
+
         if (win)
             SetGadgetAttrs((struct Gadget *)tb->toolBtns[i], win, NULL,
-                           GA_Selected, (ULONG)(i == (int)tool),
+                           GA_Selected, FALSE,
                            TAG_END);
         else
             SetAttrs(tb->toolBtns[i],
-                     GA_Selected, (ULONG)(i == (int)tool),
+                     GA_Selected,FALSE,
                      TAG_END);
     }
+}
+/* just so the selected tool doesnt toggle up when reclicked. */
+void PmToolbar_ForceDownTrick(PmToolbar *tb, UBYTE tool, struct Window *win)
+{
+    if(tool>=TOOLBAR_TOOL_COUNT) return;
+    if (!tb->toolBtns[tool]) return;
+
+    if (win)
+        SetGadgetAttrs((struct Gadget *)tb->toolBtns[tool], win, NULL,
+                       GA_Selected, TRUE,
+                       TAG_END);
+    else
+        SetAttrs(tb->toolBtns[tool],
+                 GA_Selected,TRUE,
+                 TAG_END);
 }

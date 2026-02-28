@@ -70,6 +70,8 @@
 /* Phase 9 */
 #include "petscii_fileio.h"
 
+#include <stdio.h>
+
 INLINE struct Window *boopsi_OpenWindow(Object *owin) {
     return (struct Window *)DoMethod(owin, WM_OPEN, NULL);
 }
@@ -126,7 +128,6 @@ struct App {
     Object *window_obj;
     struct MsgPort *app_port;
     struct Screen *lockedscreen;
-    struct DrawInfo *drawInfo;
 
     Object *mainvlayout;
 
@@ -227,7 +228,7 @@ static void refreshUI(void)
     PmScreenTabs_Update(&app->screenTabs,
                         app->project->screenCount,
                         app->project->currentScreen,
-                        CurrentMainWindow);
+                        CurrentMainWindow,1);
 
     /* Sync toolbar selected tool */
     PmToolbar_SetActiveTool(&app->toolbar,
@@ -322,7 +323,6 @@ int main(int argc, char **argv)
     app->lockedscreen = LockPubScreen(NULL);
     if (!app->lockedscreen) cleanexit("Can't lock screen");
 
-    app->drawInfo = GetScreenDrawInfo(app->lockedscreen);
 
     /* Initialize style from the project's current palette and obtain pens */
     PetsciiStyle_Init(&app->style, app->project->currentPalette);
@@ -352,7 +352,6 @@ int main(int argc, char **argv)
     /* Create canvas gadget for the main editing area */
     app->canvasGadget = (Object *)NewObject(PetsciiCanvasClass, NULL,
         GA_ID,           (ULONG)GAD_CANVAS,
-        GA_DrawInfo,     (ULONG)app->drawInfo,
         PCA_Screen,      (ULONG)app->project->screens[0],
         PCA_Style,       (ULONG)&app->style,
         PCA_ZoomLevel,   (ULONG)1,
@@ -369,7 +368,6 @@ int main(int argc, char **argv)
     /* Create character selector gadget */
     app->charSelectorGadget = (Object *)NewObject(CharSelectorClass, NULL,
         GA_ID,             (ULONG)GAD_CHARSELECTOR,
-        GA_DrawInfo,       (ULONG)app->drawInfo,
         ICA_TARGET,        (ULONG)TargetInstance,
         CHSA_Style,        (ULONG)&app->style,
         CHSA_Charset,      (ULONG)app->project->screens[0]->charset,
@@ -383,7 +381,6 @@ int main(int argc, char **argv)
     /* Create foreground colour picker gadget */
     app->colorPickerFgGadget = (Object *)NewObject(ColorPickerClass, NULL,
         GA_ID,             (ULONG)GAD_COLORPICKER_FG,
-        GA_DrawInfo,       (ULONG)app->drawInfo,
         ICA_TARGET,        (ULONG)TargetInstance,
         CPA_Style,         (ULONG)&app->style,
         CPA_SelectedColor, (ULONG)app->toolState.fgColor,
@@ -393,7 +390,7 @@ int main(int argc, char **argv)
     /* Create background colour picker gadget */
     app->colorPickerBgGadget = (Object *)NewObject(ColorPickerClass, NULL,
         GA_ID,             (ULONG)GAD_COLORPICKER_BG,
-        GA_DrawInfo,       (ULONG)app->drawInfo,
+
         ICA_TARGET,        (ULONG)TargetInstance,
         CPA_Style,         (ULONG)&app->style,
         CPA_SelectedColor, (ULONG)app->toolState.bgColor,
@@ -401,17 +398,17 @@ int main(int argc, char **argv)
     if (!app->colorPickerBgGadget) cleanexit("Can't create bg color picker");
 
     /* Phase 7: create toolbar and screen-tab bar */
-    if (!PmToolbar_Create(&app->toolbar, app->drawInfo))
+    if (!PmToolbar_Create(&app->toolbar))
         cleanexit("Can't create toolbar");
 
-    if (!PmScreenTabs_Create(&app->screenTabs, app->project->screenCount,
-                              app->drawInfo))
+    if (!PmScreenTabs_Create(&app->screenTabs, app->project->screenCount))
         cleanexit("Can't create screen tabs");
 
     /* Charset toggle buttons (placed at bottom of right panel) */
     app->charsetUpperBtn = (Object *)NewObject(BUTTON_GetClass(), NULL,
         GA_ID,       (ULONG)GAD_CHARSET_UPPER,
-        GA_DrawInfo, (ULONG)app->drawInfo,
+        BUTTON_PushButton, TRUE, /* this is a toggle button */
+        ICA_TARGET,TargetInstance,
         GA_Selected, (ULONG)TRUE,  /* default: upper charset */
         GA_Text,     (ULONG)LOC(MSG_BTN_CHARSET_UPPER),
         TAG_END);
@@ -419,7 +416,8 @@ int main(int argc, char **argv)
 
     app->charsetLowerBtn = (Object *)NewObject(BUTTON_GetClass(), NULL,
         GA_ID,       (ULONG)GAD_CHARSET_LOWER,
-        GA_DrawInfo, (ULONG)app->drawInfo,
+        BUTTON_PushButton, TRUE, /* this is a toggle button */
+        ICA_TARGET,TargetInstance,
         GA_Selected, (ULONG)FALSE,
         GA_Text,     (ULONG)LOC(MSG_BTN_CHARSET_LOWER),
         TAG_END);
@@ -427,7 +425,6 @@ int main(int argc, char **argv)
 
     /* Create status bar */
     app->statusBarLabel = (Object *)NewObject(BUTTON_GetClass(), NULL,
-        GA_DrawInfo, (ULONG)app->drawInfo,
         GA_ReadOnly, TRUE,
         BUTTON_BevelStyle, BVS_NONE,
         BUTTON_Transparent, TRUE,
@@ -436,7 +433,6 @@ int main(int argc, char **argv)
         TAG_END);
 
     app->statusBarLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
-        GA_DrawInfo, (ULONG)app->drawInfo,
         LAYOUT_Orientation, LAYOUT_ORIENT_HORIZ,
         LAYOUT_BevelStyle, BVS_SBAR_VERT,
         LAYOUT_AddChild, (ULONG)app->statusBarLabel,
@@ -464,7 +460,6 @@ int main(int argc, char **argv)
 
         /* Charset toggle buttons (bottom of right panel) */
         charsetLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
-            GA_DrawInfo,         (ULONG)app->drawInfo,
             LAYOUT_Orientation,  LAYOUT_ORIENT_HORIZ,
             LAYOUT_InnerSpacing, 1,
 
@@ -475,55 +470,78 @@ int main(int argc, char **argv)
             TAG_END);
 
         /* Right panel: pickers on top, char selector, charset at bottom */
+        {
+            Object *DrawColorLabel = (Object *)NewObject(BUTTON_GetClass(), NULL,
+                GA_ReadOnly, TRUE,
+                BUTTON_BevelStyle, BVS_NONE,
+                BUTTON_Transparent, TRUE,
+                BUTTON_Justification, BCJ_LEFT,
+                GA_Text, (ULONG)LOC(MSG_LABEL_DRAWCOLOR),
+                TAG_END);
+            Object *BGColorLabel = (Object *)NewObject(BUTTON_GetClass(), NULL,
+                GA_ReadOnly, TRUE,
+                BUTTON_BevelStyle, BVS_NONE,
+                BUTTON_Transparent, TRUE,
+                BUTTON_Justification, BCJ_LEFT,
+                GA_Text, (ULONG)LOC(MSG_LABEL_BACKGROUNDCOLOR),
+                TAG_END);
+
+
         rightPanelLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
-            GA_DrawInfo,         (ULONG)app->drawInfo,
             LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
             LAYOUT_InnerSpacing, 2,
 
-            LAYOUT_AddChild, (ULONG)app->colorPickerFgGadget,
+            LAYOUT_AddChild, (ULONG)DrawColorLabel,
                 CHILD_WeightedHeight, 0,
-                CHILD_MinHeight,      24,
-                CHILD_MaxHeight,      40,
+
+            LAYOUT_AddChild, (ULONG)app->colorPickerFgGadget,
+                CHILD_WeightedHeight, 4,
+                CHILD_MinHeight,      16,
+                // CHILD_MaxHeight,      64,
+
+            LAYOUT_AddChild, (ULONG)BGColorLabel,
+                CHILD_WeightedHeight, 0,
 
             LAYOUT_AddChild, (ULONG)app->colorPickerBgGadget,
-                CHILD_WeightedHeight, 0,
-                CHILD_MinHeight,      24,
-                CHILD_MaxHeight,      40,
+                CHILD_WeightedHeight, 4,
+                CHILD_MinHeight,      16,
+                // CHILD_MaxHeight,      64,
 
             LAYOUT_AddChild, (ULONG)app->charSelectorGadget,
-                CHILD_WeightedHeight, 1000,
-                CHILD_MinHeight,      128,
-                CHILD_MinWidth,       128,
+                CHILD_WeightedHeight, 16,
+                // CHILD_MinHeight,      128,
+                // CHILD_MinWidth,       128,
+                // CHILD_MaxHeight,      256,
+                // CHILD_MaxWidth,       256,
 
             LAYOUT_AddChild, (ULONG)charsetLayout,
                 CHILD_WeightedHeight, 0,
-                CHILD_MinHeight,      20,
-                CHILD_MaxHeight,      28,
+                // CHILD_MinHeight,      20,
+                // CHILD_MaxHeight,      28,
             TAG_END);
+        }
 
         /* Work area: toolbar | canvas | right panel */
         workAreaLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
-            GA_DrawInfo,         (ULONG)app->drawInfo,
             LAYOUT_Orientation,  LAYOUT_ORIENT_HORIZ,
             LAYOUT_InnerSpacing, 2,
 
             LAYOUT_AddChild, (ULONG)app->toolbar.layout,
                 CHILD_WeightedWidth, 0,
-                CHILD_MinWidth,      52,
-                CHILD_MaxWidth,      72,
+              //  CHILD_MinWidth,      52,
+              //  CHILD_MaxWidth,      72,
 
             LAYOUT_AddChild, (ULONG)app->canvasGadget,
-                CHILD_WeightedWidth, 1000,
+                CHILD_WeightedWidth, 42, /* use width in char as weight */
 
             LAYOUT_AddChild, (ULONG)rightPanelLayout,
-                CHILD_WeightedWidth, 0,
-                CHILD_MinWidth,      128,
-                CHILD_MaxWidth,      160,
+                CHILD_WeightedWidth, 16, /* use width of the char selector in char as weight */
+               // CHILD_MinWidth,      128,
+               // CHILD_MaxWidth,      256,
             TAG_END);
 
         /* Main vertical layout: screen tabs | work area | status bar */
         app->mainvlayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
-            GA_DrawInfo,          (ULONG)app->drawInfo,
             LAYOUT_DeferLayout,   TRUE,
             LAYOUT_SpaceOuter,    TRUE,
             LAYOUT_BottomSpacing, 2,
@@ -555,6 +573,7 @@ int main(int argc, char **argv)
     y = 12;
     if (app->lockedscreen->Font)
         y = (app->lockedscreen->Font->ta_YSize) + 3 + 16;
+//        WA_IDCMP, IDCMP_CLOSEWINDOW | IDCMP_MENUPICK | IDCMP_RAWKEY ,
 
     /* Create window object */
     app->window_obj = (Object *)NewObject(WINDOW_GetClass(), NULL,
@@ -570,7 +589,7 @@ int main(int argc, char **argv)
         WA_Title, (ULONG)LOC(MSG_WINDOW_TITLE),
         WINDOW_ParentGroup, (ULONG)app->mainvlayout,
         WINDOW_IconifyGadget, TRUE,
-        WINDOW_IconTitle, (ULONG)"Petmate",
+        WINDOW_IconTitle, (ULONG)"PetMate",
         WINDOW_AppPort, (ULONG)app->app_port,
         TAG_END);
 
@@ -632,7 +651,9 @@ int main(int argc, char **argv)
                     {
                         /* Queue gadget-up event for dispatch on main task context,
                          * alongside OM_NOTIFY messages from ICA_TARGET gadgets. */
+
                         ULONG senderId = result & WMHI_GADGETMASK;
+                // printf("add WMHI_GADGETUP mess %d\n",senderId);
                         BoopsiDelay_BeginMessage(DelayQueue, senderId);
                         BoopsiDelay_AddTag(DelayQueue, WMHI_GADGETUP, 1);
                         BoopsiDelay_EndMessage(DelayQueue);
@@ -726,21 +747,43 @@ int main(int argc, char **argv)
                         sender_ID <= GAD_SCREENTAB_LAST) {
                         UWORD tabIdx = (UWORD)(sender_ID - GAD_SCREENTAB_FIRST);
                         if (tabIdx < app->project->screenCount) {
-                            PetsciiProject_SetCurrentScreen(app->project, tabIdx);
-                            refreshUI();
+                            /* at button up */
+                            if(((ptag = FindTagItem(WMHI_GADGETUP, msg))!=0) &&
+                                    (ptag->ti_Data != 0) )
+                            {
+
+                                PetsciiProject_SetCurrentScreen(app->project, tabIdx);
+                                refreshUI();
+                            }
                         }
                     }
 
                     /* Tool select button range */
                     else if (sender_ID >= GAD_TOOL_FIRST &&
-                             sender_ID <= GAD_TOOL_LAST) {
-                        UBYTE newTool = (UBYTE)(sender_ID - GAD_TOOL_FIRST);
-                        app->toolState.currentTool = newTool;
-                        SetAttrs(app->canvasGadget,
-                            PCA_CurrentTool, (ULONG)newTool,
-                            TAG_END);
-                        PmToolbar_SetActiveTool(&app->toolbar, newTool,
-                                                CurrentMainWindow);
+                             sender_ID <= GAD_TOOL_LAST &&
+                             ((ptag = FindTagItem(GA_SELECTED, msg))!=0))
+                     {
+                         UBYTE newTool = (UBYTE)(sender_ID - GAD_TOOL_FIRST);
+                        if(ptag->ti_Data)
+                        {
+                             /* down key */
+
+                            app->toolState.currentTool = newTool;
+                            SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+                                PCA_CurrentTool, (ULONG)newTool,
+                                TAG_END);
+                            PmToolbar_SetActiveTool(&app->toolbar, newTool,
+                                                    CurrentMainWindow);
+                        } else
+                        {
+                            // means signal up...
+                            ULONG currenTool=0;
+                            GetAttr(PCA_CurrentTool,app->canvasGadget,&currenTool);
+                            if(currenTool == newTool)
+                            {
+                                PmToolbar_ForceDownTrick(&app->toolbar, newTool,CurrentMainWindow);
+                            }
+                        }
                     }
 
                     else {
@@ -772,8 +815,11 @@ int main(int argc, char **argv)
                                 else GetAttr(CPA_SelectedColor,
                                              app->colorPickerFgGadget, &newColor);
                                 app->toolState.fgColor = (UBYTE)newColor;
-                                SetAttrs(app->canvasGadget,
+                                SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
                                     PCA_FgColor, newColor,
+                                    TAG_END);
+                                SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
+                                    CHSA_FgColor, newColor,
                                     TAG_END);
                                 break;
                             }
@@ -786,100 +832,145 @@ int main(int argc, char **argv)
                                 else GetAttr(CPA_SelectedColor,
                                              app->colorPickerBgGadget, &newColor);
                                 app->toolState.bgColor = (UBYTE)newColor;
-                                SetAttrs(app->canvasGadget,
+                               SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
                                     PCA_BgColor, newColor,
+                                    TAG_END);
+                                SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
+                                    CHSA_BgColor, newColor,
                                     TAG_END);
                                 break;
                             }
 
                             case GAD_CHARSET_UPPER:
                             {
-                                PetsciiScreen *scr =
-                                    PetsciiProject_GetCurrentScreen(app->project);
-                                if (scr) {
-                                    scr->charset = PETSCII_CHARSET_UPPER;
-                                    app->project->modified = 1;
-                                    SetAttrs(app->charSelectorGadget,
-                                        CHSA_Charset, (ULONG)PETSCII_CHARSET_UPPER,
-                                        TAG_END);
-                                    SetAttrs(app->canvasGadget,
-                                        PCA_Dirty, (ULONG)TRUE,
-                                        TAG_END);
-                                    RefreshGList((struct Gadget *)app->canvasGadget,
-                                                 CurrentMainWindow, NULL, 1);
-                                    if (CurrentMainWindow)
-                                        SetGadgetAttrs(
-                                            (struct Gadget *)app->charsetUpperBtn,
-                                            CurrentMainWindow, NULL,
-                                            GA_Selected, TRUE, TAG_END);
-                                    if (CurrentMainWindow)
-                                        SetGadgetAttrs(
-                                            (struct Gadget *)app->charsetLowerBtn,
-                                            CurrentMainWindow, NULL,
-                                            GA_Selected, FALSE, TAG_END);
-                                }
+                                /* note message is bursted when keepping the bt click down */
+                                if((ptag = FindTagItem(GA_SELECTED, msg))!=0)
+                                {
+                                    if(ptag->ti_Data !=0)
+                                    {
+                                        PetsciiScreen *scr =
+                                            PetsciiProject_GetCurrentScreen(app->project);
+
+                                        if (scr) {
+                                            scr->charset = PETSCII_CHARSET_UPPER;
+                                            app->project->modified = 1;
+
+                                            SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
+                                                CHSA_Charset, PETSCII_CHARSET_UPPER,
+                                                TAG_END);
+                                            SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+                                                PCA_Dirty, (ULONG)TRUE,
+                                                TAG_END);
+                                            RefreshGList((struct Gadget *)app->canvasGadget,
+                                                         CurrentMainWindow, NULL, 1);
+
+                                            SetGadgetAttrs(
+                                                (struct Gadget *)app->charsetLowerBtn,
+                                                CurrentMainWindow, NULL,
+                                                GA_Selected, FALSE, TAG_END);
+
+                                        }
+                                    } else
+                                    {
+                                        ULONG charsetSate=0;
+                                        GetAttr(CHSA_Charset,app->charSelectorGadget,&charsetSate);
+                                        if(charsetSate == PETSCII_CHARSET_UPPER)
+                                        {
+                                            SetGadgetAttrs(app->charsetUpperBtn,CurrentMainWindow,NULL,
+                                                GA_Selected, (ULONG)TRUE,TAG_END);
+                                        }
+
+                                    }
+                                } /* end if GA_SELECTED */
                                 break;
                             }
 
                             case GAD_CHARSET_LOWER:
                             {
-                                PetsciiScreen *scr =
-                                    PetsciiProject_GetCurrentScreen(app->project);
-                                if (scr) {
-                                    scr->charset = PETSCII_CHARSET_LOWER;
-                                    app->project->modified = 1;
-                                    SetAttrs(app->charSelectorGadget,
-                                        CHSA_Charset, (ULONG)PETSCII_CHARSET_LOWER,
-                                        TAG_END);
-                                    SetAttrs(app->canvasGadget,
-                                        PCA_Dirty, (ULONG)TRUE,
-                                        TAG_END);
-                                    RefreshGList((struct Gadget *)app->canvasGadget,
-                                                 CurrentMainWindow, NULL, 1);
-                                    if (CurrentMainWindow)
-                                        SetGadgetAttrs(
-                                            (struct Gadget *)app->charsetUpperBtn,
-                                            CurrentMainWindow, NULL,
-                                            GA_Selected, FALSE, TAG_END);
-                                    if (CurrentMainWindow)
-                                        SetGadgetAttrs(
-                                            (struct Gadget *)app->charsetLowerBtn,
-                                            CurrentMainWindow, NULL,
-                                            GA_Selected, TRUE, TAG_END);
-                                }
+                                if(((ptag = FindTagItem(GA_SELECTED, msg))!=0) )
+                                {
+
+                                    if(ptag->ti_Data != 0)
+                                    {
+                                        PetsciiScreen *scr =
+                                            PetsciiProject_GetCurrentScreen(app->project);
+
+                                        if (scr) {
+                                            scr->charset = PETSCII_CHARSET_LOWER;
+                                            app->project->modified = 1;
+                                            SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
+                                                CHSA_Charset, (ULONG)PETSCII_CHARSET_LOWER,
+                                                TAG_END);
+                                            SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+                                                PCA_Dirty, (ULONG)TRUE,
+                                                TAG_END);
+
+                                            RefreshGList((struct Gadget *)app->canvasGadget,
+                                                         CurrentMainWindow, NULL, 1);
+
+                                            SetGadgetAttrs(
+                                                (struct Gadget *)app->charsetUpperBtn,
+                                                CurrentMainWindow, NULL,
+                                                GA_Selected, FALSE, TAG_END);
+                                        }
+                                    } else
+                                    {
+                                        /* got up but was the selected one*/
+                                        ULONG charsetSate=0;
+                                        GetAttr(CHSA_Charset,app->charSelectorGadget,&charsetSate);
+                                        if(charsetSate == PETSCII_CHARSET_LOWER)
+                                        {
+                                            SetGadgetAttrs(app->charsetLowerBtn,CurrentMainWindow,NULL,
+                                                GA_Selected, (ULONG)TRUE,TAG_END);
+                                        }
+
+                                    }
+                                } /* end if GA_SELECTED */
                                 break;
                             }
-
+                            /* thos 3 button actions are better managed on Up message (down burst many messages) */
                             case GAD_TOOL_UNDO:
-                                PmAction_Execute(ACTION_EDIT_UNDO, &app->actionCtx);
-                                refreshUI();
+                                if(((ptag = FindTagItem(WMHI_GADGETUP, msg))!=0) &&
+                                    (ptag->ti_Data != 0) )
+                                {
+                                    PmAction_Execute(ACTION_EDIT_UNDO, &app->actionCtx);
+                                    refreshUI();
+                                }
                                 break;
 
                             case GAD_TOOL_REDO:
-                                PmAction_Execute(ACTION_EDIT_REDO, &app->actionCtx);
-                                refreshUI();
+                                if(((ptag = FindTagItem(WMHI_GADGETUP, msg))!=0) &&
+                                    (ptag->ti_Data != 0) )
+                                {
+                                    PmAction_Execute(ACTION_EDIT_REDO, &app->actionCtx);
+                                    refreshUI();
+                                }
                                 break;
 
                             case GAD_TOOL_CLEAR:
                             {
-                                /* Snapshot before clear so it's undoable */
-                                PetsciiScreen *clrScr =
-                                    PetsciiProject_GetCurrentScreen(app->project);
-                                if (clrScr &&
-                                    app->undoBufs[app->project->currentScreen]) {
-                                    PetsciiUndoBuffer_Push(
-                                        app->undoBufs[app->project->currentScreen],
-                                        clrScr);
+                                if(((ptag = FindTagItem(WMHI_GADGETUP, msg))!=0) &&
+                                    (ptag->ti_Data != 0) )
+                                {
+                                    /* Snapshot before clear so it's undoable */
+                                    PetsciiScreen *clrScr =
+                                        PetsciiProject_GetCurrentScreen(app->project);
+                                    if (clrScr &&
+                                        app->undoBufs[app->project->currentScreen]) {
+                                        PetsciiUndoBuffer_Push(
+                                            app->undoBufs[app->project->currentScreen],
+                                            clrScr);
+                                    }
+                                    PmAction_Execute(ACTION_EDIT_CLEAR_SCREEN,
+                                                     &app->actionCtx);
+                                    refreshUI();
                                 }
-                                PmAction_Execute(ACTION_EDIT_CLEAR_SCREEN,
-                                                 &app->actionCtx);
-                                refreshUI();
                                 break;
                             }
 
                             default:
-                                bdbprintf("BoopsiDelay: unhandled GA_ID=%ld\n",
-                                          (long)sender_ID);
+                                // bdbprintf("BoopsiDelay: unhandled GA_ID=%ld\n",
+                                //           (long)sender_ID);
                                 break;
                         }
                     }
@@ -940,8 +1031,7 @@ void exitclose(void)
         PetsciiStyle_Release(&app->style);
 
         /* Release screen resources */
-        if (app->drawInfo)
-            FreeScreenDrawInfo(app->lockedscreen, app->drawInfo);
+
         if (app->lockedscreen)
             UnlockPubScreen(0, app->lockedscreen);
 

@@ -29,11 +29,14 @@ typedef struct PmToolbar {
 
 /* Build the toolbar layout.  di must be valid.
  * Returns 1 on success, 0 on allocation failure. */
-int  PmToolbar_Create(PmToolbar *tb, struct DrawInfo *di);
+int  PmToolbar_Create(PmToolbar *tb);
 
 /* Update which tool button shows as selected.
  * tool is one of the TOOL_* constants from petscii_types.h.
  * win may be NULL if the window is not yet open. */
 void PmToolbar_SetActiveTool(PmToolbar *tb, UBYTE tool, struct Window *win);
+
+/* just so the selected tool doesnt toggle up when reclicked. */
+void PmToolbar_ForceDownTrick(PmToolbar *tb, UBYTE tool, struct Window *win);
 
 #endif /* PMTOOLBAR_H */
