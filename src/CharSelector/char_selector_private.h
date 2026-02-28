@@ -12,6 +12,7 @@
 #include "petscii_style.h"
 #include "petscii_charset.h"
 #include "petscii_screenbuf.h"  /* for PetsciiScreenBuf (fakeBuf trick) */
+#include "petmate_charset.h"   /* Petmate display ordering tables       */
 
 #ifndef G
 #define G(o) ((struct Gadget *)(o))

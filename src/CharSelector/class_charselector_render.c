@@ -40,15 +40,23 @@ static void rebuildCbuf(CharSelectorData *inst)
     UBYTE        bgPen;
     const UBYTE *glyph;
     UBYTE       *cbuf;
+    const int   *order;
+    int          sc;
 
     fgPen = (UBYTE)PetsciiStyle_Pen(inst->style, inst->fgColor);
     bgPen = (UBYTE)PetsciiStyle_Pen(inst->style, inst->bgColor);
     cbuf  = inst->cbuf;
 
+    /* Select ordering table: grid position -> screencode */
+    order = (inst->charset == PETSCII_CHARSET_LOWER)
+            ? petmate_char_order_lower
+            : petmate_char_order_upper;
+
     for (code = 0; code < 256; code++) {
         col     = (UBYTE)(code & 0x0F);
         row     = (UBYTE)(code >> 4);
-        glyph   = PetsciiCharset_GetGlyph(inst->charset, (UBYTE)code);
+        sc      = order[code];   /* screencode whose glyph goes in this cell */
+        glyph   = PetsciiCharset_GetGlyph(inst->charset, (UBYTE)sc);
         baseOff = (ULONG)row * 8 * CHARSELECTOR_NATIVE_W + (ULONG)col * 8;
 
         for (py = 0; py < 8; py++) {
@@ -191,20 +199,18 @@ static void updateContentRect(CharSelectorData *inst, WORD gadW, WORD gadH)
 static void drawSelection(struct RastPort *rp,
                           WORD left, WORD top,
                           WORD width, WORD height,
-                          UBYTE selectedChar,
+                          WORD gridCol, WORD gridRow,
                           int selpen)
 {
-    WORD x = (WORD)(selectedChar & 0x0F);
-    WORD y = (WORD)(selectedChar >>4);
     UBYTE savedMode;
     int lw = (width>=128+64)?2:1;
     WORD  selX;
     WORD  selY;
 
-    WORD  cx1  = (WORD)(left + ((x*8*width)/128) )-1;
-    WORD  cy1  = (WORD)(top + ((y*8*height)/128) )-1;
-    WORD  cx2  = (WORD)(left + (((x+1)*8*width)/128) );
-    WORD  cy2  = (WORD)(top + (((y+1)*8*height)/128) );
+    WORD  cx1  = (WORD)(left + ((gridCol*8*width)/128) )-1;
+    WORD  cy1  = (WORD)(top + ((gridRow*8*height)/128) )-1;
+    WORD  cx2  = (WORD)(left + (((gridCol+1)*8*width)/128) );
+    WORD  cy2  = (WORD)(top + (((gridRow+1)*8*height)/128) );
 
     savedMode = rp->DrawMode;
     //SetDrMd(rp, COMPLEMENT);
@@ -383,8 +389,21 @@ ULONG CharSelector_OnRender(Class *cl, Object *o, struct gpRender *msg)
     /* Highlight the currently selected character */
     {
         struct Region *oldClipRegion;
-        int nbUse[2]={0,0}; // black, white =0,nb1=0;
+        int nbUse[2]={0,0}; /* black=0, white=1 usage counts */
         int selpen = 1;
+        const int *order;
+        int gridRow;
+        int gridCol;
+
+        /* Reverse-lookup: find which grid cell displays selectedChar */
+        order = (inst->charset == PETSCII_CHARSET_LOWER)
+                ? petmate_char_order_lower
+                : petmate_char_order_upper;
+        if (!petmate_grid_from_screencode(order, (int)inst->selectedChar,
+                                         &gridRow, &gridCol)) {
+            gridRow = 0;
+            gridCol = 0;
+        }
 
         /* use white to tell selction, but if white use dark or red */
         if(inst->fgColor<2) nbUse[inst->fgColor]++;
@@ -397,7 +416,8 @@ ULONG CharSelector_OnRender(Class *cl, Object *o, struct gpRender *msg)
         oldClipRegion = InstallClipRegion( rp->Layer, inst->clipRegion);
 
             drawSelection(rp, absX, absY,
-                      inst->contentW, inst->contentH, inst->selectedChar,
+                      inst->contentW, inst->contentH,
+                      (WORD)gridCol, (WORD)gridRow,
                       inst->style->c64pens[selpen].pen );
 
         /* important to pass NULL if oldClipRegion was NULL.*/

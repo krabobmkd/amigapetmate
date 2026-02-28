@@ -90,6 +90,9 @@ set(PETMATE_CHARSELECTOR_SOURCES
     CharSelector/class_charselector_attribs.c
     CharSelector/class_charselector_render.c
     CharSelector/class_charselector_handleinput.c
+
+    CharSelector/petmate_charset.c
+
 )
 
 # Phase 5: ColorPicker BOOPSI gadget class

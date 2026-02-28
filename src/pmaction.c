@@ -21,6 +21,9 @@ extern struct Library *AslBase;
 extern struct IntuitionBase *IntuitionBase;
 extern struct Window  *CurrentMainWindow;
 
+/* Last directory used in a file requester (persists across open/save calls) */
+static char s_lastDir[PETSCII_PATH_LEN];
+
 /* - - - Helper: apply a new palette to the style and re-obtain pens - - - */
 static void applyPalette(PmActionContext *ctx, UBYTE paletteID)
 {
@@ -110,9 +113,13 @@ static BOOL aslFileRequest(BOOL saveMode, char *pathbuf)
             ASLFR_InitialPattern,  (ULONG)"#?.petmate",
             ASLFR_DoPatterns,      TRUE,
             ASLFR_DoSaveMode,      (ULONG)saveMode,
+            s_lastDir[0] ? ASLFR_InitialDrawer : TAG_IGNORE,
+            s_lastDir[0] ? (ULONG)s_lastDir    : 0UL,
             TAG_END);
 
     if (ok) {
+        strncpy(s_lastDir, req->rf_Dir, PETSCII_PATH_LEN - 1);
+        s_lastDir[PETSCII_PATH_LEN - 1] = '\0';
         strncpy(pathbuf, req->rf_Dir, PETSCII_PATH_LEN - 1);
         pathbuf[PETSCII_PATH_LEN - 1] = '\0';
         AddPart(pathbuf, req->rf_File, PETSCII_PATH_LEN);

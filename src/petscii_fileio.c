@@ -42,11 +42,38 @@ const char *PetsciiFileIO_ErrorString(int errCode)
 }
 
 /* ------------------------------------------------------------------ */
+/* Save helpers                                                         */
+/* ------------------------------------------------------------------ */
+
+/* Returns 1 if str ends with suffix, case-insensitive ASCII. C89. */
+static int endsWithIgnoreCase(const char *str, const char *suffix)
+{
+    size_t      slen = strlen(str);
+    size_t      xlen = strlen(suffix);
+    const char *p;
+    const char *q;
+    char        a;
+    char        b;
+    if (xlen > slen) return 0;
+    p = str + slen - xlen;
+    q = suffix;
+    while (*q) {
+        a = (*p >= 'A' && *p <= 'Z') ? (char)(*p + 32) : *p;
+        b = (*q >= 'A' && *q <= 'Z') ? (char)(*q + 32) : *q;
+        if (a != b) return 0;
+        p++; q++;
+    }
+    return 1;
+}
+
+/* ------------------------------------------------------------------ */
 /* Save                                                                 */
 /* ------------------------------------------------------------------ */
 
 int PetsciiFileIO_Save(const PetsciiProject *proj, const char *path)
 {
+    char        extbuf[PETSCII_PATH_LEN];
+    const char *actualPath;
     cJSON      *root;
     cJSON      *framebufs;
     FILE       *fp;
@@ -55,6 +82,21 @@ int PetsciiFileIO_Save(const PetsciiProject *proj, const char *path)
     int         writeOk;
 
     if (!proj || !path) return PETSCII_FILEIO_EOPEN;
+
+    /* Ensure .petmate extension (case-insensitive check) */
+    if (!endsWithIgnoreCase(path, ".petmate")) {
+        size_t plen = strlen(path);
+        if (plen + 8 < PETSCII_PATH_LEN) {
+            strncpy(extbuf, path, PETSCII_PATH_LEN - 1);
+            extbuf[PETSCII_PATH_LEN - 1] = '\0';
+            strncat(extbuf, ".petmate", PETSCII_PATH_LEN - 1 - plen);
+            actualPath = extbuf;
+        } else {
+            actualPath = path;
+        }
+    } else {
+        actualPath = path;
+    }
 
     root = cJSON_CreateObject();
     if (!root) return PETSCII_FILEIO_EALLOC;
@@ -115,7 +157,7 @@ int PetsciiFileIO_Save(const PetsciiProject *proj, const char *path)
 
     if (!jsonStr) return PETSCII_FILEIO_EALLOC;
 
-    fp = fopen(path, "w");
+    fp = fopen(actualPath, "w");
     if (!fp) {
         free(jsonStr);
         return PETSCII_FILEIO_EOPEN;
@@ -130,7 +172,7 @@ int PetsciiFileIO_Save(const PetsciiProject *proj, const char *path)
     /* Update project state */
     {
         PetsciiProject *mproj = (PetsciiProject *)(void *)proj; /* drop const */
-        strncpy(mproj->filepath, path, PETSCII_PATH_LEN - 1);
+        strncpy(mproj->filepath, actualPath, PETSCII_PATH_LEN - 1);
         mproj->filepath[PETSCII_PATH_LEN - 1] = '\0';
         mproj->modified = 0;
     }

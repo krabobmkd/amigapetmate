@@ -86,7 +86,14 @@ static UBYTE mouseToChar(CharSelectorData *inst, WORD relX, WORD relY)
     if (col >= CHARSELECTOR_COLS) col = CHARSELECTOR_COLS - 1;
     if (row >= CHARSELECTOR_ROWS) row = CHARSELECTOR_ROWS - 1;
 
-    return (UBYTE)(row * CHARSELECTOR_COLS + col);
+    /* Return the screencode displayed at this grid position */
+    {
+        const int *order;
+        order = (inst->charset == PETSCII_CHARSET_LOWER)
+                ? petmate_char_order_lower
+                : petmate_char_order_upper;
+        return (UBYTE)order[(ULONG)row * CHARSELECTOR_COLS + col];
+    }
 }
 
 /*
