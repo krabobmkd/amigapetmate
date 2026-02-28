@@ -149,6 +149,8 @@ struct App {
 
     /* Phase 5 */
     Object           *charSelectorGadget;  /* CharSelector BOOPSI instance   */
+    Object           *currentCharLabel;
+
     Object           *colorPickerFgGadget; /* ColorPicker (fg) BOOPSI instance */
     Object           *colorPickerBgGadget; /* ColorPicker (bg) BOOPSI instance */
 
@@ -160,6 +162,9 @@ struct App {
 
     /* Phase 8 */
     PetsciiUndoBuffer *undoBufs[PETSCII_MAX_SCREENS]; /* one per screen slot */
+
+    /* for some label */
+    char selectedCharLabelText[32];
 };
 
 struct App *app = NULL;
@@ -271,6 +276,8 @@ static void rebuildUndoBuffers(void)
     }
 }
 
+void updateCharSelectedLabel(ULONG ichar);
+
 /* - - - - - - - - - MAIN - - - - - - - - - */
 
 int main(int argc, char **argv)
@@ -377,6 +384,15 @@ int main(int argc, char **argv)
         CHSA_KeepRatio,    (ULONG)TRUE,
         TAG_END);
     if (!app->charSelectorGadget) cleanexit("Can't create char selector gadget");
+
+
+    app->currentCharLabel = (Object *)NewObject(BUTTON_GetClass(), NULL,
+        GA_ReadOnly, TRUE,
+        BUTTON_BevelStyle, BVS_NONE,
+      //  BUTTON_Transparent, TRUE,
+        BUTTON_Justification, BCJ_LEFT,
+        GA_Text,"C: ",
+        TAG_END);
 
     /* Create foreground colour picker gadget */
     app->colorPickerFgGadget = (Object *)NewObject(ColorPickerClass, NULL,
@@ -485,7 +501,13 @@ int main(int argc, char **argv)
                 BUTTON_Justification, BCJ_LEFT,
                 GA_Text, (ULONG)LOC(MSG_LABEL_BACKGROUNDCOLOR),
                 TAG_END);
-
+            // Object *Spacer = (Object *)NewObject(BUTTON_GetClass(), NULL,
+            //     GA_ReadOnly, TRUE,
+            //     BUTTON_BevelStyle, BVS_NONE,
+            //     BUTTON_Transparent, TRUE,
+            //     BUTTON_Justification, BCJ_LEFT,
+            //     GA_Text,"",
+            //     TAG_END);
 
         rightPanelLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
             LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
@@ -514,11 +536,18 @@ int main(int argc, char **argv)
                 // CHILD_MaxHeight,      256,
                 // CHILD_MaxWidth,       256,
 
+             LAYOUT_AddChild, (ULONG)app->currentCharLabel,
+                CHILD_WeightedHeight, 0,
+
             LAYOUT_AddChild, (ULONG)charsetLayout,
                 CHILD_WeightedHeight, 0,
                 // CHILD_MinHeight,      20,
                 // CHILD_MaxHeight,      28,
             TAG_END);
+
+
+
+
         }
 
         /* Work area: toolbar | canvas | right panel */
@@ -804,6 +833,10 @@ int main(int argc, char **argv)
                                 SetAttrs(app->canvasGadget,
                                     PCA_SelectedChar, newChar,
                                     TAG_END);
+
+                                updateCharSelectedLabel(newChar);
+
+
                                 break;
                             }
 
@@ -1077,4 +1110,15 @@ void exitclose(void)
             }
         }
     }
+}
+
+void updateCharSelectedLabel(ULONG ichar)
+{
+    if(!app || !app->currentCharLabel) return;
+
+    snprintf(&app->selectedCharLabelText[0],31,"C: $%02x / %d",ichar,ichar);
+    SetGadgetAttrs(app->currentCharLabel,CurrentMainWindow,NULL,
+                GA_TEXT,&app->selectedCharLabelText[0], TAG_END);
+
+
 }
