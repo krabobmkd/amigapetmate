@@ -89,6 +89,9 @@ enum {
     MSG_BTN_CHARSET_UPPER,
     MSG_BTN_CHARSET_LOWER,
 
+    /**/
+    MSG_SETTINGS,
+
     /* Must be last */
     MSG_COUNT
 };

@@ -26,7 +26,6 @@ struct PmActionContext {
     PetsciiProject **pproject;  /* Pointer to the project pointer */
     void *toolState;            /* ToolState * - drawing state */
     void *style;                /* PetsciiStyle * - C64 color pens */
-    void *screen;               /* struct Screen * - for style re-apply */
     void *clipScreen;           /* PetsciiScreen ** - clipboard for copy/paste */
     void *undoBufs;             /* PetsciiUndoBuffer *[PETSCII_MAX_SCREENS]  */
 };

@@ -16,10 +16,12 @@
 #include <proto/asl.h>
 #include <libraries/asl.h>
 
+#include "boopsimainwindow.h"
+
 /* External globals from petmate.c */
 extern struct Library *AslBase;
 extern struct IntuitionBase *IntuitionBase;
-extern struct Window  *CurrentMainWindow;
+
 
 /* Last directory used in a file requester (persists across open/save calls) */
 static char s_lastDir[PETSCII_PATH_LEN];
@@ -40,7 +42,7 @@ static void applyPalette(PmActionContext *ctx, UBYTE paletteID)
 
     if (sty) {
         PetsciiStyle_Init(sty, paletteID);
-        PetsciiStyle_Apply(sty, (struct Screen *)ctx->screen);
+        PetsciiStyle_Apply(sty, CurrentMainScreen);
     }
 }
 

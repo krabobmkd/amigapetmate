@@ -23,6 +23,7 @@
 #include <intuition/gadgetclass.h>
 #include "char_selector_private.h"
 #include <graphics/gfx.h>
+#include <bdbprintf.h>
 /* ------------------------------------------------------------------ */
 /* Static: rebuild the 128x128 native buffer from charset + style      */
 /* ------------------------------------------------------------------ */
@@ -257,6 +258,8 @@ ULONG CharSelector_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
     WORD w = G(o)->Width;
     WORD h = G(o)->Height;
 
+
+ bdbprintf("CharSelector_OnLayout %d %d\n",(int)w,(int)h);
     if (w > 0 && h > 0) {
         updateContentRect(inst, w, h);
         ensureScaledBuf(inst, (UWORD)inst->contentW, (UWORD)inst->contentH);
@@ -300,6 +303,7 @@ ULONG CharSelector_OnDomain(Class *cl, Object *o, struct gpDomain  *msg)
     domain->Width = 128;  // Nominal width
     domain->Height = 128;  // Nominal height
 
+ bdbprintf("CharSelector_OnDomain\n");
     // Adjust based on gpd_Which
     switch (msg->gpd_Which) {
         case GDOMAIN_MINIMUM:

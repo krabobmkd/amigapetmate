@@ -27,7 +27,9 @@ static void ObtainPenForRGB(struct ColorMap *cm, ManagedColor *c)
     g = (g << 24) | (g << 16) | (g << 8) | g;
     b = (b << 24) | (b << 16) | (b << 8) | b;
 
+
     pen = ObtainBestPenA(cm, r, g, b, NULL);
+
     if (pen != -1) {
         c->pen = (WORD)pen;
         c->allocated = 1;
@@ -54,6 +56,8 @@ void PetsciiStyle_Init(PetsciiStyle *style, UBYTE paletteID)
 
     if (!style) return;
     if (paletteID >= PALETTE_COUNT) paletteID = PALETTE_PETMATE;
+
+    style->paletteId = paletteID;
 
     for (i = 0; i < C64_COLOR_COUNT; i++) {
         style->c64pens[i].rgbcolor  = c64Palettes[paletteID][i];

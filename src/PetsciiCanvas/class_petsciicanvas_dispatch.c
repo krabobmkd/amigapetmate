@@ -30,6 +30,9 @@ ULONG ASM SAVEDS PetsciiCanvas_Dispatch(
         case OM_GET:
             return PetsciiCanvas_OnGet(cl, o, (struct opGet *)msg);
 
+        case GM_DOMAIN:
+            return PetsciiCanvas_OnDomain(cl, o, (struct gpDomain *)msg);
+
         case GM_RENDER:
             return PetsciiCanvas_OnRender(cl, o, (struct gpRender *)msg);
 

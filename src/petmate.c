@@ -52,6 +52,9 @@
 #include "pmaction.h"
 #include "pmmenu.h"
 #include "boopsimessage.h"
+#include "boopsimainwindow.h"
+#include "pmsettingsview.h"
+#include "appsettings.h"
 
 /* Phase 4 */
 #include "petscii_canvas.h"
@@ -95,6 +98,7 @@ struct Library *WindowBase = NULL;
 struct Library *LayoutBase = NULL;
 struct Library *ButtonBase = NULL;
 struct Library *LabelBase  = NULL;
+struct Library *GetFileBase=NULL;
 
 /* Library table for automated opening/closing */
 typedef struct {
@@ -117,58 +121,15 @@ static LibraryEntry libraryTable[] = {
     {"images/label.image",     45, &LabelBase},
     {"gadgets/layout.gadget",  45, &LayoutBase},
     {"gadgets/button.gadget",  45, &ButtonBase},
+    {"gadgets/getfile.gadget", 45, &GetFileBase},
     {NULL, 0, NULL} /* Terminator */
 };
 
 /* Clipboard for Edit > Copy/Paste Screen */
 static PetsciiScreen *g_clipScreen = NULL;
 
-/* Application struct */
-struct App {
-    Object *window_obj;
-    struct MsgPort *app_port;
-    struct Screen *lockedscreen;
-
-    Object *mainvlayout;
-
-    /* Status bar */
-    Object *statusBarLayout;
-    Object *statusBarLabel;
-
-    /* Application state */
-    PetsciiProject *project;
-    ToolState toolState;
-
-    /* Phase 2 */
-    PetsciiStyle      style;       /* 16 C64 color pens */
-    PmMenu            menu;        /* GadTools menus */
-    PmActionContext   actionCtx;   /* Context passed to all actions */
-
-    /* Phase 4 */
-    Object           *canvasGadget;        /* PetsciiCanvas BOOPSI instance  */
-
-    /* Phase 5 */
-    Object           *charSelectorGadget;  /* CharSelector BOOPSI instance   */
-    Object           *currentCharLabel;
-
-    Object           *colorPickerFgGadget; /* ColorPicker (fg) BOOPSI instance */
-    Object           *colorPickerBgGadget; /* ColorPicker (bg) BOOPSI instance */
-
-    /* Phase 7 */
-    PmToolbar         toolbar;             /* left-side tool button panel    */
-    PmScreenTabs      screenTabs;          /* top screen-tab button bar      */
-    Object           *charsetUpperBtn;     /* charset "Upper" toggle button  */
-    Object           *charsetLowerBtn;     /* charset "Lower" toggle button  */
-
-    /* Phase 8 */
-    PetsciiUndoBuffer *undoBufs[PETSCII_MAX_SCREENS]; /* one per screen slot */
-
-    /* for some label */
-    char selectedCharLabelText[32];
-};
 
 struct App *app = NULL;
-struct Window *CurrentMainWindow = NULL;
 
 /* Forward declarations */
 void cleanexit(const char *pmessage);
@@ -282,7 +243,6 @@ void updateCharSelectedLabel(ULONG ichar);
 
 int main(int argc, char **argv)
 {
-    int y;
     (void)argc; (void)argv;
 
     myTask = FindTask(NULL);
@@ -326,15 +286,11 @@ int main(int argc, char **argv)
     /* Initialize action system (localizes action names) */
     PmAction_Init();
 
-    /* Lock public screen and get draw info */
-    app->lockedscreen = LockPubScreen(NULL);
-    if (!app->lockedscreen) cleanexit("Can't lock screen");
-
-
     /* Initialize style from the project's current palette and obtain pens */
-    PetsciiStyle_Init(&app->style, app->project->currentPalette);
-    PetsciiStyle_Apply(&app->style, app->lockedscreen);
+    /*now done at window opening , because screen may change
+     PetsciiStyle_Init(&app->style, app->project->currentPalette);
 
+    */
     /* Create initial undo buffers (one per screen in the fresh project) */
     rebuildUndoBuffers();
 
@@ -342,7 +298,6 @@ int main(int argc, char **argv)
     app->actionCtx.pproject  = &app->project;
     app->actionCtx.toolState = (void *)&app->toolState;
     app->actionCtx.style     = (void *)&app->style;
-    app->actionCtx.screen    = (void *)app->lockedscreen;
     app->actionCtx.clipScreen = (void *)&g_clipScreen;
     app->actionCtx.undoBufs  = (void *)app->undoBufs;
 
@@ -599,18 +554,16 @@ int main(int argc, char **argv)
     app->app_port = CreateMsgPort();
 
     /* Calculate window Y position below screen title bar */
-    y = 12;
-    if (app->lockedscreen->Font)
-        y = (app->lockedscreen->Font->ta_YSize) + 3 + 16;
+
 //        WA_IDCMP, IDCMP_CLOSEWINDOW | IDCMP_MENUPICK | IDCMP_RAWKEY ,
 
     /* Create window object */
     app->window_obj = (Object *)NewObject(WINDOW_GetClass(), NULL,
         WA_Left, 40,
-        WA_Top, (ULONG)y,
+        WA_Top, 40,
         WA_Width, 640,
         WA_Height, 400,
-        WA_CustomScreen, (ULONG)app->lockedscreen,
+    /*given at opening    WA_CustomScreen, (ULONG)app->lockedscreen, */
         WA_IDCMP, IDCMP_CLOSEWINDOW | IDCMP_MENUPICK | IDCMP_RAWKEY |
                   IDCMP_GADGETDOWN | IDCMP_GADGETUP | IDCMP_MOUSEMOVE,
         WA_Flags, WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET |
@@ -624,14 +577,30 @@ int main(int argc, char **argv)
 
     if (!app->window_obj) cleanexit("Can't create window");
 
-    /* Open the window */
-    CurrentMainWindow = boopsi_OpenWindow(app->window_obj);
-    if (!CurrentMainWindow) cleanexit("Can't open window");
-
-    /* Create and attach menus */
-    if (!PmMenu_Create(&app->menu, app->lockedscreen, CurrentMainWindow)) {
-        cleanexit("Can't create menus");
+    /* Initialize Project Settings window */
+    if(!PmSettingsView_Init(&app->settingsView,
+                                  LOC(MSG_SETTINGS)))
+    {
+        printf("Warning: Could not create Project Settings window\n");
     }
+
+
+    /* Open the window */
+    // CurrentMainWindow = boopsi_OpenWindow(app->window_obj);
+    // if (!CurrentMainWindow) cleanexit("Can't open window");
+
+    // /* Create and attach menus */
+    // if (!PmMenu_Create(&app->menu, app->lockedscreen, CurrentMainWindow)) {
+    //     cleanexit("Can't create menus");
+    // }
+
+     BMainWindow_SetTitle(&app->mainwindow,"PetMate v0.1 beta");
+    /*  Open the window or screen. */
+   // BMainWindow_SwitchToWB(&app->mainwindow,app->window_obj,&app->appSettings);
+     //BMainWindow_Show(&app->mainwindow,app->window_obj,&app->appSettings);
+     BMainWindow_SwitchToFullScreen(&app->mainwindow,app->window_obj,&app->appSettings);
+    // BMainWindow_SwitchToWB(&app->mainwindow,app->window_obj,&app->appSettings);
+
 
     bdbprintf("Petmate started. Project has %d screen(s).\n",
               (int)app->project->screenCount);
@@ -688,33 +657,25 @@ int main(int argc, char **argv)
                         BoopsiDelay_EndMessage(DelayQueue);
                         break;
                     }
-
                     case WMHI_ICONIFY:
-                    {
-                        /* Remove menus before iconifying */
-                        PmMenu_Close(&app->menu, CurrentMainWindow);
-                        if (DoMethod(app->window_obj, WM_ICONIFY, NULL))
-                            CurrentMainWindow = NULL;
+                        {
+                            #define DO_ICONIFY 1
+                            BMainWindow_Close(&app->mainwindow,app->window_obj,DO_ICONIFY);
+                        }
                         break;
-                    }
-
                     case WMHI_UNICONIFY:
-                    {
-                        CurrentMainWindow = boopsi_OpenWindow(app->window_obj);
-                        if (!CurrentMainWindow)
-                            cleanexit("Can't re-open window");
-                        /* Re-attach menus */
-                        PmMenu_Create(&app->menu, app->lockedscreen,
-                                      CurrentMainWindow);
+                        {
+                           BMainWindow_Show(&app->mainwindow,app->window_obj,&app->appSettings);
+                            if (!CurrentMainWindow) cleanexit("can't re-open window");
+                        }
                         break;
-                    }
 
                     case WMHI_MENUPICK:
                     {
                         /* Dispatch menu selection to action system */
                         UWORD menuCode = (UWORD)(result & WMHI_MENUMASK);
                         if (menuCode != MENUNULL) {
-                            LONG actionID = PmMenu_ToActionID(&app->menu,
+                            LONG actionID = PmMenu_ToActionID(&app->mainwindow.menu,
                                                               menuCode);
                             if (actionID >= 0) {
                                 /* Snapshot before actions that modify screen data */
@@ -1042,15 +1003,25 @@ void exitclose(void)
             app->project = NULL;
         }
 
-        /* Close menus */
-        PmMenu_Close(&app->menu, CurrentMainWindow);
+        PmSettingsView_Dispose(&app->settingsView);
 
-        /* Dispose window (cascades to all attached BOOPSI objects) */
-        if (app->window_obj) {
+        if(app->window_obj)
+        {
+            BMainWindow_Close(&app->mainwindow,app->window_obj,0);
+            /* this should cascade all OM_DISPOSE: */
             DisposeObject(app->window_obj);
-            app->window_obj = NULL;
         }
-        CurrentMainWindow = NULL;
+
+
+        // /* Close menus */
+        // PmMenu_Close(&app->menu, CurrentMainWindow);
+
+        // /* Dispose window (cascades to all attached BOOPSI objects) */
+        // if (app->window_obj) {
+        //     DisposeObject(app->window_obj);
+        //     app->window_obj = NULL;
+        // }
+        // CurrentMainWindow = NULL;
 
         /* Free BOOPSI classes (instances disposed by window cascade above) */
         PetsciiCanvas_Exit();
@@ -1062,11 +1033,6 @@ void exitclose(void)
 
         /* Release C64 color pens */
         PetsciiStyle_Release(&app->style);
-
-        /* Release screen resources */
-
-        if (app->lockedscreen)
-            UnlockPubScreen(0, app->lockedscreen);
 
         /* Delete message port */
         if (app->app_port)
@@ -1122,3 +1088,4 @@ void updateCharSelectedLabel(ULONG ichar)
 
 
 }
+

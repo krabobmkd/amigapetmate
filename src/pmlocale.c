@@ -127,7 +127,10 @@ static const char *defaultStrings[MSG_COUNT] = {
     /* MSG_BTN_CHARSET_UPPER */
     "Upper",
     /* MSG_BTN_CHARSET_LOWER */
-    "Lower"
+    "Lower",
+
+    /* MSG_SETTINGS */
+    "Settings"
 };
 
 /* LocaleBase declared in petmate.c */

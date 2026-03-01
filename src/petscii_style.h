@@ -28,7 +28,8 @@ typedef struct {
 /* PetsciiStyle - holds the 16 C64 color pens for a given palette */
 typedef struct PetsciiStyle {
     ManagedColor c64pens[C64_COLOR_COUNT]; /* One pen per C64 color index */
-    struct Screen *screen;                  /* Screen pens were obtained from */
+    struct Screen *screen;                  /* Screen pens were obtained from -> dangerous to retain screen, it can switch */
+    int     paletteId; /* managed preference, as enum in palette.*/
 } PetsciiStyle;
 
 /* Initialize style from palette ID - fills rgbcolor fields, no pens yet.

@@ -61,6 +61,10 @@ set(PETMATE_FRAMEWORK_SOURCES
     pmaction.c
     pmmenu.c
     boopsimessage.c
+    boopsimainwindow.c
+    appsettings.c
+    pmsettingsview.c
+    tooltypepref.c
 )
 
 # Phase 3: Screen render buffer

@@ -238,6 +238,39 @@ static void drawGrid(struct RastPort *rp,
     SetDrMd(rp, (LONG)savedMode);
 }
 
+/*
+
+*/
+
+ULONG PetsciiCanvas_OnDomain(Class *cl, Object *o, struct gpDomain *msg)
+{
+    struct IBox *domain = &msg->gpd_Domain;
+
+    // Set default dimensions
+    domain->Left = 0;
+    domain->Top = 0;
+    domain->Width = 42*8;  // Nominal width
+    domain->Height = 27*8;  // Nominal height
+
+ bdbprintf("CharSelector_OnDomain\n");
+    // Adjust based on gpd_Which
+    switch (msg->gpd_Which) {
+        case GDOMAIN_MINIMUM:
+
+            break;
+        case GDOMAIN_MAXIMUM:
+            domain->Width *= 6;
+            domain->Height *= 6;
+            break;
+        case GDOMAIN_NOMINAL:
+        default:
+            // Use default values
+            break;
+    }
+
+    return 1;
+}
+
 /* ------------------------------------------------------------------ */
 /* GM_LAYOUT - pre-allocate scaling buffer to match content rect.     */
 /* ------------------------------------------------------------------ */
@@ -248,6 +281,8 @@ ULONG PetsciiCanvas_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
     WORD w = G(o)->Width;
     WORD h = G(o)->Height;
 
+
+ bdbprintf("PetsciiCanvas_OnLayout %d %d\n",(int)w,(int)h);
     if (w > 0 && h > 0) {
         updateContentRect(inst, w, h);
         ensureScaledBuf(inst, (UWORD)inst->contentW, (UWORD)inst->contentH);
