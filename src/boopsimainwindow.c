@@ -408,12 +408,14 @@ void BMainWindow_SwitchToWB(struct BoopsiMainWindow *mw,Object *window_obj,struc
             WA_CustomScreen,(ULONG)mw->lockedScreen,
             WA_Borderless, FALSE,
             WA_Backdrop,FALSE,
-            WA_Flags,WFLG_ACTIVATE | WFLG_SMART_REFRESH ,
+            WA_Flags,WFLG_ACTIVATE | WFLG_SMART_REFRESH,
+
            // WA_Flags, WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET | WFLG_SIZEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH,
             WA_DragBar,TRUE,
             WA_SizeGadget,TRUE,
             WA_DepthGadget,TRUE,
             WA_CloseGadget,TRUE,
+            WA_ReportMouse, TRUE,
             WA_Title,(ULONG)&mw->title[0],
             WINDOW_IconifyGadget, TRUE,
             WA_Top,y1,
@@ -422,6 +424,10 @@ void BMainWindow_SwitchToWB(struct BoopsiMainWindow *mw,Object *window_obj,struc
             WA_Height,h,
             TAG_END);
     }
+
+// WFLG_REPORTMOUSE
+   //     WA_ReportMouse,TRUE,
+
     mw->fullscreen = FALSE;
 
     /* re-open */

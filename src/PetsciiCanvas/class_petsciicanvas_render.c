@@ -671,13 +671,3 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
 
     return 0;
 }
-
-/* ------------------------------------------------------------------ */
-/* GM_HITTEST - always hit (the gadget fills its entire bounds)        */
-/* ------------------------------------------------------------------ */
-
-ULONG PetsciiCanvas_OnHitTest(Class *cl, Object *o, struct gpHitTest *msg)
-{
-    (void)cl; (void)o; (void)msg;
-    return GMR_GADGETHIT;
-}

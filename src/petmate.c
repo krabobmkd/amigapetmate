@@ -75,9 +75,6 @@
 
 #include <stdio.h>
 
-INLINE struct Window *boopsi_OpenWindow(Object *owin) {
-    return (struct Window *)DoMethod(owin, WM_OPEN, NULL);
-}
 
 struct Task *myTask = NULL;
 
@@ -239,6 +236,17 @@ static void rebuildUndoBuffers(void)
 
 void updateCharSelectedLabel(ULONG ichar);
 
+int testGadgetRect(Object *o, int x, int y)
+{
+    struct Gadget *g= (struct Gadget *)o;
+    return (x >= (int)g->LeftEdge  &&
+            x < (int)(g->LeftEdge+g->Width) &&
+            y >= (int)g->TopEdge  &&
+            y < (int)(g->TopEdge+g->Height)
+            );
+}
+
+
 /* - - - - - - - - - MAIN - - - - - - - - - */
 
 int main(int argc, char **argv)
@@ -314,6 +322,10 @@ int main(int argc, char **argv)
     /* Create canvas gadget for the main editing area */
     app->canvasGadget = (Object *)NewObject(PetsciiCanvasClass, NULL,
         GA_ID,           (ULONG)GAD_CANVAS,
+        //tests
+    // GA_FollowMouse, TRUE,
+     GA_Immediate,   TRUE,
+    // GA_RelVerify,   TRUE,
         PCA_Screen,      (ULONG)app->project->screens[0],
         PCA_Style,       (ULONG)&app->style,
         PCA_ZoomLevel,   (ULONG)1,
@@ -567,7 +579,11 @@ int main(int argc, char **argv)
         WA_IDCMP, IDCMP_CLOSEWINDOW | IDCMP_MENUPICK | IDCMP_RAWKEY |
                   IDCMP_GADGETDOWN | IDCMP_GADGETUP | IDCMP_MOUSEMOVE,
         WA_Flags, WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET |
-                  WFLG_SIZEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH,
+                  WFLG_SIZEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH
+                  /* | WFLG_REPORTMOUSE*/
+                  ,
+// WFLG_REPORTMOUSE
+        WA_ReportMouse,TRUE, //test
         WA_Title, (ULONG)LOC(MSG_WINDOW_TITLE),
         WINDOW_ParentGroup, (ULONG)app->mainvlayout,
         WINDOW_IconifyGadget, TRUE,
@@ -586,20 +602,12 @@ int main(int argc, char **argv)
 
 
     /* Open the window */
-    // CurrentMainWindow = boopsi_OpenWindow(app->window_obj);
-    // if (!CurrentMainWindow) cleanexit("Can't open window");
-
-    // /* Create and attach menus */
-    // if (!PmMenu_Create(&app->menu, app->lockedscreen, CurrentMainWindow)) {
-    //     cleanexit("Can't create menus");
-    // }
 
      BMainWindow_SetTitle(&app->mainwindow,"PetMate v0.1 beta");
     /*  Open the window or screen. */
-   // BMainWindow_SwitchToWB(&app->mainwindow,app->window_obj,&app->appSettings);
+    BMainWindow_SwitchToWB(&app->mainwindow,app->window_obj,&app->appSettings);
      //BMainWindow_Show(&app->mainwindow,app->window_obj,&app->appSettings);
-     BMainWindow_SwitchToFullScreen(&app->mainwindow,app->window_obj,&app->appSettings);
-    // BMainWindow_SwitchToWB(&app->mainwindow,app->window_obj,&app->appSettings);
+   //  BMainWindow_SwitchToFullScreen(&app->mainwindow,app->window_obj,&app->appSettings);
 
 
     bdbprintf("Petmate started. Project has %d screen(s).\n",
@@ -632,7 +640,6 @@ int main(int argc, char **argv)
                    != WMHI_LASTMSG)
             {
                 flushbdbprint();
-
                 switch (result & WMHI_CLASSMASK)
                 {
                     case WMHI_RAWKEY:
@@ -657,6 +664,24 @@ int main(int argc, char **argv)
                         BoopsiDelay_EndMessage(DelayQueue);
                         break;
                     }
+                    case WMHI_MOUSEMOVE:
+
+                        if(CurrentMainWindow &&
+                        (( CurrentMainWindow->Flags & WFLG_WINDOWACTIVE) !=0 )&&
+                            app->canvasGadget)
+                        {
+                            /* trick to allow "hovering" with the canvas, before it is even clicked */
+                            if(testGadgetRect(app->canvasGadget,CurrentMainWindow->MouseX,CurrentMainWindow->MouseY))
+                            {
+                                struct Gadget *canvas = (struct Gadget *)app->canvasGadget;
+                                if((canvas->Activation & GACT_ACTIVEGADGET)==0 )
+                                {
+                                    ActivateGadget(canvas,CurrentMainWindow,NULL );
+                                }
+                            }
+
+                        }
+                        break;
                     case WMHI_ICONIFY:
                         {
                             #define DO_ICONIFY 1

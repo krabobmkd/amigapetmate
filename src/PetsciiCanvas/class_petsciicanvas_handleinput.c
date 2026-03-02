@@ -31,7 +31,7 @@
 #include <devices/inputevent.h>
 #include <clib/alib_protos.h>
 #include "petscii_canvas_private.h"
-
+#include <bdbprintf.h>
 /* ------------------------------------------------------------------ */
 /* Static helpers                                                       */
 /* ------------------------------------------------------------------ */
@@ -40,7 +40,7 @@
  * Convert gadget-relative mouse coords to character cell (col, row).
  * Returns -1/-1 when outside a valid content rect.
  */
-static void mouseToCell(PetsciiCanvasData *inst, WORD relX, WORD relY,
+static BOOL mouseToCell(PetsciiCanvasData *inst, WORD relX, WORD relY,
                          WORD *outCol, WORD *outRow)
 {
     WORD cW = inst->contentW;
@@ -52,7 +52,7 @@ static void mouseToCell(PetsciiCanvasData *inst, WORD relX, WORD relY,
         !inst->screen->width || !inst->screen->height) {
         *outCol = -1;
         *outRow = -1;
-        return;
+        return FALSE;
     }
 
     cx = (WORD)(relX - inst->contentX);
@@ -63,13 +63,34 @@ static void mouseToCell(PetsciiCanvasData *inst, WORD relX, WORD relY,
     if (cx >= cW) cx = (WORD)(cW - 1);
     if (cy >= cH) cy = (WORD)(cH - 1);
 
-    *outCol = (WORD)((ULONG)cx * (ULONG)inst->screen->width  / (ULONG)cW);
-    *outRow = (WORD)((ULONG)cy * (ULONG)inst->screen->height / (ULONG)cH);
+    /* note div ULONG by UWORD is better for 68000 16bit. */
+    *outCol = (WORD)((ULONG)cx * (ULONG)inst->screen->width  / (UWORD)cW);
+    *outRow = (WORD)((ULONG)cy * (ULONG)inst->screen->height / (UWORD)cH);
 
     if (*outCol >= (WORD)inst->screen->width)
         *outCol = (WORD)(inst->screen->width  - 1);
     if (*outRow >= (WORD)inst->screen->height)
         *outRow = (WORD)(inst->screen->height - 1);
+
+    return TRUE;
+}
+static BOOL isInsideRect(PetsciiCanvasData *inst, WORD relX, WORD relY)
+{
+    WORD cW = inst->contentW;
+    WORD cH = inst->contentH;
+    WORD cx;
+    WORD cy;
+
+    if (cW <= 0 || cH <= 0 || !inst->screen ||
+        !inst->screen->width || !inst->screen->height) {
+        return FALSE;
+    }
+    cx = (WORD)(relX - inst->contentX);
+    cy = (WORD)(relY - inst->contentY);
+
+    if ( (cx < 0) || (cy<0) || (cx >= cW) || (cy >= cH) ) return FALSE;
+
+    return TRUE;
 }
 
 /*
@@ -166,6 +187,18 @@ static void renderSelf(Class *cl, Object *o, struct GadgetInfo *gi)
 }
 
 /* ------------------------------------------------------------------ */
+/* GM_HITTEST - always hit (the gadget fills its entire bounds)        */
+/* ------------------------------------------------------------------ */
+
+ULONG PetsciiCanvas_OnHitTest(Class *cl, Object *o, struct gpHitTest *msg)
+{
+    (void)cl; (void)o; (void)msg;
+
+    return GMR_GADGETHIT;
+}
+
+
+/* ------------------------------------------------------------------ */
 /* GM_GOACTIVE - mouse enters gadget area                              */
 /* ------------------------------------------------------------------ */
 
@@ -227,24 +260,41 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
     struct InputEvent *ie;
     WORD               col;
     WORD               row;
-
+    BOOL    isIn;
     inst = (PetsciiCanvasData *)INST_DATA(cl, o);
     ie   = msg->gpi_IEvent;
+//TODO: key events should be sent back to main window management.
 
-    if (ie->ie_Class != IECLASS_RAWMOUSE)
+ //bdbprintf("onip code: %08x\n",(int)ie->ie_Class);
+ //    if(ie->ie_Class == IECLASS_RAWMOUSE OVE)
+ //    {
+ //        // ie->ie_Class != IECLASS_MOUSEMOVE /* hovering without activation */
+ // bdbprintf("IECLASS_MOUSEMOVE\n");
+ //        return GMR_MEACTIVE;
+ //    }
+
+    if (ie->ie_Class != IECLASS_RAWMOUSE  )
         return GMR_MEACTIVE;
 
+// bdbprintf("PetsciiCanvas_OnInput %04x\n",(int)ie->ie_Code);
+
     if (ie->ie_Code == (IECODE_LBUTTON | IECODE_UP_PREFIX)) {
+
         /* Button released: stop drawing but stay active for hover */
         inst->isDrawing    = FALSE;
         inst->lastPaintCol = -1;
         inst->lastPaintRow = -1;
         /* No render needed: cursor stays at same position, scaledBuf is
          * already current (full path was taken on every paint).        */
-        return GMR_MEACTIVE;
+
+         /*yet if out of window and bt ups, stop asking events */
+         isIn = isInsideRect(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y);
+
+        return (isIn)?GMR_MEACTIVE:GMR_NOREUSE;
     }
 
     if (ie->ie_Code == IECODE_LBUTTON) {
+
         /* Button pressed while hovering: start a new draw stroke */
         mouseToCell(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y, &col, &row);
 
@@ -271,21 +321,37 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
     }
 
     if (ie->ie_Code == IECODE_NOBUTTON) {
+   //  bdbprintf("IECODE_NOBUTTON\n");
+
+          isIn = isInsideRect(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y);
+          /* if mouse down and drawing but goes out, keep activation, can reenter.
+            if mouse down and not drawing and goes out, quit activation
+          */
+         if(!isIn && !inst->isDrawing) return GMR_NOREUSE;
+
         /* Mouse move */
         mouseToCell(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y, &col, &row);
 
-        if (inst->isDrawing && col >= 0 && row >= 0) {
-            /* Draw stroke: Bresenham gap-fill from last painted cell */
-            if (inst->lastPaintCol >= 0 && inst->lastPaintRow >= 0) {
-                paintLineFrom(inst,
-                               inst->lastPaintCol, inst->lastPaintRow,
-                               col, row);
-            } else {
-                paintCell(inst, col, row);
+        if (inst->isDrawing )
+        {
+            if (isIn && col >= 0 && row >= 0) {
+                /* Draw stroke: Bresenham gap-fill from last painted cell */
+                if (inst->lastPaintCol >= 0 && inst->lastPaintRow >= 0) {
+                    paintLineFrom(inst,
+                                   inst->lastPaintCol, inst->lastPaintRow,
+                                   col, row);
+                } else {
+                    paintCell(inst, col, row);
+                }
+                inst->lastPaintCol = col;
+                inst->lastPaintRow = row;
+            } else
+            {
+                inst->lastPaintCol = -1;
+                inst->lastPaintRow = -1;
             }
-            inst->lastPaintCol = col;
-            inst->lastPaintRow = row;
         }
+
         /* scaledBufDirty was set by paintCell if drawing;
          * stays FALSE if hover-only -> OnRender takes partial path */
 
