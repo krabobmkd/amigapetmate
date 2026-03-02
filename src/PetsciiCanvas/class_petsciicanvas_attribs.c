@@ -59,12 +59,26 @@ ULONG PetsciiCanvas_OnNew(Class *cl, Object *o, struct opSet *msg)
     inst->fgColor       = 14;   /* C64_LIGHTBLUE */
     screen->backgroundColor = 6;    /* C64_BLUE */
 
-    /* Cursor not shown until input begins */
+    /* Cursor / hover not shown until input begins */
     inst->cursorCol     = -1;
     inst->cursorRow     = -1;
     inst->isDrawing     = FALSE;
     inst->lastPaintCol  = -1;
     inst->lastPaintRow  = -1;
+
+    /* Brush defaults: 1x1 (single char) */
+    inst->brushW        = 1;
+    inst->brushH        = 1;
+
+    /* No overlay drawn yet */
+    inst->prevHoverCol  = -1;
+    inst->prevHoverRow  = -1;
+    inst->prevBrushW    = 1;
+    inst->prevBrushH    = 1;
+
+    /* Force full blit on first render */
+    inst->scaledBufDirty = TRUE;
+    inst->overlayBuf     = NULL;
 
     /* Undo buffer (optional, not owned) */
     {
@@ -108,6 +122,11 @@ ULONG PetsciiCanvas_OnDispose(Class *cl, Object *o, Msg msg)
         inst->scaledH   = 0;
     }
 
+    if (inst->overlayBuf) {
+        FreeVec(inst->overlayBuf);
+        inst->overlayBuf = NULL;
+    }
+
     return DoSuperMethodA(cl, o, (APTR)msg);
 }
 
@@ -149,12 +168,14 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                         inst->screenbuf->valid = 0;
                     }
                 }
+                inst->scaledBufDirty = TRUE;
                 result = 1;
                 break;
 
             case PCA_Style:
                 inst->style = (PetsciiStyle *)tag->ti_Data;
                 if (inst->screenbuf) inst->screenbuf->valid = 0;
+                inst->scaledBufDirty = TRUE;
                 result = 1;
                 break;
 
@@ -169,8 +190,10 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                 break;
 
             case PCA_Dirty:
-                if (tag->ti_Data && inst->screenbuf)
+                if (tag->ti_Data && inst->screenbuf) {
                     inst->screenbuf->valid = 0;
+                    inst->scaledBufDirty   = TRUE;
+                }
                 result = 1;
                 break;
 
@@ -206,10 +229,11 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                     {
                         inst->screen->backgroundColor = (UBYTE)tag->ti_Data;
                         if(inst->screenbuf) inst->screenbuf->valid = 0;
+                        inst->scaledBufDirty = TRUE;
                         redraw = 1; /* need a total redraw, background color affect all */
                     }
                 }
-                result = 1;                
+                result = 1;
                 break;
 
             case PCA_UndoBuffer:

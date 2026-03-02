@@ -145,50 +145,76 @@ void PetsciiScreenBuf_BlitNative(PetsciiScreenBuf *buf,
                       (LONG)buf->pixW);
 }
 
+void PetsciiChunky_Scale(const UBYTE *src, ULONG srcW, ULONG srcH,
+                          UBYTE       *dst, ULONG dstW, ULONG dstH)
+{
+    /*
+     * Nearest-neighbor scaling with 16:16 fixed-point arithmetic.
+     * No allocation; caller owns src and dst.
+     */
+    ULONG        xStep;
+    ULONG        yStep;
+    ULONG        sy16;
+    ULONG        sx16;
+    ULONG        dy;
+    ULONG        dx;
+    const UBYTE *srcRow;
+    UBYTE       *dstRow;
+
+    if (!src || !dst || srcW == 0 || srcH == 0 || dstW == 0 || dstH == 0) return;
+
+    xStep = (srcW << 16) / dstW;
+    yStep = (srcH << 16) / dstH;
+
+    sy16 = 0;
+    for (dy = 0; dy < dstH; dy++) {
+        srcRow = src + (sy16 >> 16) * srcW;
+        dstRow = dst + dy           * dstW;
+        sx16 = 0;
+        for (dx = 0; dx < dstW; dx++) {
+            dstRow[dx] = srcRow[sx16 >> 16];
+            sx16 += xStep;
+        }
+        sy16 += yStep;
+    }
+}
+
+void PetsciiScreenBuf_RenderCells(UBYTE              *dst,
+                                   ULONG               pixW,
+                                   const PetsciiPixel *cells,
+                                   UWORD               brushW,
+                                   UWORD               brushH,
+                                   UBYTE               bgColor,
+                                   UBYTE               charset,
+                                   const PetsciiStyle *style)
+{
+    UWORD col;
+    UWORD row;
+
+    if (!dst || !cells || !style || brushW == 0 || brushH == 0) return;
+
+    for (row = 0; row < brushH; row++) {
+        for (col = 0; col < brushW; col++) {
+            const PetsciiPixel *cell = &cells[(ULONG)row * brushW + col];
+            renderCell(dst, pixW,
+                       col, row,
+                       cell->code, cell->color, bgColor,
+                       charset, style);
+        }
+    }
+}
+
 void PetsciiScreenBuf_BlitScaled(PetsciiScreenBuf *buf,
                                   struct RastPort *rp,
                                   WORD destX, WORD destY,
                                   UWORD destW, UWORD destH,
                                   UBYTE *tmpBuf)
 {
-    /*
-     * Nearest-neighbor scaling with 16:16 fixed-point arithmetic.
-     *
-     * xStep / yStep are the source-space distance per one destination pixel,
-     * stored as 16:16 fixed-point (integer part in bits 31..16, fraction in
-     * bits 15..0).  The inner loop accumulates sx16, the integer part
-     * (sx16 >> 16) is the source column index — one addition and a right-shift
-     * per pixel, no multiplication or division inside the hot path.
-     *
-     * Example for 320->640 upscale: xStep = (320<<16)/640 = 32768 (0.5)
-     * Example for 320->160 downscale: xStep = (320<<16)/160 = 131072 (2.0)
-     */
-    ULONG        xStep;     /* 16:16 fp: source pixels per dest pixel, X */
-    ULONG        yStep;     /* 16:16 fp: source pixels per dest pixel, Y */
-    ULONG        sy16;      /* 16:16 fp: current source Y accumulator    */
-    ULONG        sx16;      /* 16:16 fp: current source X accumulator    */
-    ULONG        dy;
-    ULONG        dx;
-    const UBYTE *srcRow;
-    UBYTE       *dstRow;
-
     if (!buf || !rp || !buf->chunky || !buf->valid || !tmpBuf) return;
     if (destW == 0 || destH == 0) return;
 
-    xStep = (buf->pixW << 16) / (ULONG)destW;
-    yStep = (buf->pixH << 16) / (ULONG)destH;
-
-    sy16 = 0;
-    for (dy = 0; dy < (ULONG)destH; dy++) {
-        srcRow = buf->chunky + (sy16 >> 16) * buf->pixW;
-        dstRow = tmpBuf      + dy           * (ULONG)destW;
-        sx16 = 0;
-        for (dx = 0; dx < (ULONG)destW; dx++) {
-            dstRow[dx] = srcRow[sx16 >> 16];
-            sx16 += xStep;
-        }
-        sy16 += yStep;
-    }
+    PetsciiChunky_Scale(buf->chunky, buf->pixW, buf->pixH,
+                         tmpBuf, (ULONG)destW, (ULONG)destH);
 
     WriteChunkyPixels(rp,
                       (ULONG)(WORD)destX,

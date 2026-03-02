@@ -35,7 +35,17 @@
 #include <proto/intuition.h>
 #include <intuition/gadgetclass.h>
 #include "petscii_canvas_private.h"
+#include "petscii_screenbuf.h"
 #include <bdbprintf.h>
+
+/*
+ * CELL_PX(n, contentDim, pixDim)
+ * Project char edge index n (0..screenW or 0..screenH) to a content-relative
+ * pixel coordinate.  Same formula used by drawGrid() and the cursor highlight,
+ * guaranteed to align with BlitScaled's 16:16 mapping.
+ */
+#define CELL_PX(n, cDim, pDim) \
+    ((WORD)((ULONG)(n) * 8UL * (ULONG)(cDim) / (ULONG)(pDim)))
 /* ------------------------------------------------------------------ */
 /* Static: ensure inst->scaledBuf is (w x h) bytes.                   */
 /* ------------------------------------------------------------------ */
@@ -44,23 +54,32 @@ static BOOL ensureScaledBuf(PetsciiCanvasData *inst, UWORD w, UWORD h)
 {
     ULONG needed;
 
-    if (inst->scaledW == w && inst->scaledH == h && inst->scaledBuf)
+    if (inst->scaledW == w && inst->scaledH == h &&
+        inst->scaledBuf && inst->overlayBuf)
         return TRUE;
 
     if (inst->scaledBuf) {
         FreeVec(inst->scaledBuf);
         inst->scaledBuf = NULL;
-        inst->scaledW   = 0;
-        inst->scaledH   = 0;
     }
+    if (inst->overlayBuf) {
+        FreeVec(inst->overlayBuf);
+        inst->overlayBuf = NULL;
+    }
+    inst->scaledW = 0;
+    inst->scaledH = 0;
 
     if (w == 0 || h == 0)
         return FALSE;
 
-    needed          = (ULONG)w * (ULONG)h;
-    inst->scaledBuf = (UBYTE *)AllocVec(needed, MEMF_ANY);
-    if (!inst->scaledBuf)
+    needed           = (ULONG)w * (ULONG)h;
+    inst->scaledBuf  = (UBYTE *)AllocVec(needed, MEMF_ANY);
+    inst->overlayBuf = (UBYTE *)AllocVec(needed, MEMF_ANY);
+    if (!inst->scaledBuf || !inst->overlayBuf) {
+        if (inst->scaledBuf)  { FreeVec(inst->scaledBuf);  inst->scaledBuf  = NULL; }
+        if (inst->overlayBuf) { FreeVec(inst->overlayBuf); inst->overlayBuf = NULL; }
         return FALSE;
+    }
 
     inst->scaledW = w;
     inst->scaledH = h;
@@ -238,9 +257,212 @@ static void drawGrid(struct RastPort *rp,
     SetDrMd(rp, (LONG)savedMode);
 }
 
-/*
+/* ------------------------------------------------------------------ */
+/* Static: draw only the grid lines that cross a pixel sub-rect        */
+/* px1/py1 inclusive, px2/py2 exclusive (content-relative pixels)     */
+/* ------------------------------------------------------------------ */
 
-*/
+static void drawGridSubRect(struct RastPort *rp,
+                             WORD absX, WORD absY,
+                             WORD px1, WORD py1, WORD px2, WORD py2,
+                             PetsciiCanvasData *inst)
+{
+    UBYTE savedMode;
+    UWORD x;
+    UWORD y;
+    WORD  xx;
+    WORD  yy;
+    WORD  cellW2;
+    WORD  cellH2;
+
+    if (!inst->screenbuf) return;
+
+    cellW2 = (inst->screen && inst->screen->width  > 0)
+             ? (WORD)(inst->contentW / (WORD)inst->screen->width)  : 0;
+    cellH2 = (inst->screen && inst->screen->height > 0)
+             ? (WORD)(inst->contentH / (WORD)inst->screen->height) : 0;
+    if (cellW2 < 2 || cellH2 < 2) return;
+
+    savedMode = rp->DrawMode;
+    SetDrMd(rp, COMPLEMENT);
+    SetAPen(rp, 1);
+
+    /* Vertical lines */
+    for (x = 0; ; x++) {
+        xx = CELL_PX(x, inst->contentW, inst->screenbuf->pixW);
+        if (xx >= inst->contentW) break;
+        if (xx >= px1 && xx < px2) {
+            Move(rp, (LONG)(absX + xx), (LONG)(absY + py1));
+            Draw(rp, (LONG)(absX + xx), (LONG)(absY + py2 - 1));
+        }
+    }
+
+    /* Horizontal lines */
+    for (y = 0; ; y++) {
+        yy = CELL_PX(y, inst->contentH, inst->screenbuf->pixH);
+        if (yy >= inst->contentH) break;
+        if (yy >= py1 && yy < py2) {
+            Move(rp, (LONG)(absX + px1), (LONG)(absY + yy));
+            Draw(rp, (LONG)(absX + px2 - 1), (LONG)(absY + yy));
+        }
+    }
+
+    SetDrMd(rp, (LONG)savedMode);
+}
+
+/* ------------------------------------------------------------------ */
+/* Static: restore the canvas pixels under a brush overlay region     */
+/* Repairs (col,row) + 1 expanded char in each direction.             */
+/* Blits from scaledBuf (the clean screenbuf-only scale).             */
+/* ------------------------------------------------------------------ */
+
+static void repairHoverRegion(struct RastPort *rp,
+                               PetsciiCanvasData *inst,
+                               WORD absX, WORD absY,
+                               WORD col, WORD row, WORD bW, WORD bH)
+{
+    WORD rcol;
+    WORD rrow;
+    WORD rcol2;
+    WORD rrow2;
+    WORD px1;
+    WORD py1;
+    WORD px2;
+    WORD py2;
+    WORD scrW;
+    WORD scrH;
+
+    if (!inst->scaledBuf || !inst->screenbuf || !inst->screen) return;
+
+    scrW = (WORD)inst->screen->width;
+    scrH = (WORD)inst->screen->height;
+
+    /* Expand by 1 char on every side to cover selection-rect border pixels */
+    rcol  = (col > 0)     ? (WORD)(col - 1)        : 0;
+    rrow  = (row > 0)     ? (WORD)(row - 1)        : 0;
+    rcol2 = (col + bW + 1 < scrW) ? (WORD)(col + bW + 1) : scrW;
+    rrow2 = (row + bH + 1 < scrH) ? (WORD)(row + bH + 1) : scrH;
+
+    px1 = CELL_PX(rcol,  inst->contentW, inst->screenbuf->pixW);
+    py1 = CELL_PX(rrow,  inst->contentH, inst->screenbuf->pixH);
+    px2 = CELL_PX(rcol2, inst->contentW, inst->screenbuf->pixW);
+    py2 = CELL_PX(rrow2, inst->contentH, inst->screenbuf->pixH);
+
+    /* Safety clamp to content area */
+    if (px1 < 0)               px1 = 0;
+    if (py1 < 0)               py1 = 0;
+    if (px2 > inst->contentW)  px2 = inst->contentW;
+    if (py2 > inst->contentH)  py2 = inst->contentH;
+    if (px2 <= px1 || py2 <= py1) return;
+
+    /* Restore clean pixels from scaledBuf */
+    WriteChunkyPixels(rp,
+                      (ULONG)(absX + px1),
+                      (ULONG)(absY + py1),
+                      (ULONG)(absX + px2 - 1),
+                      (ULONG)(absY + py2 - 1),
+                      inst->scaledBuf + (ULONG)py1 * (ULONG)inst->contentW + px1,
+                      (LONG)inst->contentW);
+
+    /* Re-draw grid lines within this sub-rect if grid is visible */
+    if (inst->showGrid) {
+        WORD cellW2 = (inst->screen->width  > 0)
+                      ? (WORD)(inst->contentW / (WORD)inst->screen->width)  : 0;
+        WORD cellH2 = (inst->screen->height > 0)
+                      ? (WORD)(inst->contentH / (WORD)inst->screen->height) : 0;
+        if (cellW2 >= 2 && cellH2 >= 2)
+            drawGridSubRect(rp, absX, absY, px1, py1, px2, py2, inst);
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Static: draw hover overlay — brush preview + selection rectangle   */
+/* For Phase 6 the brush is always 1x1 (inst->brushW/H == 1).        */
+/* Phase 10 multi-char brush: same path, brushNative grows to bW*bH. */
+/* ------------------------------------------------------------------ */
+
+static void drawHoverOverlay(struct RastPort *rp,
+                              PetsciiCanvasData *inst,
+                              WORD absX, WORD absY)
+{
+    WORD         px1;
+    WORD         py1;
+    WORD         px2;
+    WORD         py2;
+    ULONG        dstW;
+    ULONG        dstH;
+    ULONG        srcW;
+    ULONG        srcH;
+    /* Phase 6: 1x1 brush — 8x8 native pixels fit on the stack.
+     * Phase 10: allocate dynamically when brushW*brushH > 1.         */
+    UBYTE        nativeBuf[8 * 8];
+    PetsciiPixel cell;
+    UBYTE        savedMode;
+    WORD         sx1;
+    WORD         sy1;
+    WORD         sx2;
+    WORD         sy2;
+
+    if (!inst->screen || !inst->style || !inst->screenbuf) return;
+    if (inst->cursorCol < 0 || inst->cursorRow < 0)       return;
+    if (!inst->overlayBuf)                                 return;
+
+    px1 = CELL_PX(inst->cursorCol,            inst->contentW, inst->screenbuf->pixW);
+    py1 = CELL_PX(inst->cursorRow,            inst->contentH, inst->screenbuf->pixH);
+    px2 = CELL_PX(inst->cursorCol + inst->brushW, inst->contentW, inst->screenbuf->pixW);
+    py2 = CELL_PX(inst->cursorRow + inst->brushH, inst->contentH, inst->screenbuf->pixH);
+
+    /* Clamp to content area */
+    if (px1 < 0)               px1 = 0;
+    if (py1 < 0)               py1 = 0;
+    if (px2 > inst->contentW)  px2 = inst->contentW;
+    if (py2 > inst->contentH)  py2 = inst->contentH;
+
+    dstW = (ULONG)(px2 - px1);
+    dstH = (ULONG)(py2 - py1);
+    if (dstW == 0 || dstH == 0) return;
+
+    /* Render the brush chars into native (8 px/char) buffer */
+    srcW = (ULONG)inst->brushW * 8UL;
+    srcH = (ULONG)inst->brushH * 8UL;
+
+    cell.code  = inst->selectedChar;
+    cell.color = inst->fgColor;
+    PetsciiScreenBuf_RenderCells(nativeBuf, srcW, &cell,
+                                  (UWORD)inst->brushW, (UWORD)inst->brushH,
+                                  inst->screen->backgroundColor,
+                                  inst->screen->charset,
+                                  inst->style);
+
+    /* Scale native brush to the projected destination size */
+    PetsciiChunky_Scale(nativeBuf, srcW, srcH,
+                         inst->overlayBuf, dstW, dstH);
+
+    /* Blit scaled brush preview to screen */
+    WriteChunkyPixels(rp,
+                      (ULONG)(absX + px1),
+                      (ULONG)(absY + py1),
+                      (ULONG)(absX + px2 - 1),
+                      (ULONG)(absY + py2 - 1),
+                      inst->overlayBuf,
+                      (LONG)dstW);
+
+    /* Selection rectangle: 1 px outside brush bounds, COMPLEMENT mode */
+    sx1 = (WORD)(absX + px1 - 1);
+    sy1 = (WORD)(absY + py1 - 1);
+    sx2 = (WORD)(absX + px2);
+    sy2 = (WORD)(absY + py2);
+
+    savedMode = rp->DrawMode;
+    SetDrMd(rp, COMPLEMENT);
+    SetAPen(rp, 1);
+    Move(rp, (LONG)sx1, (LONG)sy1);
+    Draw(rp, (LONG)sx2, (LONG)sy1);
+    Draw(rp, (LONG)sx2, (LONG)sy2);
+    Draw(rp, (LONG)sx1, (LONG)sy2);
+    Draw(rp, (LONG)sx1, (LONG)(sy1 + 1)); /* avoid double pixel in COMPLEMENT */
+    SetDrMd(rp, (LONG)savedMode);
+}
 
 ULONG PetsciiCanvas_OnDomain(Class *cl, Object *o, struct gpDomain *msg)
 {
@@ -304,10 +526,11 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
     WORD               top;
     WORD               width;
     WORD               height;
-    WORD               absX;   /* absolute X of content rect top-left */
+    WORD               absX;
     WORD               absY;
     WORD               cellW;
     WORD               cellH;
+    BOOL               needFull;
 
     (void)cl;
 
@@ -325,120 +548,125 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
     if (width <= 0 || height <= 0)
         return 0;
 
-    /* Recompute content rect.
-     * contentX/Y/W/H = inner character area (border excluded).
-     * After this call, cellW/H from contentW/scrW gives the per-cell size. */
+    /* Always recompute content rect (cheap arithmetic) */
     updateContentRect(inst, width, height);
 
-    /* Per-cell pixel size (used for border, grid, cursor) */
+    absX  = (WORD)(left + inst->contentX);
+    absY  = (WORD)(top  + inst->contentY);
     cellW = (inst->screen->width  > 0) ?
             (WORD)(inst->contentW / (WORD)inst->screen->width)  : 0;
     cellH = (inst->screen->height > 0) ?
             (WORD)(inst->contentH / (WORD)inst->screen->height) : 0;
 
-    /* Outer frame = inner content rect expanded by 1 cell on every side.
-     * This covers both the character grid and the C64 border margin.    */
-    {
-        WORD outerX = (WORD)(inst->contentX - cellW);
-        WORD outerY = (WORD)(inst->contentY - cellH);
-        WORD outerW = (WORD)(inst->contentW + 2 * cellW);
-        WORD outerH = (WORD)(inst->contentH + 2 * cellH);
+    /* Decide: full canvas blit, or hover-only partial update? */
+    needFull = !inst->screenbuf->valid   ||
+               inst->scaledBufDirty      ||
+               inst->refreshExtraMarge   ||
+               inst->scaledBuf  == NULL  ||
+               inst->overlayBuf == NULL  ||
+               inst->contentW   == 0     ||
+               inst->contentH   == 0     ||
+               (inst->scaledW != (UWORD)inst->contentW) ||
+               (inst->scaledH != (UWORD)inst->contentH);
 
-        /* Erase letterbox/pillarbox strips OUTSIDE the outer frame */
-        if(inst->refreshExtraMarge)
+    if (needFull) {
+        /* ---- FULL RENDER PATH ----------------------------------------- */
+
+        /* Outer frame = inner content expanded by 1 cell on every side */
         {
-            eraseMargins(rp, left, top, width, height,
-                         outerX, outerY, outerW, outerH);
-            inst->refreshExtraMarge = 0;
+            WORD outerX = (WORD)(inst->contentX - cellW);
+            WORD outerY = (WORD)(inst->contentY - cellH);
+            WORD outerW = (WORD)(inst->contentW + 2 * cellW);
+            WORD outerH = (WORD)(inst->contentH + 2 * cellH);
+
+            /* Erase letterbox/pillarbox strips outside the outer frame */
+            if (inst->refreshExtraMarge) {
+                eraseMargins(rp, left, top, width, height,
+                             outerX, outerY, outerW, outerH);
+                inst->refreshExtraMarge = 0;
+            }
+
+            /* Fill C64 border strips */
+            if (cellW >= 1 && cellH >= 1) {
+                WORD absOX = (WORD)(left + outerX);
+                WORD absOY = (WORD)(top  + outerY);
+                WORD pen   = PetsciiStyle_Pen(inst->style,
+                                              inst->screen->borderColor);
+                SetAPen(rp, (LONG)pen);
+
+                /* Top border strip */
+                RectFill(rp,
+                         (LONG)absOX,
+                         (LONG)absOY,
+                         (LONG)(absOX + outerW - 1),
+                         (LONG)(absY - 1));
+                /* Bottom border strip */
+                RectFill(rp,
+                         (LONG)absOX,
+                         (LONG)(absY + inst->contentH),
+                         (LONG)(absOX + outerW - 1),
+                         (LONG)(absOY + outerH - 1));
+                /* Left border strip */
+                RectFill(rp,
+                         (LONG)absOX,
+                         (LONG)absY,
+                         (LONG)(absX - 1),
+                         (LONG)(absY + inst->contentH - 1));
+                /* Right border strip */
+                RectFill(rp,
+                         (LONG)(absX + inst->contentW),
+                         (LONG)absY,
+                         (LONG)(absOX + outerW - 1),
+                         (LONG)(absY + inst->contentH - 1));
+            }
         }
-        /* Fill the four C64 border strips with the border pen.
-         * PetsciiStyle_Pen maps C64 color index -> Amiga screen pen.  */
-        if (cellW >= 1 && cellH >= 1) {
-            WORD absOX = (WORD)(left + outerX);
-            WORD absOY = (WORD)(top  + outerY);
-            WORD pen   = PetsciiStyle_Pen(inst->style,
-                                          inst->screen->borderColor);
 
-            SetAPen(rp, (LONG)pen);
+        /* Rebuild screenbuf chunky if stale */
+        if (!inst->screenbuf->valid)
+            PetsciiScreenBuf_RebuildFull(inst->screenbuf, inst->screen, inst->style);
 
-            absX = (WORD)(left + inst->contentX);
-            absY = (WORD)(top  + inst->contentY);
-
-            /* Top border strip */
-            RectFill(rp,
-                     (LONG)absOX,
-                     (LONG)absOY,
-                     (LONG)(absOX + outerW - 1),
-                     (LONG)(absY - 1));
-
-            /* Bottom border strip */
-            RectFill(rp,
-                     (LONG)absOX,
-                     (LONG)(absY + inst->contentH),
-                     (LONG)(absOX + outerW - 1),
-                     (LONG)(absOY + outerH - 1));
-
-            /* Left border strip (between top and bottom strips) */
-            RectFill(rp,
-                     (LONG)absOX,
-                     (LONG)absY,
-                     (LONG)(absX - 1),
-                     (LONG)(absY + inst->contentH - 1));
-
-            /* Right border strip */
-            RectFill(rp,
-                     (LONG)(absX + inst->contentW),
-                     (LONG)absY,
-                     (LONG)(absOX + outerW - 1),
-                     (LONG)(absY + inst->contentH - 1));
-        }
-    }
-
-    absX = (WORD)(left + inst->contentX);
-    absY = (WORD)(top  + inst->contentY);
-
-    /* Lazily rebuild the chunky buffer when marked invalid */
-    if (!inst->screenbuf->valid)
-        PetsciiScreenBuf_RebuildFull(inst->screenbuf, inst->screen, inst->style);
-
-    /* Blit character grid: 1:1 native or scaled to fit inner content rect */
-    if ((ULONG)inst->contentW == inst->screenbuf->pixW &&
-        (ULONG)inst->contentH == inst->screenbuf->pixH) {
-        PetsciiScreenBuf_BlitNative(inst->screenbuf, rp, absX, absY);
-    } else {
+        /* Full blit — always via BlitScaled so scaledBuf stays current.
+         * At 1:1 the step is exactly 1.0 (identity copy), so correctness
+         * and the repair source are both guaranteed.                      */
         if (ensureScaledBuf(inst, (UWORD)inst->contentW, (UWORD)inst->contentH)) {
             PetsciiScreenBuf_BlitScaled(inst->screenbuf, rp,
-                                        absX, absY,
-                                        (UWORD)inst->contentW,
-                                        (UWORD)inst->contentH,
-                                        inst->scaledBuf);
+                                         absX, absY,
+                                         (UWORD)inst->contentW,
+                                         (UWORD)inst->contentH,
+                                         inst->scaledBuf);
         }
-    }
+        inst->scaledBufDirty = FALSE;
 
-    /* Character grid overlay (inside inner content rect only) */
-    if (inst->showGrid && cellW >= 2 && cellH >= 2) {
-        drawGrid(rp, absX, absY,
-                 inst->contentW, inst->contentH, inst);
-    }
+        /* Grid overlay */
+        if (inst->showGrid && cellW >= 2 && cellH >= 2)
+            drawGrid(rp, absX, absY, inst->contentW, inst->contentH, inst);
 
-    /* Cursor highlight: complement box drawn around current cell */
-    if (inst->cursorCol >= 0 && inst->cursorRow >= 0 && cellW >= 1 && cellH >= 1) {
-        // WORD  cx2  = (WORD)(absX + inst->cursorCol * cellW);
-        // WORD  cy2  = (WORD)(absY + inst->cursorRow * cellH);
-        WORD  cx1  = (WORD)(absX + ((inst->cursorCol*8*inst->contentW)/inst->screenbuf->pixW) )-1;
-        WORD  cy1  = (WORD)(absY + ((inst->cursorRow*8*inst->contentH)/inst->screenbuf->pixH) )-1;
-        WORD  cx2  = (WORD)(absX + (((inst->cursorCol+1)*8*inst->contentW)/inst->screenbuf->pixW) );
-        WORD  cy2  = (WORD)(absY + (((inst->cursorRow+1)*8*inst->contentH)/inst->screenbuf->pixH) );
+        /* Hover overlay (current brush preview + selection rect) */
+        drawHoverOverlay(rp, inst, absX, absY);
 
-        UBYTE saved = rp->DrawMode;
-        SetDrMd(rp, COMPLEMENT);
-        SetAPen(rp, 1);
-        Move(rp, (LONG)cx1,             (LONG)cy1);
-        Draw(rp, (LONG)cx2, (LONG)cy1);
-        Draw(rp, (LONG)cx2, (LONG)cy2);
-        Draw(rp, (LONG)cx1, (LONG)cy2);
-        Draw(rp, (LONG)cx1, (LONG)cy1+1); /* do not trace 2 times the first pixel, we're in complement mode */
-        SetDrMd(rp, (LONG)saved);
+        /* Remember where the overlay was drawn for the next repair */
+        inst->prevHoverCol = inst->cursorCol;
+        inst->prevHoverRow = inst->cursorRow;
+        inst->prevBrushW   = inst->brushW;
+        inst->prevBrushH   = inst->brushH;
+
+    } else {
+        /* ---- PARTIAL HOVER UPDATE PATH --------------------------------- */
+
+        /* Repair old overlay region (restores screenbuf pixels + grid) */
+        if (inst->prevHoverCol >= 0) {
+            repairHoverRegion(rp, inst, absX, absY,
+                              inst->prevHoverCol, inst->prevHoverRow,
+                              inst->prevBrushW,   inst->prevBrushH);
+        }
+
+        /* Draw new hover overlay */
+        drawHoverOverlay(rp, inst, absX, absY);
+
+        inst->prevHoverCol = inst->cursorCol;
+        inst->prevHoverRow = inst->cursorRow;
+        inst->prevBrushW   = inst->brushW;
+        inst->prevBrushH   = inst->brushH;
     }
 
     return 0;

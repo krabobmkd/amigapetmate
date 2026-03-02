@@ -69,4 +69,24 @@ void PetsciiScreenBuf_BlitScaled(PetsciiScreenBuf *buf,
                                   UWORD destW, UWORD destH,
                                   UBYTE *tmpBuf);
 
+/* Scale any chunky pixel buffer using nearest-neighbor 16:16 fixed-point.
+ * src: srcW x srcH bytes (row-major).  dst: dstW x dstH bytes (caller-alloc).
+ * Does NOT call WriteChunkyPixels; only fills dst.
+ * Used by BlitScaled internally and by the hover overlay renderer. */
+void PetsciiChunky_Scale(const UBYTE *src, ULONG srcW, ULONG srcH,
+                          UBYTE       *dst, ULONG dstW, ULONG dstH);
+
+/* Render brushW x brushH character cells into a native (unscaled) chunky buffer.
+ * dst must be at least brushW*8 * brushH*8 bytes; pixW = brushW * 8 (row stride).
+ * cells: flat [row * brushW + col] array of PetsciiPixel.
+ * bgColor: screen background C64 colour index (0-15). */
+void PetsciiScreenBuf_RenderCells(UBYTE              *dst,
+                                   ULONG               pixW,
+                                   const PetsciiPixel *cells,
+                                   UWORD               brushW,
+                                   UWORD               brushH,
+                                   UBYTE               bgColor,
+                                   UBYTE               charset,
+                                   const PetsciiStyle *style);
+
 #endif /* PETSCII_SCREENBUF_H */

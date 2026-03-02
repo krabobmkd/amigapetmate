@@ -1,20 +1,29 @@
 /*
  * PetsciiCanvas - Mouse input: GM_GOACTIVE, GM_HANDLEINPUT, GM_GOINACTIVE.
  *
- * Left-click or drag paints PETSCII cells using the current tool:
- *   TOOL_DRAW      - set both character code and foreground color
- *   TOOL_COLORIZE  - change color, keep existing character
- *   TOOL_CHARDRAW  - change character code, keep existing color
+ * Hover vs. draw distinction
+ * --------------------------
+ * The gadget stays continuously active (always returns GMR_MEACTIVE).
+ * GM_GOACTIVE fires when the mouse enters the gadget area.  If the left
+ * button is held at entry (ie_Code == IECODE_LBUTTON), drawing begins
+ * immediately.  Otherwise it is pure hover: the brush preview is shown
+ * but the screenbuf is not modified.
  *
- * Bresenham line interpolation fills gaps between cells on fast drags.
+ * While the gadget is active GM_HANDLEINPUT receives every input event:
+ *   IECODE_NOBUTTON   - mouse move; hover-only if !isDrawing, paint if isDrawing
+ *   IECODE_LBUTTON    - button pressed while hovering  -> start drawing
+ *   IECODE_LBUTTON|UP - button released while drawing  -> stop drawing, keep hovering
  *
- * GM_GOACTIVE is called on SELECTDOWN; GMR_MEACTIVE is returned to
- * stay active during drag.  GM_HANDLEINPUT is called for subsequent
- * events; SELECTUP returns GMR_VERIFY|GMR_NOREUSE, causing Intuition
- * to post IDCMP_GADGETUP.
+ * Render strategy
+ * ---------------
+ * After a cell is painted:   scaledBufDirty = TRUE  -> OnRender full path
+ *   (scaledBuf must be refreshed before it can serve as repair source)
+ * After a hover-only move:   scaledBufDirty = FALSE -> OnRender partial path
+ *   (repair old overlay from scaledBuf, draw new overlay)
+ *
+ * Bresenham gap-fill fills in cells skipped during fast drags.
  *
  * Mouse coordinates (gpi_Mouse.X/Y) are gadget-relative.
- * The content rect (inst->contentX/Y/W/H) handles keepRatio offsets.
  */
 
 #include <proto/graphics.h>
@@ -29,8 +38,7 @@
 
 /*
  * Convert gadget-relative mouse coords to character cell (col, row).
- * Clamps to the content rect so clicks in margins select border cells.
- * Returns -1/-1 when the canvas has no valid content rect or screen.
+ * Returns -1/-1 when outside a valid content rect.
  */
 static void mouseToCell(PetsciiCanvasData *inst, WORD relX, WORD relY,
                          WORD *outCol, WORD *outRow)
@@ -47,11 +55,9 @@ static void mouseToCell(PetsciiCanvasData *inst, WORD relX, WORD relY,
         return;
     }
 
-    /* Translate from gadget-relative to content-rect-relative */
     cx = (WORD)(relX - inst->contentX);
     cy = (WORD)(relY - inst->contentY);
 
-    /* Clamp to content area */
     if (cx < 0)   cx = 0;
     if (cy < 0)   cy = 0;
     if (cx >= cW) cx = (WORD)(cW - 1);
@@ -60,7 +66,6 @@ static void mouseToCell(PetsciiCanvasData *inst, WORD relX, WORD relY,
     *outCol = (WORD)((ULONG)cx * (ULONG)inst->screen->width  / (ULONG)cW);
     *outRow = (WORD)((ULONG)cy * (ULONG)inst->screen->height / (ULONG)cH);
 
-    /* Safety clamp */
     if (*outCol >= (WORD)inst->screen->width)
         *outCol = (WORD)(inst->screen->width  - 1);
     if (*outRow >= (WORD)inst->screen->height)
@@ -68,8 +73,8 @@ static void mouseToCell(PetsciiCanvasData *inst, WORD relX, WORD relY,
 }
 
 /*
- * Apply the current tool to one cell and update the render buffer.
- * TOOL_BRUSH and TOOL_TEXT are no-ops here (handled in later phases).
+ * Apply the current tool to one cell, update the render buffer, and
+ * mark scaledBuf dirty so the next OnRender takes the full-blit path.
  */
 static void paintCell(PetsciiCanvasData *inst, WORD col, WORD row)
 {
@@ -97,16 +102,14 @@ static void paintCell(PetsciiCanvasData *inst, WORD col, WORD row)
 
     PetsciiScreenBuf_UpdateCell(inst->screenbuf, inst->screen, inst->style,
                                  (UWORD)col, (UWORD)row);
+
+    /* scaledBuf now lags behind screenbuf — force full blit next render */
+    inst->scaledBufDirty = TRUE;
 }
 
 /*
  * Bresenham rasterizer: paint every cell along the line from
- * (x0,y0) to (x1,y1) inclusive, skipping the origin cell (already
- * painted in the previous event).
- *
- * We skip the first point so that GOACTIVE + a series of HANDLEINPUT
- * moves never re-paint the origin redundantly.  The first cell of
- * each drag is always painted by OnGoActive.
+ * (x0,y0) to (x1,y1) inclusive, skipping the first point.
  */
 static void paintLineFrom(PetsciiCanvasData *inst,
                            WORD x0, WORD y0, WORD x1, WORD y1)
@@ -126,9 +129,8 @@ static void paintLineFrom(PetsciiCanvasData *inst,
     err = (WORD)(dx - dy);
 
     for (;;) {
-        if (!first) {
+        if (!first)
             paintCell(inst, x0, y0);
-        }
         first = FALSE;
 
         if (x0 == x1 && y0 == y1) break;
@@ -140,8 +142,8 @@ static void paintLineFrom(PetsciiCanvasData *inst,
 }
 
 /*
- * Trigger a GM_RENDER on ourselves so the canvas updates immediately
- * after each paint operation or cursor move.
+ * Trigger GM_RENDER on ourselves.
+ * OnRender decides full vs. partial based on inst->scaledBufDirty.
  */
 static void renderSelf(Class *cl, Object *o, struct GadgetInfo *gi)
 {
@@ -164,7 +166,7 @@ static void renderSelf(Class *cl, Object *o, struct GadgetInfo *gi)
 }
 
 /* ------------------------------------------------------------------ */
-/* GM_GOACTIVE - called on SELECTDOWN                                   */
+/* GM_GOACTIVE - mouse enters gadget area                              */
 /* ------------------------------------------------------------------ */
 
 ULONG PetsciiCanvas_OnGoActive(Class *cl, Object *o, struct gpInput *msg)
@@ -172,38 +174,51 @@ ULONG PetsciiCanvas_OnGoActive(Class *cl, Object *o, struct gpInput *msg)
     PetsciiCanvasData *inst;
     WORD               col;
     WORD               row;
+    BOOL               isClick;
 
     inst = (PetsciiCanvasData *)INST_DATA(cl, o);
 
-    /* Take undo snapshot before the first cell of this stroke */
-    if (inst->undoBuf && inst->screen &&
-        inst->currentTool != TOOL_BRUSH &&
-        inst->currentTool != TOOL_TEXT) {
-        PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
-    }
-
     mouseToCell(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y, &col, &row);
 
-    if (col >= 0 && row >= 0) {
-        paintCell(inst, col, row);
-        inst->lastPaintCol = col;
-        inst->lastPaintRow = row;
+    /* Detect actual left-button click vs. passive mouse-over */
+    isClick = (msg->gpi_IEvent &&
+               msg->gpi_IEvent->ie_Class == IECLASS_RAWMOUSE &&
+               msg->gpi_IEvent->ie_Code  == IECODE_LBUTTON);
+
+    if (isClick) {
+        /* Take undo snapshot before the first painted cell of this stroke */
+        if (inst->undoBuf && inst->screen &&
+            inst->currentTool != TOOL_BRUSH &&
+            inst->currentTool != TOOL_TEXT) {
+            PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+        }
+
+        if (col >= 0 && row >= 0) {
+            paintCell(inst, col, row);
+            inst->lastPaintCol = col;
+            inst->lastPaintRow = row;
+        } else {
+            inst->lastPaintCol = -1;
+            inst->lastPaintRow = -1;
+        }
+        inst->isDrawing = TRUE;
     } else {
+        /* Hover entry: no painting, scaledBufDirty stays as-is */
+        inst->isDrawing    = FALSE;
         inst->lastPaintCol = -1;
         inst->lastPaintRow = -1;
     }
 
     inst->cursorCol = col;
     inst->cursorRow = row;
-    inst->isDrawing = TRUE;
 
     renderSelf(cl, o, msg->gpi_GInfo);
 
-    return GMR_MEACTIVE;  /* stay active: track drag */
+    return GMR_MEACTIVE;  /* stay active while over the gadget */
 }
 
 /* ------------------------------------------------------------------ */
-/* GM_HANDLEINPUT - called while gadget is active (button held)        */
+/* GM_HANDLEINPUT - called for every event while gadget is active      */
 /* ------------------------------------------------------------------ */
 
 ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
@@ -216,22 +231,52 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
     inst = (PetsciiCanvasData *)INST_DATA(cl, o);
     ie   = msg->gpi_IEvent;
 
-    /* Left button release: finish stroke, post GADGETUP */
-    if (ie->ie_Class == IECLASS_RAWMOUSE &&
-        ie->ie_Code  == (IECODE_LBUTTON | IECODE_UP_PREFIX)) {
-        inst->isDrawing = FALSE;
-        *msg->gpi_Termination = 0;
-        return GMR_VERIFY | GMR_NOREUSE;
+    if (ie->ie_Class != IECLASS_RAWMOUSE)
+        return GMR_MEACTIVE;
+
+    if (ie->ie_Code == (IECODE_LBUTTON | IECODE_UP_PREFIX)) {
+        /* Button released: stop drawing but stay active for hover */
+        inst->isDrawing    = FALSE;
+        inst->lastPaintCol = -1;
+        inst->lastPaintRow = -1;
+        /* No render needed: cursor stays at same position, scaledBuf is
+         * already current (full path was taken on every paint).        */
+        return GMR_MEACTIVE;
     }
 
-    /* Mouse move while button held: Bresenham gap-fill */
-    if (ie->ie_Class == IECLASS_RAWMOUSE &&
-        ie->ie_Code  == IECODE_NOBUTTON) {
+    if (ie->ie_Code == IECODE_LBUTTON) {
+        /* Button pressed while hovering: start a new draw stroke */
         mouseToCell(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y, &col, &row);
 
+        if (inst->undoBuf && inst->screen &&
+            inst->currentTool != TOOL_BRUSH &&
+            inst->currentTool != TOOL_TEXT) {
+            PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+        }
+
         if (col >= 0 && row >= 0) {
+            paintCell(inst, col, row);
+            inst->lastPaintCol = col;
+            inst->lastPaintRow = row;
+        } else {
+            inst->lastPaintCol = -1;
+            inst->lastPaintRow = -1;
+        }
+        inst->isDrawing = TRUE;
+        inst->cursorCol = col;
+        inst->cursorRow = row;
+
+        renderSelf(cl, o, msg->gpi_GInfo);
+        return GMR_MEACTIVE;
+    }
+
+    if (ie->ie_Code == IECODE_NOBUTTON) {
+        /* Mouse move */
+        mouseToCell(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y, &col, &row);
+
+        if (inst->isDrawing && col >= 0 && row >= 0) {
+            /* Draw stroke: Bresenham gap-fill from last painted cell */
             if (inst->lastPaintCol >= 0 && inst->lastPaintRow >= 0) {
-                /* Paint from last position to current (skip origin) */
                 paintLineFrom(inst,
                                inst->lastPaintCol, inst->lastPaintRow,
                                col, row);
@@ -241,6 +286,8 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
             inst->lastPaintCol = col;
             inst->lastPaintRow = row;
         }
+        /* scaledBufDirty was set by paintCell if drawing;
+         * stays FALSE if hover-only -> OnRender takes partial path */
 
         inst->cursorCol = col;
         inst->cursorRow = row;
@@ -251,7 +298,7 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
 }
 
 /* ------------------------------------------------------------------ */
-/* GM_GOINACTIVE - gadget deactivated (e.g. requester opened)          */
+/* GM_GOINACTIVE - mouse left the gadget area                          */
 /* ------------------------------------------------------------------ */
 
 ULONG PetsciiCanvas_OnGoInactive(Class *cl, Object *o,
@@ -262,10 +309,13 @@ ULONG PetsciiCanvas_OnGoInactive(Class *cl, Object *o,
     inst->isDrawing    = FALSE;
     inst->lastPaintCol = -1;
     inst->lastPaintRow = -1;
-    inst->cursorCol    = -1;
-    inst->cursorRow    = -1;
 
-    /* Redraw to erase the cursor highlight */
+    /* Hide cursor: set to -1 so drawHoverOverlay draws nothing,
+     * repairHoverRegion restores the last overlay position.          */
+    inst->cursorCol = -1;
+    inst->cursorRow = -1;
+
+    /* Partial render: repair the last overlay, draw nothing new */
     renderSelf(cl, o, msg->gpgi_GInfo);
 
     return 0;

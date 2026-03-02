@@ -58,11 +58,9 @@ typedef struct PetsciiCanvasData {
     UBYTE             currentTool;   /* TOOL_DRAW / TOOL_COLORIZE / ...  */
     UBYTE             selectedChar;  /* 0-255 screen code to paint        */
     UBYTE             fgColor;       /* 0-15 foreground color, to draw with */
+    UBYTE             pad0;          /* alignment */
 
-    /* bgColor removed, belong to struct PetsciiScreen */
-    UBYTE       dummy;
-
-    /* Cursor cell (-1 = not shown); updated by input handler            */
+    /* Cursor / hover cell (-1 = not shown); updated by input handler   */
     WORD              cursorCol;
     WORD              cursorRow;
 
@@ -71,9 +69,32 @@ typedef struct PetsciiCanvasData {
     WORD              lastPaintCol;
     WORD              lastPaintRow;
 
+    /* Brush size in character cells (1x1 = single char, Phase 6 default).
+     * Phase 10 will grow these when the user selects a multi-char brush. */
+    WORD              brushW;
+    WORD              brushH;
+
+    /* Previously rendered hover overlay position (char-cell coords).
+     * Used by the partial render path to repair the old overlay region.
+     * -1 = no overlay was drawn yet.                                    */
+    WORD              prevHoverCol;
+    WORD              prevHoverRow;
+    WORD              prevBrushW;
+    WORD              prevBrushH;
+
+    /* TRUE when screenbuf cells changed (paintCell / OM_SET) but
+     * scaledBuf has not yet been refreshed.  Forces a full blit in the
+     * next OnRender call.  Cleared after BlitScaled.                   */
+    BOOL              scaledBufDirty;
+
+    /* Pre-allocated buffer for hover overlay rendering (scaled pixels).
+     * Sized to contentW * contentH bytes — same as scaledBuf.
+     * scaledBuf holds the clean screenbuf pixels (repair source).
+     * overlayBuf is the temporary dest for scaling the brush preview.  */
+    UBYTE            *overlayBuf;
+
     /* Undo/redo buffer (not owned; managed by petmate.c)               */
     PetsciiUndoBuffer *undoBuf;
-
 
 } PetsciiCanvasData;
 
