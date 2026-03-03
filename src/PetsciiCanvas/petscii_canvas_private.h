@@ -78,6 +78,10 @@ typedef struct PetsciiCanvasData {
     WORD              brushW;
     WORD              brushH;
 
+    /* hotspot of the hover handle in the brush, in char. */
+    WORD              brushHotx;
+    WORD              brushHoty;
+
     /* Previously rendered hover overlay position (char-cell coords).
      * Used by the partial render path to repair the old overlay region.
      * -1 = no overlay was drawn yet.                                    */

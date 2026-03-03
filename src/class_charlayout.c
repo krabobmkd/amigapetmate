@@ -97,67 +97,159 @@ static ULONG CharLayout_OnDispose(Class *cl, Object *o, Msg msg)
 static ULONG CharLayout_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
 {
     CharLayoutData *inst;
-    WORD            left;
-    WORD            top;
+    // WORD            left;
+    // WORD            top;
     WORD            availW;
-    WORD            y;
+    WORD            decaly=0;
     UWORD           i;
+//    UWORD           h;
 
     inst   = (CharLayoutData *)INST_DATA(cl, o);
-    left   = G(o)->LeftEdge;
-    top    = G(o)->TopEdge;
+    // left   = G(o)->LeftEdge;
+    // top    = G(o)->TopEdge;
     availW = G(o)->Width;
-    y      = top;
+  //  y      = top;
 
+    /* experimental: do a normal layout */
+
+    DoSuperMethodA(cl, o, (APTR)msg);
+
+    /* but then we just need to shrunk the charSelector up&down marges
+        This is basically the whole point of this class
+    */
     for (i = 0; i < inst->childCount; i++) {
         Object        *child = inst->children[i];
+        struct Gadget *gad = (struct Gadget *)child;
         ULONG          gadID = 0;
-        WORD           childH;
-        struct Gadget *gad;
 
         GetAttr(GA_ID, child, &gadID);
 
         if ((ULONG)gadID == (ULONG)GAD_CHARSELECTOR) {
-            /* Square: 16x16 char grid */
-            childH = availW;
-
-        } else if ((ULONG)gadID == (ULONG)GAD_COLORPICKER_FG ||
-                   (ULONG)gadID == (ULONG)GAD_COLORPICKER_BG) {
-            /* 8x2 color grid: width / 4 makes each cell square */
-            childH = (availW > 0) ? (WORD)(availW / 4) : 16;
-
-        } else {
-            /* Ask the child for its nominal (preferred) height */
-            struct gpDomain domMsg;
-            domMsg.MethodID          = GM_DOMAIN;
-            domMsg.gpd_GInfo         = msg->gpl_GInfo;
-            domMsg.gpd_RPort         = msg->gpl_GInfo
-                                       ? msg->gpl_GInfo->gi_RastPort
-                                       : NULL;
-            domMsg.gpd_Which         = GDOMAIN_NOMINAL;
-            domMsg.gpd_Domain.Left   = 0;
-            domMsg.gpd_Domain.Top    = 0;
-            domMsg.gpd_Domain.Width  = availW;
-            domMsg.gpd_Domain.Height = 0;
-            DoMethodA(child, (Msg)(APTR)&domMsg);
-            childH = (domMsg.gpd_Domain.Height > 0)
-                     ? (WORD)domMsg.gpd_Domain.Height : 20;
+            if(gad->Height>gad->Width)
+            {
+                decaly = gad->Height-gad->Width;
+                gad->Height = gad->Width;
+                DoMethodA((Object *)child, (Msg)msg);
+            }
+        } else
+        if(decaly>0)
+        {
+            gad->TopEdge -= decaly;
+            DoMethodA((Object *)child, (Msg)msg);
         }
-
-        if (childH < 1) childH = 1;
-
-        /* Set position and size directly in the struct Gadget fields */
-        gad           = (struct Gadget *)child;
-        gad->LeftEdge = left;
-        gad->TopEdge  = y;
-        gad->Width    = availW;
-        gad->Height   = childH;
-
-        /* Recursively lay out the child, reusing the incoming message */
-        DoMethodA((Object *)child, (Msg)msg);
-
-        y += childH;
     }
+    // /*
+    //     trick with 2 loops
+    // */
+
+    // /* 1rst loop set values,compute ideal value but can go too far down */
+    // for (i = 0; i < inst->childCount; i++) {
+    //     Object        *child = inst->children[i];
+    //     ULONG          gadID = 0;
+    //     WORD           childH;
+    //     struct Gadget *gad;
+
+    //     GetAttr(GA_ID, child, &gadID);
+
+    //     if ((ULONG)gadID == (ULONG)GAD_CHARSELECTOR) {
+    //         /* Square: 16x16 char grid */
+    //         childH = availW;
+
+    //     } else if ((ULONG)gadID == (ULONG)GAD_COLORPICKER_FG ||
+    //                (ULONG)gadID == (ULONG)GAD_COLORPICKER_BG) {
+    //         /* 8x2 color grid: width / 4 makes each cell square */
+    //         childH = (availW > 0) ? (WORD)(availW / 4) : 16;
+
+    //     } else {
+    //         /* Ask the child for its nominal (preferred) height */
+    //         struct gpDomain domMsg;
+    //         domMsg.MethodID          = GM_DOMAIN;
+    //         domMsg.gpd_GInfo         = msg->gpl_GInfo;
+    //         domMsg.gpd_RPort         = msg->gpl_GInfo
+    //                                    ? msg->gpl_GInfo->gi_RastPort
+    //                                    : NULL;
+    //         domMsg.gpd_Which         = GDOMAIN_NOMINAL;
+    //         domMsg.gpd_Domain.Left   = 0;
+    //         domMsg.gpd_Domain.Top    = 0;
+    //         domMsg.gpd_Domain.Width  = availW;
+    //         domMsg.gpd_Domain.Height = 0;
+    //         DoMethodA(child, (Msg)(APTR)&domMsg);
+    //         childH = (domMsg.gpd_Domain.Height > 0)
+    //                  ? (WORD)domMsg.gpd_Domain.Height : 20;
+    //     }
+
+    //     if (childH < 1) childH = 1;
+
+    //     /* Set position and size directly in the struct Gadget fields */
+    //     gad           = (struct Gadget *)child;
+    //     gad->LeftEdge = left;
+    //     gad->TopEdge  = y;
+    //     gad->Width    = availW;
+    //     gad->Height   = childH;
+
+    //     y += childH;
+    // }
+    // h = y-top;
+    // /* */
+    // if(h>G(o)->Height)
+    // {
+    //     UWORD hm = h-G(o)->Height;
+    //     for (i = 0; i < inst->childCount; i++) {
+    //         Object        *child = inst->children[i];
+    //         ULONG          gadID = 0;
+    //         WORD           childH;
+    //         struct Gadget *gad;
+
+    //         GetAttr(GA_ID, child, &gadID);
+
+    //         if ((ULONG)gadID == (ULONG)GAD_CHARSELECTOR) {
+    //             /* Square: 16x16 char grid */
+    //             childH = availW;
+
+    //         } else if ((ULONG)gadID == (ULONG)GAD_COLORPICKER_FG ||
+    //                    (ULONG)gadID == (ULONG)GAD_COLORPICKER_BG) {
+    //             /* 8x2 color grid: width / 4 makes each cell square */
+    //             childH = (availW > 0) ? (WORD)(availW / 4) : 16;
+
+    //         } else {
+    //             /* Ask the child for its nominal (preferred) height */
+    //             struct gpDomain domMsg;
+    //             domMsg.MethodID          = GM_DOMAIN;
+    //             domMsg.gpd_GInfo         = msg->gpl_GInfo;
+    //             domMsg.gpd_RPort         = msg->gpl_GInfo
+    //                                        ? msg->gpl_GInfo->gi_RastPort
+    //                                        : NULL;
+    //             domMsg.gpd_Which         = GDOMAIN_NOMINAL;
+    //             domMsg.gpd_Domain.Left   = 0;
+    //             domMsg.gpd_Domain.Top    = 0;
+    //             domMsg.gpd_Domain.Width  = availW;
+    //             domMsg.gpd_Domain.Height = 0;
+    //             DoMethodA(child, (Msg)(APTR)&domMsg);
+    //             childH = (domMsg.gpd_Domain.Height > 0)
+    //                      ? (WORD)domMsg.gpd_Domain.Height : 20;
+    //         }
+
+    //         if (childH < 1) childH = 1;
+
+    //         /* Set position and size directly in the struct Gadget fields */
+    //         gad           = (struct Gadget *)child;
+    //         gad->LeftEdge = left;
+    //         gad->TopEdge  = y;
+    //         gad->Width    = availW;
+    //         gad->Height   = childH;
+
+    //         y += childH;
+    //     }
+
+    // }
+
+
+    // for (i = 0; i < inst->childCount; i++) {
+    //     Object        *child = inst->children[i];
+
+    //     /* Recursively lay out the child, reusing the incoming message */
+    //     DoMethodA((Object *)child, (Msg)msg);
+    // }
 
     return 0;
 }

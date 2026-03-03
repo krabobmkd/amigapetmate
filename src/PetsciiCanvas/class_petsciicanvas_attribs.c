@@ -172,7 +172,8 @@ void FreeBrush(PetsciiCanvasData *inst)
     inst->brushW      = 1;
     inst->brushH      = 1;
     inst->isLassoing  = FALSE;
-
+    inst->brushHotx = 0;
+    inst->brushHoty = 0;
 }
 /* ------------------------------------------------------------------ */
 /* OM_SET / OM_UPDATE                                                   */

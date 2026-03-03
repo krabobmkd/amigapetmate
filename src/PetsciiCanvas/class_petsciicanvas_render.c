@@ -45,7 +45,8 @@
  * guaranteed to align with BlitScaled's 16:16 mapping.
  */
 #define CELL_PX(n, cDim, pDim) \
-    ((WORD)((ULONG)(n) * 8UL * (ULONG)(cDim) / (ULONG)(pDim)))
+    ((WORD)(((LONG)(n) * 8 * (LONG)(cDim)) / (WORD)(pDim)))
+
 /* ------------------------------------------------------------------ */
 /* Static: ensure inst->scaledBuf is (w x h) bytes.                   */
 /* ------------------------------------------------------------------ */
@@ -442,6 +443,16 @@ static void drawHoverOverlay(struct RastPort *rp,
         return;
     }
 
+    /* state where we clicked brush, and wait for a lasso: don't draw brush hover */
+   // bdbprintf("currentTool: %d inst->brush:%08x\n",inst->currentTool,inst->brush);
+    if(inst->currentTool == TOOL_BRUSH &&
+            inst->brush == NULL
+    )
+    {
+        return;
+    }
+
+
     /* ---- BRUSH / CHAR HOVER PREVIEW --------------------------------- */
     {
         WORD  px1;
@@ -455,13 +466,13 @@ static void drawHoverOverlay(struct RastPort *rp,
 
         if (inst->cursorCol < 0 || inst->cursorRow < 0) return;
 
-        px1 = CELL_PX(inst->cursorCol,
+        px1 = CELL_PX(inst->cursorCol -inst->brushHotx,
                        inst->contentW, inst->screenbuf->pixW);
-        py1 = CELL_PX(inst->cursorRow,
+        py1 = CELL_PX(inst->cursorRow -inst->brushHoty,
                        inst->contentH, inst->screenbuf->pixH);
-        px2 = CELL_PX(inst->cursorCol + inst->brushW,
+        px2 = CELL_PX(inst->cursorCol + inst->brushW -inst->brushHotx,
                        inst->contentW, inst->screenbuf->pixW);
-        py2 = CELL_PX(inst->cursorRow + inst->brushH,
+        py2 = CELL_PX(inst->cursorRow + inst->brushH -inst->brushHoty,
                        inst->contentH, inst->screenbuf->pixH);
         /* magic, we let the clipRegion manage this a best way.
         *if (px1 < 0)              px1 = 0;
@@ -471,7 +482,13 @@ static void drawHoverOverlay(struct RastPort *rp,
         */
         dstW = (ULONG)(px2 - px1);
         dstH = (ULONG)(py2 - py1);
-        if (dstW == 0 || dstH == 0) return;
+
+      //   bdbprintf("hover px1 %d px2 %d\n",(int)px1,(int)px2);
+        if (dstW <= 0 || dstH <= 0)
+        {
+         bdbprintf("hover no good %d %d\n",(int)dstW,(int)dstH);
+         return;
+         }
 
         srcW = (ULONG)inst->brushW * 8UL;
         srcH = (ULONG)inst->brushH * 8UL;
@@ -759,10 +776,20 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
             inst->prevBrushW   = (WORD)(lc2 - lc1);
             inst->prevBrushH   = (WORD)(lr2 - lr1);
         } else {
-            inst->prevHoverCol = inst->cursorCol;
-            inst->prevHoverRow = inst->cursorRow;
+            inst->prevHoverCol = inst->cursorCol - inst->brushHotx;
             inst->prevBrushW   = inst->brushW;
+            if(inst->prevHoverCol<0) {
+                inst->prevBrushW += inst->prevHoverCol;
+                inst->prevHoverCol = 0;
+            }
+
+            inst->prevHoverRow = inst->cursorRow - inst->brushHoty;
             inst->prevBrushH   = inst->brushH;
+            if(inst->prevHoverRow<0) {
+                inst->prevBrushH += inst->prevHoverRow;
+                inst->prevHoverRow = 0;
+            }
+
         }
 
         /* important to pass NULL if oldClipRegion was NULL.*/
@@ -771,7 +798,6 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
         /* ---- PARTIAL HOVER UPDATE PATH --------------------------------- */
 
         oldClipRegion = InstallClipRegion( rp->Layer, inst->clipRegion);
-
 
         /* Repair old overlay region (restores screenbuf pixels + grid) */
         if (inst->prevHoverCol >= 0) {
@@ -791,10 +817,21 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
             inst->prevBrushW   = (WORD)(lc2 - lc1);
             inst->prevBrushH   = (WORD)(lr2 - lr1);
         } else {
-            inst->prevHoverCol = inst->cursorCol;
-            inst->prevHoverRow = inst->cursorRow;
+
+            inst->prevHoverCol = inst->cursorCol - inst->brushHotx;
             inst->prevBrushW   = inst->brushW;
+            if(inst->prevHoverCol<0) {
+                inst->prevBrushW += inst->prevHoverCol;
+                inst->prevHoverCol = 0;
+            }
+
+
+            inst->prevHoverRow = inst->cursorRow - inst->brushHoty;
             inst->prevBrushH   = inst->brushH;
+            if(inst->prevHoverRow<0) {
+                inst->prevBrushH += inst->prevHoverRow;
+                inst->prevHoverRow = 0;
+            }
         }
 
         /* important to pass NULL if oldClipRegion was NULL.*/

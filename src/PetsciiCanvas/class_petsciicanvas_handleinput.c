@@ -145,11 +145,12 @@ static void paintCell(PetsciiCanvasData *inst, WORD col, WORD row)
 /*
  * Stamp the current brush onto the screen starting at (col, row).
  * Clips cells that fall outside the screen.
+ * watch out now col,row can be negative because of hot spot
  */
 static void paintBrush(PetsciiCanvasData *inst, WORD col, WORD row)
 {
-    UWORD         bc;
-    UWORD         br;
+    WORD         bc;
+    WORD         br;
     WORD          dc;
     WORD          dr;
     PetsciiPixel *cell;
@@ -157,8 +158,8 @@ static void paintBrush(PetsciiCanvasData *inst, WORD col, WORD row)
     if (!inst->brush || !inst->screen || !inst->screenbuf || !inst->style)
         return;
 
-    for (br = 0; br < (UWORD)inst->brush->h; br++) {
-        for (bc = 0; bc < (UWORD)inst->brush->w; bc++) {
+    for (br = 0; br < (WORD)inst->brush->h; br++) {
+        for (bc = 0; bc < (WORD)inst->brush->w; bc++) {
             dc = (WORD)(col + (WORD)bc);
             dr = (WORD)(row + (WORD)br);
             if (dc < 0 || dr < 0) continue;
@@ -282,10 +283,14 @@ ULONG PetsciiCanvas_OnGoActive(Class *cl, Object *o, struct gpInput *msg)
                 if (inst->undoBuf && inst->screen) {
                     PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
                 }
+
                 if (col >= 0 && row >= 0)
-                    paintBrush(inst, col, row);
-                inst->lastPaintCol = col;
-                inst->lastPaintRow = row;
+                {
+                  //  bdbprintf("stanmp case 1\n");
+                    paintBrush(inst, col-inst->brushHotx, row-inst->brushHoty);
+                }
+                inst->lastPaintCol = col-inst->brushHotx;
+                inst->lastPaintRow = row-inst->brushHoty;
                 inst->isDrawing    = TRUE;
             }
         } else {
@@ -338,6 +343,7 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
     WORD               col;
     WORD               row;
     BOOL               isIn;
+    BOOL            brushAlreadyStamped=0;
 
     inst = (PetsciiCanvasData *)INST_DATA(cl, o);
     ie   = msg->gpi_IEvent;
@@ -386,10 +392,14 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
             if (inst->brush) {
                 inst->brushW = (WORD)inst->brush->w;
                 inst->brushH = (WORD)inst->brush->h;
+                inst->brushHotx =  inst->brushW>>1;
+                inst->brushHoty =  inst->brushH>>1;
             } else {
                 /* Capture failed (OOM) — fall back to 1x1 */
                 inst->brushW = 1;
                 inst->brushH = 1;
+                inst->brushHotx = 0;
+                inst->brushHoty = 0;
             }
 
             inst->isLassoing   = FALSE;
@@ -438,9 +448,11 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
                     PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
                 }
                 if (col >= 0 && row >= 0) {
-                    paintBrush(inst, col, row);
-                    inst->lastPaintCol = col;
-                    inst->lastPaintRow = row;
+                      //              bdbprintf("stanmp case 2\n");
+                    paintBrush(inst, col -inst->brushHotx, row -inst->brushHoty);
+                    inst->lastPaintCol = col-inst->brushHotx;
+                    inst->lastPaintRow = row-inst->brushHoty;
+                    brushAlreadyStamped = 1;
                 } else {
                     inst->lastPaintCol = -1;
                     inst->lastPaintRow = -1;
@@ -497,9 +509,13 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
             } else if (inst->isDrawing && inst->brush && isIn) {
                 /* Brush paste drag: stamp at each move event (no gap fill) */
                 if (col >= 0 && row >= 0) {
-                    paintBrush(inst, col, row);
-                    inst->lastPaintCol = col;
-                    inst->lastPaintRow = row;
+                    if(brushAlreadyStamped==0)
+                    {
+                       // bdbprintf("stanmp case 3\n");
+                        paintBrush(inst, col-inst->brushHotx, row-inst->brushHoty);
+                        inst->lastPaintCol = col-inst->brushHotx;
+                        inst->lastPaintRow = row-inst->brushHoty;
+                    }
                 } else {
                     inst->lastPaintCol = -1;
                     inst->lastPaintRow = -1;
