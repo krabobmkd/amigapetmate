@@ -42,6 +42,7 @@ include_directories(
 
 # Phase 1: Core sources
 # Phase 8: petscii_undo.c added
+# Phase 10: petscii_brush.c added
 set(PETMATE_SOURCES
     petmate.c
     petscii_screen.c
@@ -49,6 +50,7 @@ set(PETMATE_SOURCES
     petscii_palette.c
     petscii_charset.c
     petscii_undo.c
+    petscii_brush.c
 
     bdbprintf.c
     bdbprintf.h
@@ -109,9 +111,11 @@ set(PETMATE_COLORPICKER_SOURCES
 )
 
 # Phase 7: Views and tools
+# Phase 10: class_charlayout.c added
 set(PETMATE_VIEW_SOURCES
     pmtoolbar.c
     pmscreentabs.c
+    class_charlayout.c
 )
 
 # Phase 8+: Undo, file I/O, export
@@ -156,4 +160,12 @@ if(AMIGA)
         $<$<CONFIG:RELEASE>:-O2 -Wno-narrowing -DNDEBUG>
         ${AMIGA_COMPILER_OPTIONS}
     )
+
+    # Development tool: generate petscii_chartransform.c/.h
+    # Run on Amiga (or emulator), redirect output to project root.
+    add_executable(findtables
+        findtables.c
+        petscii_charset.c
+    )
+    target_compile_options(findtables PRIVATE ${AMIGA_COMPILER_OPTIONS})
 endif()

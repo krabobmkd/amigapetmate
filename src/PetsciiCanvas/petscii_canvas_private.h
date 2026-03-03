@@ -19,6 +19,7 @@
 #include "petscii_style.h"
 #include "petscii_screenbuf.h"
 #include "petscii_undo.h"
+#include "petscii_brush.h"
 
 /* Convenience cast: Object * -> struct Gadget * */
 #ifndef G
@@ -95,6 +96,25 @@ typedef struct PetsciiCanvasData {
 
     /* Undo/redo buffer (not owned; managed by petmate.c)               */
     PetsciiUndoBuffer *undoBuf;
+
+    /* Brush buffer (owned by canvas; replaced on each lasso capture).
+     * NULL means 1x1 single-char mode (brushW/H == 1).                */
+    PetsciiBrush *brush;
+
+    /* Lasso selection state (TOOL_BRUSH, select sub-mode).
+     * isLassoing = TRUE while the user is drag-selecting a rectangle.
+     * lassoEnd* tracks the live mouse position during the drag.        */
+    BOOL  isLassoing;
+    WORD  lassoStartCol;
+    WORD  lassoStartRow;
+    WORD  lassoEndCol;
+    WORD  lassoEndRow;
+
+    /* Pre-allocated native-resolution buffer for brush hover preview.
+     * Size: nativeBrushBufSize bytes = brushW*8 * brushH*8.
+     * Re-allocated whenever the brush changes size.                    */
+    UBYTE *nativeBrushBuf;
+    ULONG  nativeBrushBufSize;
 
 } PetsciiCanvasData;
 

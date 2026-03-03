@@ -56,6 +56,7 @@
 #include "pmsettingsview.h"
 #include "appsettings.h"
 
+#include "class_charlayout.h"
 /* Phase 4 */
 #include "petscii_canvas.h"
 
@@ -319,6 +320,8 @@ int main(int argc, char **argv)
     if (!CharSelector_Init()) cleanexit("Can't create CharSelector class");
     if (!ColorPicker_Init())  cleanexit("Can't create ColorPicker class");
 
+    if (!CharLayout_Init())  cleanexit("Can't create CharLayout class");
+
     /* Create canvas gadget for the main editing area */
     app->canvasGadget = (Object *)NewObject(PetsciiCanvasClass, NULL,
         GA_ID,           (ULONG)GAD_CANVAS,
@@ -476,7 +479,7 @@ int main(int argc, char **argv)
             //     GA_Text,"",
             //     TAG_END);
 
-        rightPanelLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
+        rightPanelLayout = (Object *)NewObject(/*LAYOUT_GetClass()*/ CharLayoutClass, NULL,
             LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
             LAYOUT_InnerSpacing, 2,
 
@@ -1049,6 +1052,7 @@ void exitclose(void)
         // CurrentMainWindow = NULL;
 
         /* Free BOOPSI classes (instances disposed by window cascade above) */
+        CharLayout_Exit();
         PetsciiCanvas_Exit();
         CharSelector_Exit();
         ColorPicker_Exit();

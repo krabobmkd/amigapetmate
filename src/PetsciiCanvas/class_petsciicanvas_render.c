@@ -376,92 +376,172 @@ static void repairHoverRegion(struct RastPort *rp,
 }
 
 /* ------------------------------------------------------------------ */
-/* Static: draw hover overlay — brush preview + selection rectangle   */
-/* For Phase 6 the brush is always 1x1 (inst->brushW/H == 1).        */
-/* Phase 10 multi-char brush: same path, brushNative grows to bW*bH. */
+/* Static: draw hover overlay — lasso rect OR brush preview + rect    */
 /* ------------------------------------------------------------------ */
+
+/*
+ * Helper: compute normalized lasso bounds (char cells) from inst state.
+ * Writes col1/row1 (top-left inclusive) and col2/row2 (exclusive).
+ */
+static void lassoNormalized(const PetsciiCanvasData *inst,
+                             WORD *col1, WORD *row1,
+                             WORD *col2, WORD *row2)
+{
+    *col1 = (inst->lassoStartCol < inst->lassoEndCol)
+            ? inst->lassoStartCol : inst->lassoEndCol;
+    *row1 = (inst->lassoStartRow < inst->lassoEndRow)
+            ? inst->lassoStartRow : inst->lassoEndRow;
+    *col2 = (inst->lassoStartCol > inst->lassoEndCol)
+            ? (WORD)(inst->lassoStartCol + 1) : (WORD)(inst->lassoEndCol + 1);
+    *row2 = (inst->lassoStartRow > inst->lassoEndRow)
+            ? (WORD)(inst->lassoStartRow + 1) : (WORD)(inst->lassoEndRow + 1);
+}
 
 static void drawHoverOverlay(struct RastPort *rp,
                               PetsciiCanvasData *inst,
                               WORD absX, WORD absY)
 {
-    WORD         px1;
-    WORD         py1;
-    WORD         px2;
-    WORD         py2;
-    ULONG        dstW;
-    ULONG        dstH;
-    ULONG        srcW;
-    ULONG        srcH;
-    /* Phase 6: 1x1 brush — 8x8 native pixels fit on the stack.
-     * Phase 10: allocate dynamically when brushW*brushH > 1.         */
-    UBYTE        nativeBuf[8 * 8];
-    PetsciiPixel cell;
-    UBYTE        savedMode;
-    WORD         sx1;
-    WORD         sy1;
-    WORD         sx2;
-    WORD         sy2;
+    UBYTE savedMode;
+    WORD  sx1;
+    WORD  sy1;
+    WORD  sx2;
+    WORD  sy2;
 
     if (!inst->screen || !inst->style || !inst->screenbuf) return;
-    if (inst->cursorCol < 0 || inst->cursorRow < 0)       return;
     if (!inst->overlayBuf)                                 return;
 
-    px1 = CELL_PX(inst->cursorCol,            inst->contentW, inst->screenbuf->pixW);
-    py1 = CELL_PX(inst->cursorRow,            inst->contentH, inst->screenbuf->pixH);
-    px2 = CELL_PX(inst->cursorCol + inst->brushW, inst->contentW, inst->screenbuf->pixW);
-    py2 = CELL_PX(inst->cursorRow + inst->brushH, inst->contentH, inst->screenbuf->pixH);
+    /* ---- LASSO SELECTION RECTANGLE ---------------------------------- */
+    if (inst->isLassoing) {
+        WORD col1, row1, col2, row2;
+        WORD lx1, ly1, lx2, ly2;
 
-    /* Clamp to content area */
-    if (px1 < 0)               px1 = 0;
-    if (py1 < 0)               py1 = 0;
-    if (px2 > inst->contentW)  px2 = inst->contentW;
-    if (py2 > inst->contentH)  py2 = inst->contentH;
+        if (inst->lassoStartCol < 0 || inst->lassoStartRow < 0) return;
 
-    dstW = (ULONG)(px2 - px1);
-    dstH = (ULONG)(py2 - py1);
-    if (dstW == 0 || dstH == 0) return;
+        lassoNormalized(inst, &col1, &row1, &col2, &row2);
 
-    /* Render the brush chars into native (8 px/char) buffer */
-    srcW = (ULONG)inst->brushW * 8UL;
-    srcH = (ULONG)inst->brushH * 8UL;
+        lx1 = CELL_PX(col1, inst->contentW, inst->screenbuf->pixW);
+        ly1 = CELL_PX(row1, inst->contentH, inst->screenbuf->pixH);
+        lx2 = CELL_PX(col2, inst->contentW, inst->screenbuf->pixW);
+        ly2 = CELL_PX(row2, inst->contentH, inst->screenbuf->pixH);
 
-    cell.code  = inst->selectedChar;
-    cell.color = inst->fgColor;
-    PetsciiScreenBuf_RenderCells(nativeBuf, srcW, &cell,
-                                  (UWORD)inst->brushW, (UWORD)inst->brushH,
-                                  inst->screen->backgroundColor,
-                                  inst->screen->charset,
-                                  inst->style);
+        /* 1px outside the char cells to match repairHoverRegion expansion */
+        sx1 = (WORD)(absX + lx1 - 1);
+        sy1 = (WORD)(absY + ly1 - 1);
+        sx2 = (WORD)(absX + lx2);
+        sy2 = (WORD)(absY + ly2);
 
-    /* Scale native brush to the projected destination size */
-    PetsciiChunky_Scale(nativeBuf, srcW, srcH,
-                         inst->overlayBuf, dstW, dstH);
+        savedMode = rp->DrawMode;
+        SetDrMd(rp, COMPLEMENT);
+        SetAPen(rp, 1);
+        Move(rp, (LONG)sx1, (LONG)sy1);
+        Draw(rp, (LONG)sx2, (LONG)sy1);
+        Draw(rp, (LONG)sx2, (LONG)sy2);
+        Draw(rp, (LONG)sx1, (LONG)sy2);
+        Draw(rp, (LONG)sx1, (LONG)(sy1 + 1)); /* close: skip corner double-pixel */
+        SetDrMd(rp, (LONG)savedMode);
+        return;
+    }
 
-    /* Blit scaled brush preview to screen */
-    WriteChunkyPixels(rp,
-                      (ULONG)(absX + px1),
-                      (ULONG)(absY + py1),
-                      (ULONG)(absX + px2 - 1),
-                      (ULONG)(absY + py2 - 1),
-                      inst->overlayBuf,
-                      (LONG)dstW);
+    /* ---- BRUSH / CHAR HOVER PREVIEW --------------------------------- */
+    {
+        WORD  px1;
+        WORD  py1;
+        WORD  px2;
+        WORD  py2;
+        ULONG dstW;
+        ULONG dstH;
+        ULONG srcW;
+        ULONG srcH;
 
-    /* Selection rectangle: 1 px outside brush bounds, COMPLEMENT mode */
-    sx1 = (WORD)(absX + px1 - 1);
-    sy1 = (WORD)(absY + py1 - 1);
-    sx2 = (WORD)(absX + px2);
-    sy2 = (WORD)(absY + py2);
+        if (inst->cursorCol < 0 || inst->cursorRow < 0) return;
 
-    savedMode = rp->DrawMode;
-    SetDrMd(rp, COMPLEMENT);
-    SetAPen(rp, 1);
-    Move(rp, (LONG)sx1, (LONG)sy1);
-    Draw(rp, (LONG)sx2, (LONG)sy1);
-    Draw(rp, (LONG)sx2, (LONG)sy2);
-    Draw(rp, (LONG)sx1, (LONG)sy2);
-    Draw(rp, (LONG)sx1, (LONG)(sy1 + 1)); /* avoid double pixel in COMPLEMENT */
-    SetDrMd(rp, (LONG)savedMode);
+        px1 = CELL_PX(inst->cursorCol,
+                       inst->contentW, inst->screenbuf->pixW);
+        py1 = CELL_PX(inst->cursorRow,
+                       inst->contentH, inst->screenbuf->pixH);
+        px2 = CELL_PX(inst->cursorCol + inst->brushW,
+                       inst->contentW, inst->screenbuf->pixW);
+        py2 = CELL_PX(inst->cursorRow + inst->brushH,
+                       inst->contentH, inst->screenbuf->pixH);
+
+        if (px1 < 0)              px1 = 0;
+        if (py1 < 0)              py1 = 0;
+        if (px2 > inst->contentW) px2 = inst->contentW;
+        if (py2 > inst->contentH) py2 = inst->contentH;
+
+        dstW = (ULONG)(px2 - px1);
+        dstH = (ULONG)(py2 - py1);
+        if (dstW == 0 || dstH == 0) return;
+
+        srcW = (ULONG)inst->brushW * 8UL;
+        srcH = (ULONG)inst->brushH * 8UL;
+
+        if (inst->brush) {
+            /* Multi-char brush: render into nativeBrushBuf */
+            ULONG needed = srcW * srcH;
+            if (!inst->nativeBrushBuf || needed > inst->nativeBrushBufSize) {
+                if (inst->nativeBrushBuf) {
+                    FreeVec(inst->nativeBrushBuf);
+                    inst->nativeBrushBuf = NULL;
+                }
+                /* Cast away const: inst is modified only for cache management */
+                ((PetsciiCanvasData *)inst)->nativeBrushBuf =
+                    (UBYTE *)AllocVec(needed, MEMF_ANY);
+                if (!inst->nativeBrushBuf) {
+                    ((PetsciiCanvasData *)inst)->nativeBrushBufSize = 0;
+                    return;
+                }
+                ((PetsciiCanvasData *)inst)->nativeBrushBufSize = needed;
+            }
+            PetsciiScreenBuf_RenderCells(inst->nativeBrushBuf, srcW,
+                                          inst->brush->cells,
+                                          (UWORD)inst->brushW,
+                                          (UWORD)inst->brushH,
+                                          inst->screen->backgroundColor,
+                                          inst->screen->charset,
+                                          inst->style);
+            PetsciiChunky_Scale(inst->nativeBrushBuf, srcW, srcH,
+                                 inst->overlayBuf, dstW, dstH);
+        } else {
+            /* 1x1 single char: stack buffer */
+            UBYTE        nativeBuf[8 * 8];
+            PetsciiPixel cell;
+            cell.code  = inst->selectedChar;
+            cell.color = inst->fgColor;
+            PetsciiScreenBuf_RenderCells(nativeBuf, srcW, &cell,
+                                          1, 1,
+                                          inst->screen->backgroundColor,
+                                          inst->screen->charset,
+                                          inst->style);
+            PetsciiChunky_Scale(nativeBuf, srcW, srcH,
+                                 inst->overlayBuf, dstW, dstH);
+        }
+
+        /* Blit scaled brush preview to screen */
+        WriteChunkyPixels(rp,
+                          (ULONG)(absX + px1),
+                          (ULONG)(absY + py1),
+                          (ULONG)(absX + px2 - 1),
+                          (ULONG)(absY + py2 - 1),
+                          inst->overlayBuf,
+                          (LONG)dstW);
+
+        /* Selection rectangle: 1px outside brush bounds, COMPLEMENT */
+        sx1 = (WORD)(absX + px1 - 1);
+        sy1 = (WORD)(absY + py1 - 1);
+        sx2 = (WORD)(absX + px2);
+        sy2 = (WORD)(absY + py2);
+
+        savedMode = rp->DrawMode;
+        SetDrMd(rp, COMPLEMENT);
+        SetAPen(rp, 1);
+        Move(rp, (LONG)sx1, (LONG)sy1);
+        Draw(rp, (LONG)sx2, (LONG)sy1);
+        Draw(rp, (LONG)sx2, (LONG)sy2);
+        Draw(rp, (LONG)sx1, (LONG)sy2);
+        Draw(rp, (LONG)sx1, (LONG)(sy1 + 1)); /* close: skip corner double-pixel */
+        SetDrMd(rp, (LONG)savedMode);
+    }
 }
 
 ULONG PetsciiCanvas_OnDomain(Class *cl, Object *o, struct gpDomain *msg)
@@ -641,14 +721,24 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
         if (inst->showGrid && cellW >= 2 && cellH >= 2)
             drawGrid(rp, absX, absY, inst->contentW, inst->contentH, inst);
 
-        /* Hover overlay (current brush preview + selection rect) */
+        /* Hover overlay (lasso rect or brush preview + selection rect) */
         drawHoverOverlay(rp, inst, absX, absY);
 
-        /* Remember where the overlay was drawn for the next repair */
-        inst->prevHoverCol = inst->cursorCol;
-        inst->prevHoverRow = inst->cursorRow;
-        inst->prevBrushW   = inst->brushW;
-        inst->prevBrushH   = inst->brushH;
+        /* Remember where the overlay was drawn for the next repair.
+         * When lassoing, track the full lasso bounding rect.           */
+        if (inst->isLassoing) {
+            WORD lc1, lr1, lc2, lr2;
+            lassoNormalized(inst, &lc1, &lr1, &lc2, &lr2);
+            inst->prevHoverCol = lc1;
+            inst->prevHoverRow = lr1;
+            inst->prevBrushW   = (WORD)(lc2 - lc1);
+            inst->prevBrushH   = (WORD)(lr2 - lr1);
+        } else {
+            inst->prevHoverCol = inst->cursorCol;
+            inst->prevHoverRow = inst->cursorRow;
+            inst->prevBrushW   = inst->brushW;
+            inst->prevBrushH   = inst->brushH;
+        }
 
     } else {
         /* ---- PARTIAL HOVER UPDATE PATH --------------------------------- */
@@ -663,10 +753,19 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
         /* Draw new hover overlay */
         drawHoverOverlay(rp, inst, absX, absY);
 
-        inst->prevHoverCol = inst->cursorCol;
-        inst->prevHoverRow = inst->cursorRow;
-        inst->prevBrushW   = inst->brushW;
-        inst->prevBrushH   = inst->brushH;
+        if (inst->isLassoing) {
+            WORD lc1, lr1, lc2, lr2;
+            lassoNormalized(inst, &lc1, &lr1, &lc2, &lr2);
+            inst->prevHoverCol = lc1;
+            inst->prevHoverRow = lr1;
+            inst->prevBrushW   = (WORD)(lc2 - lc1);
+            inst->prevBrushH   = (WORD)(lr2 - lr1);
+        } else {
+            inst->prevHoverCol = inst->cursorCol;
+            inst->prevHoverRow = inst->cursorRow;
+            inst->prevBrushW   = inst->brushW;
+            inst->prevBrushH   = inst->brushH;
+        }
     }
 
     return 0;

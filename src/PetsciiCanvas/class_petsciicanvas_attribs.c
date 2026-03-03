@@ -86,6 +86,16 @@ ULONG PetsciiCanvas_OnNew(Class *cl, Object *o, struct opSet *msg)
         inst->undoBuf = undoTag ? (PetsciiUndoBuffer *)undoTag->ti_Data : NULL;
     }
 
+    /* Brush (owned; starts NULL = 1x1 single-char mode) */
+    inst->brush              = NULL;
+    inst->isLassoing         = FALSE;
+    inst->lassoStartCol      = -1;
+    inst->lassoStartRow      = -1;
+    inst->lassoEndCol        = -1;
+    inst->lassoEndRow        = -1;
+    inst->nativeBrushBuf     = NULL;
+    inst->nativeBrushBufSize = 0;
+
     /* Create the render buffer (size = character dimensions * 8 pixels each) */
     inst->screenbuf = PetsciiScreenBuf_Create(screen->width, screen->height);
     if (!inst->screenbuf) {
@@ -125,6 +135,17 @@ ULONG PetsciiCanvas_OnDispose(Class *cl, Object *o, Msg msg)
     if (inst->overlayBuf) {
         FreeVec(inst->overlayBuf);
         inst->overlayBuf = NULL;
+    }
+
+    if (inst->brush) {
+        PetsciiBrush_Destroy(inst->brush);
+        inst->brush = NULL;
+    }
+
+    if (inst->nativeBrushBuf) {
+        FreeVec(inst->nativeBrushBuf);
+        inst->nativeBrushBuf     = NULL;
+        inst->nativeBrushBufSize = 0;
     }
 
     return DoSuperMethodA(cl, o, (APTR)msg);
@@ -209,11 +230,27 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
 
             case PCA_CurrentTool:
                 inst->currentTool = (UBYTE)tag->ti_Data;
+                /* Cancel any active lasso when the tool changes */
+                inst->isLassoing = FALSE;
                 result = 1;
                 break;
 
             case PCA_SelectedChar:
                 inst->selectedChar = (UBYTE)tag->ti_Data;
+                /* Clicking the char selector: reset to 1x1 single-char draw mode */
+                if (inst->brush) {
+                    PetsciiBrush_Destroy(inst->brush);
+                    inst->brush = NULL;
+                }
+                if (inst->nativeBrushBuf) {
+                    FreeVec(inst->nativeBrushBuf);
+                    inst->nativeBrushBuf     = NULL;
+                    inst->nativeBrushBufSize = 0;
+                }
+                inst->brushW      = 1;
+                inst->brushH      = 1;
+                inst->isLassoing  = FALSE;
+                inst->currentTool = TOOL_DRAW;
                 result = 1;
                 break;
 

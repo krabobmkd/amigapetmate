@@ -21,13 +21,27 @@
  * After a hover-only move:   scaledBufDirty = FALSE -> OnRender partial path
  *   (repair old overlay from scaledBuf, draw new overlay)
  *
- * Bresenham gap-fill fills in cells skipped during fast drags.
+ * Bresenham gap-fill fills in cells skipped during fast drags
+ * (TOOL_DRAW / TOOL_COLORIZE / TOOL_CHARDRAW only; not for TOOL_BRUSH paste).
+ *
+ * TOOL_BRUSH state machine
+ * ------------------------
+ * Sub-state A (brush == NULL): waiting for selection.
+ *   Click -> start lasso (isLassoing = TRUE).
+ * Sub-state B (isLassoing): drag-selecting rectangle.
+ *   Move  -> grow lasso rectangle overlay.
+ *   Up    -> capture rectangle to brush, isLassoing = FALSE.
+ * Sub-state C (brush != NULL): paste mode.
+ *   Hover -> show brush sprite.
+ *   Click -> stamp brush onto screen, keep hovering.
+ * Clicking CharSelector resets to 1x1 TOOL_DRAW (handled in OnSet).
  *
  * Mouse coordinates (gpi_Mouse.X/Y) are gadget-relative.
  */
 
 #include <proto/graphics.h>
 #include <proto/intuition.h>
+#include <proto/exec.h>
 #include <devices/inputevent.h>
 #include <clib/alib_protos.h>
 #include "petscii_canvas_private.h"
@@ -129,6 +143,40 @@ static void paintCell(PetsciiCanvasData *inst, WORD col, WORD row)
 }
 
 /*
+ * Stamp the current brush onto the screen starting at (col, row).
+ * Clips cells that fall outside the screen.
+ */
+static void paintBrush(PetsciiCanvasData *inst, WORD col, WORD row)
+{
+    UWORD         bc;
+    UWORD         br;
+    WORD          dc;
+    WORD          dr;
+    PetsciiPixel *cell;
+
+    if (!inst->brush || !inst->screen || !inst->screenbuf || !inst->style)
+        return;
+
+    for (br = 0; br < (UWORD)inst->brush->h; br++) {
+        for (bc = 0; bc < (UWORD)inst->brush->w; bc++) {
+            dc = (WORD)(col + (WORD)bc);
+            dr = (WORD)(row + (WORD)br);
+            if (dc < 0 || dr < 0) continue;
+            if ((UWORD)dc >= inst->screen->width ||
+                (UWORD)dr >= inst->screen->height) continue;
+
+            cell = &inst->brush->cells[(ULONG)br * inst->brush->w + bc];
+            PetsciiScreen_SetPixel(inst->screen, (UWORD)dc, (UWORD)dr,
+                                   cell->code, cell->color);
+            PetsciiScreenBuf_UpdateCell(inst->screenbuf, inst->screen,
+                                        inst->style,
+                                        (UWORD)dc, (UWORD)dr);
+        }
+    }
+    inst->scaledBufDirty = TRUE;
+}
+
+/*
  * Bresenham rasterizer: paint every cell along the line from
  * (x0,y0) to (x1,y1) inclusive, skipping the first point.
  */
@@ -218,28 +266,57 @@ ULONG PetsciiCanvas_OnGoActive(Class *cl, Object *o, struct gpInput *msg)
                msg->gpi_IEvent->ie_Class == IECLASS_RAWMOUSE &&
                msg->gpi_IEvent->ie_Code  == IECODE_LBUTTON);
 
-    if (isClick) {
-        /* Take undo snapshot before the first painted cell of this stroke */
-        if (inst->undoBuf && inst->screen &&
-            inst->currentTool != TOOL_BRUSH &&
-            inst->currentTool != TOOL_TEXT) {
-            PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
-        }
-
-        if (col >= 0 && row >= 0) {
-            paintCell(inst, col, row);
-            inst->lastPaintCol = col;
-            inst->lastPaintRow = row;
+    if (inst->currentTool == TOOL_BRUSH) {
+        /* ---- TOOL_BRUSH click ---------------------------------------- */
+        if (isClick) {
+            if (!inst->brush) {
+                /* Sub-state A → B: start lasso selection */
+                inst->isLassoing    = TRUE;
+                inst->lassoStartCol = (col >= 0) ? col : 0;
+                inst->lassoStartRow = (row >= 0) ? row : 0;
+                inst->lassoEndCol   = inst->lassoStartCol;
+                inst->lassoEndRow   = inst->lassoStartRow;
+                inst->isDrawing     = FALSE;
+            } else {
+                /* Sub-state C: stamp brush on click */
+                if (inst->undoBuf && inst->screen) {
+                    PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+                }
+                if (col >= 0 && row >= 0)
+                    paintBrush(inst, col, row);
+                inst->lastPaintCol = col;
+                inst->lastPaintRow = row;
+                inst->isDrawing    = TRUE;
+            }
         } else {
+            /* Hover entry: just show brush preview */
+            inst->isDrawing    = FALSE;
             inst->lastPaintCol = -1;
             inst->lastPaintRow = -1;
         }
-        inst->isDrawing = TRUE;
     } else {
-        /* Hover entry: no painting, scaledBufDirty stays as-is */
-        inst->isDrawing    = FALSE;
-        inst->lastPaintCol = -1;
-        inst->lastPaintRow = -1;
+        /* ---- TOOL_DRAW / COLORIZE / CHARDRAW click ------------------- */
+        if (isClick) {
+            /* Take undo snapshot before the first painted cell of this stroke */
+            if (inst->undoBuf && inst->screen) {
+                PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+            }
+
+            if (col >= 0 && row >= 0) {
+                paintCell(inst, col, row);
+                inst->lastPaintCol = col;
+                inst->lastPaintRow = row;
+            } else {
+                inst->lastPaintCol = -1;
+                inst->lastPaintRow = -1;
+            }
+            inst->isDrawing = TRUE;
+        } else {
+            /* Hover entry: no painting, scaledBufDirty stays as-is */
+            inst->isDrawing    = FALSE;
+            inst->lastPaintCol = -1;
+            inst->lastPaintRow = -1;
+        }
     }
 
     inst->cursorCol = col;
@@ -260,99 +337,196 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
     struct InputEvent *ie;
     WORD               col;
     WORD               row;
-    BOOL    isIn;
+    BOOL               isIn;
+
     inst = (PetsciiCanvasData *)INST_DATA(cl, o);
     ie   = msg->gpi_IEvent;
-//TODO: key events should be sent back to main window management.
 
- //bdbprintf("onip code: %08x\n",(int)ie->ie_Class);
- //    if(ie->ie_Class == IECLASS_RAWMOUSE OVE)
- //    {
- //        // ie->ie_Class != IECLASS_MOUSEMOVE /* hovering without activation */
- // bdbprintf("IECLASS_MOUSEMOVE\n");
- //        return GMR_MEACTIVE;
- //    }
-
-    if (ie->ie_Class != IECLASS_RAWMOUSE  )
+    if (ie->ie_Class != IECLASS_RAWMOUSE)
         return GMR_MEACTIVE;
 
-// bdbprintf("PetsciiCanvas_OnInput %04x\n",(int)ie->ie_Code);
-
+    /* ---------------------------------------------------------------- */
+    /* LBUTTON UP                                                        */
+    /* ---------------------------------------------------------------- */
     if (ie->ie_Code == (IECODE_LBUTTON | IECODE_UP_PREFIX)) {
 
-        /* Button released: stop drawing but stay active for hover */
+        if (inst->currentTool == TOOL_BRUSH && inst->isLassoing) {
+            /* Finalize lasso: capture the selected rectangle into brush */
+            WORD col1, row1, col2, row2;
+            WORD bW, bH;
+
+            col1 = (inst->lassoStartCol < inst->lassoEndCol)
+                   ? inst->lassoStartCol : inst->lassoEndCol;
+            row1 = (inst->lassoStartRow < inst->lassoEndRow)
+                   ? inst->lassoStartRow : inst->lassoEndRow;
+            col2 = (inst->lassoStartCol > inst->lassoEndCol)
+                   ? inst->lassoStartCol : inst->lassoEndCol;
+            row2 = (inst->lassoStartRow > inst->lassoEndRow)
+                   ? inst->lassoStartRow : inst->lassoEndRow;
+
+            bW = (WORD)(col2 - col1 + 1);
+            bH = (WORD)(row2 - row1 + 1);
+
+            /* Replace existing brush with the newly captured one */
+            if (inst->brush) {
+                PetsciiBrush_Destroy(inst->brush);
+                inst->brush = NULL;
+            }
+            if (inst->screen) {
+                inst->brush = PetsciiBrush_CaptureFromScreen(
+                                inst->screen,
+                                (UWORD)col1, (UWORD)row1,
+                                (UWORD)bW,   (UWORD)bH);
+            }
+
+            if (inst->brush) {
+                inst->brushW = (WORD)inst->brush->w;
+                inst->brushH = (WORD)inst->brush->h;
+            } else {
+                /* Capture failed (OOM) — fall back to 1x1 */
+                inst->brushW = 1;
+                inst->brushH = 1;
+            }
+
+            inst->isLassoing   = FALSE;
+            inst->isDrawing    = FALSE;
+            inst->lastPaintCol = -1;
+            inst->lastPaintRow = -1;
+
+            mouseToCell(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y,
+                        &inst->cursorCol, &inst->cursorRow);
+
+            renderSelf(cl, o, msg->gpi_GInfo);
+
+            isIn = isInsideRect(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y);
+            return isIn ? GMR_MEACTIVE : GMR_NOREUSE;
+        }
+
+        /* Normal button release */
         inst->isDrawing    = FALSE;
         inst->lastPaintCol = -1;
         inst->lastPaintRow = -1;
-        /* No render needed: cursor stays at same position, scaledBuf is
-         * already current (full path was taken on every paint).        */
 
-         /*yet if out of window and bt ups, stop asking events */
-         isIn = isInsideRect(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y);
-
-        return (isIn)?GMR_MEACTIVE:GMR_NOREUSE;
+        isIn = isInsideRect(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y);
+        return isIn ? GMR_MEACTIVE : GMR_NOREUSE;
     }
 
+    /* ---------------------------------------------------------------- */
+    /* LBUTTON DOWN                                                      */
+    /* ---------------------------------------------------------------- */
     if (ie->ie_Code == IECODE_LBUTTON) {
 
-        /* Button pressed while hovering: start a new draw stroke */
         mouseToCell(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y, &col, &row);
 
-        if (inst->undoBuf && inst->screen &&
-            inst->currentTool != TOOL_BRUSH &&
-            inst->currentTool != TOOL_TEXT) {
-            PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+        if (inst->currentTool == TOOL_BRUSH) {
+
+            if (!inst->brush && !inst->isLassoing) {
+                /* Sub-state A → B: start new lasso */
+                inst->isLassoing    = TRUE;
+                inst->lassoStartCol = (col >= 0) ? col : 0;
+                inst->lassoStartRow = (row >= 0) ? row : 0;
+                inst->lassoEndCol   = inst->lassoStartCol;
+                inst->lassoEndRow   = inst->lassoStartRow;
+                inst->isDrawing     = FALSE;
+            } else if (inst->brush && !inst->isLassoing) {
+                /* Sub-state C: stamp brush */
+                if (inst->undoBuf && inst->screen) {
+                    PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+                }
+                if (col >= 0 && row >= 0) {
+                    paintBrush(inst, col, row);
+                    inst->lastPaintCol = col;
+                    inst->lastPaintRow = row;
+                } else {
+                    inst->lastPaintCol = -1;
+                    inst->lastPaintRow = -1;
+                }
+                inst->isDrawing = TRUE;
+            }
+            /* If isLassoing is already TRUE, ignore (shouldn't happen) */
+
+        } else {
+            /* Normal draw tools */
+            if (inst->undoBuf && inst->screen &&
+                inst->currentTool != TOOL_BRUSH &&
+                inst->currentTool != TOOL_TEXT) {
+                PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+            }
+
+            if (col >= 0 && row >= 0) {
+                paintCell(inst, col, row);
+                inst->lastPaintCol = col;
+                inst->lastPaintRow = row;
+            } else {
+                inst->lastPaintCol = -1;
+                inst->lastPaintRow = -1;
+            }
+            inst->isDrawing = TRUE;
         }
 
-        if (col >= 0 && row >= 0) {
-            paintCell(inst, col, row);
-            inst->lastPaintCol = col;
-            inst->lastPaintRow = row;
-        } else {
-            inst->lastPaintCol = -1;
-            inst->lastPaintRow = -1;
-        }
-        inst->isDrawing = TRUE;
         inst->cursorCol = col;
         inst->cursorRow = row;
-
         renderSelf(cl, o, msg->gpi_GInfo);
         return GMR_MEACTIVE;
     }
 
+    /* ---------------------------------------------------------------- */
+    /* MOUSE MOVE (NOBUTTON)                                             */
+    /* ---------------------------------------------------------------- */
     if (ie->ie_Code == IECODE_NOBUTTON) {
-   //  bdbprintf("IECODE_NOBUTTON\n");
 
-          isIn = isInsideRect(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y);
-          /* if mouse down and drawing but goes out, keep activation, can reenter.
-            if mouse down and not drawing and goes out, quit activation
-          */
-         if(!isIn && !inst->isDrawing) return GMR_NOREUSE;
+        isIn = isInsideRect(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y);
 
-        /* Mouse move */
+        /* Keep activation while lassoing or drawing, even outside rect */
+        if (!isIn && !inst->isDrawing && !inst->isLassoing)
+            return GMR_NOREUSE;
+
         mouseToCell(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y, &col, &row);
 
-        if (inst->isDrawing )
-        {
-            if (isIn && col >= 0 && row >= 0) {
-                /* Draw stroke: Bresenham gap-fill from last painted cell */
-                if (inst->lastPaintCol >= 0 && inst->lastPaintRow >= 0) {
-                    paintLineFrom(inst,
-                                   inst->lastPaintCol, inst->lastPaintRow,
-                                   col, row);
+        if (inst->currentTool == TOOL_BRUSH) {
+
+            if (inst->isLassoing) {
+                /* Update lasso end as mouse moves */
+                if (col >= 0) inst->lassoEndCol = col;
+                if (row >= 0) inst->lassoEndRow = row;
+
+            } else if (inst->isDrawing && inst->brush && isIn) {
+                /* Brush paste drag: stamp at each move event (no gap fill) */
+                if (col >= 0 && row >= 0) {
+                    paintBrush(inst, col, row);
+                    inst->lastPaintCol = col;
+                    inst->lastPaintRow = row;
                 } else {
-                    paintCell(inst, col, row);
+                    inst->lastPaintCol = -1;
+                    inst->lastPaintRow = -1;
                 }
-                inst->lastPaintCol = col;
-                inst->lastPaintRow = row;
-            } else
-            {
+            } else if (!isIn) {
                 inst->lastPaintCol = -1;
                 inst->lastPaintRow = -1;
             }
+
+        } else {
+            /* Normal draw tools */
+            if (inst->isDrawing) {
+                if (isIn && col >= 0 && row >= 0) {
+                    /* Draw stroke: Bresenham gap-fill from last painted cell */
+                    if (inst->lastPaintCol >= 0 && inst->lastPaintRow >= 0) {
+                        paintLineFrom(inst,
+                                       inst->lastPaintCol, inst->lastPaintRow,
+                                       col, row);
+                    } else {
+                        paintCell(inst, col, row);
+                    }
+                    inst->lastPaintCol = col;
+                    inst->lastPaintRow = row;
+                } else {
+                    inst->lastPaintCol = -1;
+                    inst->lastPaintRow = -1;
+                }
+            }
         }
 
-        /* scaledBufDirty was set by paintCell if drawing;
+        /* scaledBufDirty was set by paintCell/paintBrush if drawing;
          * stays FALSE if hover-only -> OnRender takes partial path */
 
         inst->cursorCol = col;
@@ -375,6 +549,9 @@ ULONG PetsciiCanvas_OnGoInactive(Class *cl, Object *o,
     inst->isDrawing    = FALSE;
     inst->lastPaintCol = -1;
     inst->lastPaintRow = -1;
+
+    /* Cancel any in-progress lasso */
+    inst->isLassoing = FALSE;
 
     /* Hide cursor: set to -1 so drawHoverOverlay draws nothing,
      * repairHoverRegion restores the last overlay position.          */
