@@ -341,6 +341,10 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
 
     inst = (PetsciiCanvasData *)INST_DATA(cl, o);
     ie   = msg->gpi_IEvent;
+    /* allow to pass key events up - else we would hog messages
+     *  since this canvas is most of the time "activated" it's important.
+     */
+    if (ie->ie_Class == IECLASS_RAWKEY) return GMR_REUSE;
 
     if (ie->ie_Class != IECLASS_RAWMOUSE)
         return GMR_MEACTIVE;

@@ -822,10 +822,19 @@ int main(int argc, char **argv)
                                 SetAttrs(app->canvasGadget,
                                     PCA_SelectedChar, newChar,
                                     TAG_END);
+                                /* to be clear, set draw if was brush in tool */
+                                if(app->toolState.currentTool == TOOL_BRUSH )
+                                {
+                                    app->toolState.currentTool = TOOL_DRAW;
+
+                                    SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+                                        PCA_CurrentTool, (ULONG)TOOL_DRAW,
+                                        TAG_END);
+                                    PmToolbar_SetActiveTool(&app->toolbar, TOOL_DRAW,
+                                                    CurrentMainWindow);
+                                }
 
                                 updateCharSelectedLabel(newChar);
-
-
                                 break;
                             }
 

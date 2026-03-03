@@ -258,8 +258,6 @@ ULONG CharSelector_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
     WORD w = G(o)->Width;
     WORD h = G(o)->Height;
 
-
- bdbprintf("CharSelector_OnLayout %d %d\n",(int)w,(int)h);
     if (w > 0 && h > 0) {
         updateContentRect(inst, w, h);
         ensureScaledBuf(inst, (UWORD)inst->contentW, (UWORD)inst->contentH);

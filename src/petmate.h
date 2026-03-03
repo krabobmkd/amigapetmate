@@ -22,6 +22,7 @@
 #include "pmscreentabs.h"
 
 /* Current tool state */
+
 typedef struct ToolState {
     UBYTE currentTool;      /* TOOL_DRAW, TOOL_COLORIZE, etc. */
     UBYTE selectedChar;     /* 0-255 screen code */

@@ -163,9 +163,9 @@ if(AMIGA)
 
     # Development tool: generate petscii_chartransform.c/.h
     # Run on Amiga (or emulator), redirect output to project root.
-    add_executable(findtables
-        findtables.c
-        petscii_charset.c
-    )
-    target_compile_options(findtables PRIVATE ${AMIGA_COMPILER_OPTIONS})
+    # add_executable(findtables
+    #     findtables.c
+    #     petscii_charset.c
+    # )
+    # target_compile_options(findtables PRIVATE ${AMIGA_COMPILER_OPTIONS})
 endif()

@@ -151,11 +151,25 @@ int PmToolbar_Create(PmToolbar *tb)
 
 void PmToolbar_SetActiveTool(PmToolbar *tb, UBYTE tool, struct Window *win)
 {
-    /* really just unselect the other  */
+    /* really just unselect the other ->no ! */
     int i;
     for (i = 0; i < TOOLBAR_TOOL_COUNT; i++) {
         if (!tb->toolBtns[i]) continue;
-        if(i == (int)tool) continue;
+        if(i == (int)tool)
+        {
+            ULONG cstate=0;
+            GetAttr(GA_Selected,tb->toolBtns[i],&cstate);
+            if(!cstate)
+                if (win)
+                    SetGadgetAttrs((struct Gadget *)tb->toolBtns[i], win, NULL,
+                                   GA_Selected, TRUE,
+                                   TAG_END);
+                else
+                    SetAttrs(tb->toolBtns[i],
+                             GA_Selected,TRUE,
+                             TAG_END);
+            continue;
+        }
 
         if (win)
             SetGadgetAttrs((struct Gadget *)tb->toolBtns[i], win, NULL,

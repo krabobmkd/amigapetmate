@@ -34,6 +34,9 @@ typedef struct PetsciiCanvasData {
     UWORD             zoomLevel;  /* 1/2/4/8 - informational            */
     BOOL              showGrid;   /* TRUE: draw character-grid overlay  */
 
+    /* allow cliping draw commands */
+    struct Region *clipRegion;
+
     /* Cached scaling buffer: pre-allocated to match the content rect and
      * reallocated only when the content size changes (GM_LAYOUT).
      * Owned by this instance; freed in OM_DISPOSE.                    */

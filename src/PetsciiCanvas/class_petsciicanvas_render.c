@@ -463,12 +463,12 @@ static void drawHoverOverlay(struct RastPort *rp,
                        inst->contentW, inst->screenbuf->pixW);
         py2 = CELL_PX(inst->cursorRow + inst->brushH,
                        inst->contentH, inst->screenbuf->pixH);
-
-        if (px1 < 0)              px1 = 0;
-        if (py1 < 0)              py1 = 0;
-        if (px2 > inst->contentW) px2 = inst->contentW;
-        if (py2 > inst->contentH) py2 = inst->contentH;
-
+        /* magic, we let the clipRegion manage this a best way.
+        *if (px1 < 0)              px1 = 0;
+        *if (py1 < 0)              py1 = 0;
+        *if (px2 > inst->contentW) px2 = inst->contentW;
+        *if (py2 > inst->contentH) py2 = inst->contentH;
+        */
         dstW = (ULONG)(px2 - px1);
         dstH = (ULONG)(py2 - py1);
         if (dstW == 0 || dstH == 0) return;
@@ -583,13 +583,34 @@ ULONG PetsciiCanvas_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
     WORD w = G(o)->Width;
     WORD h = G(o)->Height;
 
-
- bdbprintf("PetsciiCanvas_OnLayout %d %d\n",(int)w,(int)h);
     if (w > 0 && h > 0) {
         updateContentRect(inst, w, h);
         ensureScaledBuf(inst, (UWORD)inst->contentW, (UWORD)inst->contentH);
     }
     inst->refreshExtraMarge = 1;
+
+    /* when a rastport is given or created rto draw on gadget,
+        It is most often delivered with no clipping at layer level.
+        Optionally during draw we can force installation of a clipping rect,
+        that will cut any graphics.library drawing cals using RastPort.
+        Here we refresh a Region geometry that is used as clipping at draw.
+      */
+    if (inst->clipRegion)
+    {
+        struct Rectangle framerect;
+        framerect.MinX = G(o)->LeftEdge + inst->contentX;
+        framerect.MinY = G(o)->TopEdge + inst->contentY;
+        framerect.MaxX = G(o)->LeftEdge + inst->contentX + inst->contentW -1;
+        framerect.MaxY = G(o)->TopEdge + inst->contentY + inst->contentH -1;
+
+        /* note you can go wild with Or/And boolean operation on geometry.
+           But a single rect (should be) enough at Gadget level.
+           Note there are issues on "Virtual.class" up to OS3.2.2 with this.
+           One of the reason we don't use Virtual.class.
+           */
+        ClearRegion(inst->clipRegion);
+        OrRectRegion(inst->clipRegion, &framerect);
+    }
 
     return DoSuperMethodA(cl, o, (APTR)msg);
 }
@@ -600,6 +621,7 @@ ULONG PetsciiCanvas_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
 
 ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
 {
+    struct Region *oldClipRegion=NULL;
     PetsciiCanvasData *inst;
     struct RastPort   *rp;
     WORD               left;
@@ -630,6 +652,7 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
 
     /* Always recompute content rect (cheap arithmetic) */
     updateContentRect(inst, width, height);
+
 
     absX  = (WORD)(left + inst->contentX);
     absY  = (WORD)(top  + inst->contentY);
@@ -705,6 +728,8 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
         if (!inst->screenbuf->valid)
             PetsciiScreenBuf_RebuildFull(inst->screenbuf, inst->screen, inst->style);
 
+        oldClipRegion = InstallClipRegion( rp->Layer, inst->clipRegion);
+
         /* Full blit — always via BlitScaled so scaledBuf stays current.
          * At 1:1 the step is exactly 1.0 (identity copy), so correctness
          * and the repair source are both guaranteed.                      */
@@ -740,8 +765,13 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
             inst->prevBrushH   = inst->brushH;
         }
 
+        /* important to pass NULL if oldClipRegion was NULL.*/
+        InstallClipRegion( rp->Layer,oldClipRegion);
     } else {
         /* ---- PARTIAL HOVER UPDATE PATH --------------------------------- */
+
+        oldClipRegion = InstallClipRegion( rp->Layer, inst->clipRegion);
+
 
         /* Repair old overlay region (restores screenbuf pixels + grid) */
         if (inst->prevHoverCol >= 0) {
@@ -766,7 +796,11 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
             inst->prevBrushW   = inst->brushW;
             inst->prevBrushH   = inst->brushH;
         }
+
+        /* important to pass NULL if oldClipRegion was NULL.*/
+        InstallClipRegion( rp->Layer,oldClipRegion);
     }
+
 
     return 0;
 }

@@ -5,6 +5,7 @@
 
 #include <proto/exec.h>
 #include <proto/intuition.h>
+#include <proto/graphics.h>
 #include <proto/utility.h>
 #include "petscii_canvas_private.h"
 #include <bdbprintf.h>
@@ -40,6 +41,8 @@ ULONG PetsciiCanvas_OnNew(Class *cl, Object *o, struct opSet *msg)
     inst            = (PetsciiCanvasData *)INST_DATA(cl, newObj);
     inst->screen    = screen;
     inst->style     = style;
+
+    inst->clipRegion = NewRegion();
     inst->zoomLevel  = 1;
     inst->showGrid   = FALSE;
     inst->screenbuf  = NULL;
@@ -148,9 +151,29 @@ ULONG PetsciiCanvas_OnDispose(Class *cl, Object *o, Msg msg)
         inst->nativeBrushBufSize = 0;
     }
 
+    if (inst->clipRegion) {
+        DisposeRegion( inst->clipRegion );
+        inst->clipRegion = NULL;
+    }
+
     return DoSuperMethodA(cl, o, (APTR)msg);
 }
+void FreeBrush(PetsciiCanvasData *inst)
+{
+    if (inst->brush) {
+        PetsciiBrush_Destroy(inst->brush);
+        inst->brush = NULL;
+    }
+    if (inst->nativeBrushBuf) {
+        FreeVec(inst->nativeBrushBuf);
+        inst->nativeBrushBuf     = NULL;
+        inst->nativeBrushBufSize = 0;
+    }
+    inst->brushW      = 1;
+    inst->brushH      = 1;
+    inst->isLassoing  = FALSE;
 
+}
 /* ------------------------------------------------------------------ */
 /* OM_SET / OM_UPDATE                                                   */
 /* ------------------------------------------------------------------ */
@@ -229,27 +252,20 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                 break;
 
             case PCA_CurrentTool:
-                inst->currentTool = (UBYTE)tag->ti_Data;
-                /* Cancel any active lasso when the tool changes */
-                inst->isLassoing = FALSE;
+                if(inst->currentTool != (UBYTE)tag->ti_Data)
+                {
+                    inst->currentTool = (UBYTE)tag->ti_Data;
+                    FreeBrush(inst);
+                    /* Cancel any active lasso when the tool changes */
+                    inst->isLassoing = FALSE;
+                }
                 result = 1;
                 break;
 
             case PCA_SelectedChar:
                 inst->selectedChar = (UBYTE)tag->ti_Data;
                 /* Clicking the char selector: reset to 1x1 single-char draw mode */
-                if (inst->brush) {
-                    PetsciiBrush_Destroy(inst->brush);
-                    inst->brush = NULL;
-                }
-                if (inst->nativeBrushBuf) {
-                    FreeVec(inst->nativeBrushBuf);
-                    inst->nativeBrushBuf     = NULL;
-                    inst->nativeBrushBufSize = 0;
-                }
-                inst->brushW      = 1;
-                inst->brushH      = 1;
-                inst->isLassoing  = FALSE;
+                FreeBrush(inst);
                 inst->currentTool = TOOL_DRAW;
                 result = 1;
                 break;
