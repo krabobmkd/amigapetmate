@@ -411,6 +411,34 @@ static void drawHoverOverlay(struct RastPort *rp,
     if (!inst->screen || !inst->style || !inst->screenbuf) return;
     if (!inst->overlayBuf)                                 return;
 
+    /* ---- TEXT TOOL CURSOR ------------------------------------------- */
+    /* Show only the 1×1 selection rect at the text insertion point.
+     * No char preview — the cursor position does not follow the mouse. */
+    if (inst->currentTool == TOOL_TEXT) {
+        WORD tx1;
+        WORD ty1;
+        WORD tx2;
+        WORD ty2;
+
+        if (inst->textCursorCol < 0 || inst->textCursorRow < 0) return;
+
+        tx1 = CELL_PX(inst->textCursorCol,     inst->contentW, inst->screenbuf->pixW);
+        ty1 = CELL_PX(inst->textCursorRow,     inst->contentH, inst->screenbuf->pixH);
+        tx2 = CELL_PX(inst->textCursorCol + 1, inst->contentW, inst->screenbuf->pixW);
+        ty2 = CELL_PX(inst->textCursorRow + 1, inst->contentH, inst->screenbuf->pixH);
+
+        savedMode = rp->DrawMode;
+        SetDrMd(rp, COMPLEMENT);
+        SetAPen(rp, 1);
+        Move(rp, (LONG)(absX + tx1 - 1), (LONG)(absY + ty1 - 1));
+        Draw(rp, (LONG)(absX + tx2),     (LONG)(absY + ty1 - 1));
+        Draw(rp, (LONG)(absX + tx2),     (LONG)(absY + ty2));
+        Draw(rp, (LONG)(absX + tx1 - 1), (LONG)(absY + ty2));
+        Draw(rp, (LONG)(absX + tx1 - 1), (LONG)(absY + ty1));  /* close */
+        SetDrMd(rp, (LONG)savedMode);
+        return;
+    }
+
     /* ---- LASSO SELECTION RECTANGLE ---------------------------------- */
     if (inst->isLassoing) {
         WORD col1, row1, col2, row2;
@@ -767,8 +795,14 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
         drawHoverOverlay(rp, inst, absX, absY);
 
         /* Remember where the overlay was drawn for the next repair.
-         * When lassoing, track the full lasso bounding rect.           */
-        if (inst->isLassoing) {
+         * Text mode tracks text cursor; lasso tracks lasso rect;
+         * other modes track the brush/char hover position.            */
+        if (inst->currentTool == TOOL_TEXT) {
+            inst->prevHoverCol = inst->textCursorCol;
+            inst->prevHoverRow = inst->textCursorRow;
+            inst->prevBrushW   = 1;
+            inst->prevBrushH   = 1;
+        } else if (inst->isLassoing) {
             WORD lc1, lr1, lc2, lr2;
             lassoNormalized(inst, &lc1, &lr1, &lc2, &lr2);
             inst->prevHoverCol = lc1;
@@ -789,7 +823,6 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
                 inst->prevBrushH += inst->prevHoverRow;
                 inst->prevHoverRow = 0;
             }
-
         }
 
         /* important to pass NULL if oldClipRegion was NULL.*/
@@ -809,7 +842,12 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
         /* Draw new hover overlay */
         drawHoverOverlay(rp, inst, absX, absY);
 
-        if (inst->isLassoing) {
+        if (inst->currentTool == TOOL_TEXT) {
+            inst->prevHoverCol = inst->textCursorCol;
+            inst->prevHoverRow = inst->textCursorRow;
+            inst->prevBrushW   = 1;
+            inst->prevBrushH   = 1;
+        } else if (inst->isLassoing) {
             WORD lc1, lr1, lc2, lr2;
             lassoNormalized(inst, &lc1, &lr1, &lc2, &lr2);
             inst->prevHoverCol = lc1;
@@ -817,14 +855,12 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
             inst->prevBrushW   = (WORD)(lc2 - lc1);
             inst->prevBrushH   = (WORD)(lr2 - lr1);
         } else {
-
             inst->prevHoverCol = inst->cursorCol - inst->brushHotx;
             inst->prevBrushW   = inst->brushW;
             if(inst->prevHoverCol<0) {
                 inst->prevBrushW += inst->prevHoverCol;
                 inst->prevHoverCol = 0;
             }
-
 
             inst->prevHoverRow = inst->cursorRow - inst->brushHoty;
             inst->prevBrushH   = inst->brushH;

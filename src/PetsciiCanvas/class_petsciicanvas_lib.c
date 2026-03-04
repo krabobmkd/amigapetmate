@@ -3,14 +3,23 @@
  * class lib: MakeClass / FreeClass.
  */
 
+#include <proto/exec.h>
 #include <proto/intuition.h>
+#include <proto/keymap.h>
 #include "petscii_canvas_private.h"
 
 /* Global class pointer */
 Class *PetsciiCanvasClass = NULL;
 
+/* keymap.library base — used by handleinput.c for MapRawKey() */
+struct Library *KeymapBase = NULL;
+
 int PetsciiCanvas_Init(void)
 {
+    KeymapBase = OpenLibrary("keymap.library", 36);
+    if (!KeymapBase)
+        return 0;
+
     PetsciiCanvasClass = MakeClass(
         NULL,           /* private class - no public name  */
         "gadgetclass",  /* superclass                       */
@@ -19,8 +28,11 @@ int PetsciiCanvas_Init(void)
         0               /* flags                            */
     );
 
-    if (!PetsciiCanvasClass)
+    if (!PetsciiCanvasClass) {
+        CloseLibrary(KeymapBase);
+        KeymapBase = NULL;
         return 0;
+    }
 
     PetsciiCanvasClass->cl_Dispatcher.h_Entry    = (HOOKFUNC)PetsciiCanvas_Dispatch;
     PetsciiCanvasClass->cl_Dispatcher.h_SubEntry = NULL;
@@ -34,5 +46,9 @@ void PetsciiCanvas_Exit(void)
     if (PetsciiCanvasClass) {
         FreeClass(PetsciiCanvasClass);
         PetsciiCanvasClass = NULL;
+    }
+    if (KeymapBase) {
+        CloseLibrary(KeymapBase);
+        KeymapBase = NULL;
     }
 }

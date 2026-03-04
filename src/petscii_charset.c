@@ -314,3 +314,26 @@ const UBYTE *PetsciiCharset_GetGlyph(UBYTE charset, UBYTE code)
         return &c64CharsetLower[(UWORD)code * 8];
     return &c64CharsetUpper[(UWORD)code * 8];
 }
+
+// Convert ASCII char to PETSCII index (uppercase mode)
+UBYTE ascii_to_petscii_upper(UBYTE c) {
+    if (c >= 'A' && c <= 'Z') return 0xC1 + (c - 'A');
+    if (c >= '0' && c <= '9') return 0x40 + (c - '0');
+    if (c >= '!' && c <= '/') return 0x21 + (c - '!');
+    if (c >= ':' && c <= '@') return 0x3A + (c - ':');
+    if (c >= '[' && c <= '`') return 0x5B + (c - '[');
+    if (c >= '{' && c <= '~') return 0x7B + (c - '{');
+    return c; // Default: same value
+}
+
+// Convert ASCII char to PETSCII index (lowercase mode)
+UBYTE ascii_to_petscii_lower(UBYTE c) {
+    if (c >= 'A' && c <= 'Z') return 0x41 + (c - 'A');
+    if (c >= 'a' && c <= 'z') return 0x61 + (c - 'a');
+    if (c >= '0' && c <= '9') return 0x40 + (c - '0');
+    if (c >= '!' && c <= '/') return 0x21 + (c - '!');
+    if (c >= ':' && c <= '@') return 0x3A + (c - ':');
+    if (c >= '[' && c <= '`') return 0x5B + (c - '[');
+    if (c >= '{' && c <= '~') return 0x7B + (c - '{');
+    return c;
+}

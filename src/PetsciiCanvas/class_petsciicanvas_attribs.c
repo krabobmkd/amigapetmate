@@ -99,6 +99,10 @@ ULONG PetsciiCanvas_OnNew(Class *cl, Object *o, struct opSet *msg)
     inst->nativeBrushBuf     = NULL;
     inst->nativeBrushBufSize = 0;
 
+    /* Text tool cursor: start at top-left */
+    inst->textCursorCol = 0;
+    inst->textCursorRow = 0;
+
     /* Create the render buffer (size = character dimensions * 8 pixels each) */
     inst->screenbuf = PetsciiScreenBuf_Create(screen->width, screen->height);
     if (!inst->screenbuf) {

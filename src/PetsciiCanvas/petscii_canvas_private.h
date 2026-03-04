@@ -123,7 +123,16 @@ typedef struct PetsciiCanvasData {
     UBYTE *nativeBrushBuf;
     ULONG  nativeBrushBufSize;
 
+    /* Text tool cursor: character cell where next typed char is written.
+     * Initialized to (0,0). Updated by mouse click or cursor advance.
+     * Always valid (>= 0) in TOOL_TEXT mode.                          */
+    WORD  textCursorCol;
+    WORD  textCursorRow;
+
 } PetsciiCanvasData;
+
+/* keymap.library base defined in class_petsciicanvas_lib.c */
+extern struct Library *KeymapBase;
 
 /* ------------------------------------------------------------------
  * Method handlers - each implemented in a separate .c file

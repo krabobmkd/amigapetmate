@@ -42,9 +42,11 @@
 #include <proto/graphics.h>
 #include <proto/intuition.h>
 #include <proto/exec.h>
+#include <proto/keymap.h>
 #include <devices/inputevent.h>
 #include <clib/alib_protos.h>
 #include "petscii_canvas_private.h"
+#include "petscii_ascii.h"
 #include <bdbprintf.h>
 /* ------------------------------------------------------------------ */
 /* Static helpers                                                       */
@@ -267,6 +269,19 @@ ULONG PetsciiCanvas_OnGoActive(Class *cl, Object *o, struct gpInput *msg)
                msg->gpi_IEvent->ie_Class == IECLASS_RAWMOUSE &&
                msg->gpi_IEvent->ie_Code  == IECODE_LBUTTON);
 
+    if (inst->currentTool == TOOL_TEXT) {
+        /* ---- TOOL_TEXT: click sets text cursor position -------------- */
+        if (isClick && col >= 0 && row >= 0) {
+            inst->textCursorCol = col;
+            inst->textCursorRow = row;
+        }
+        inst->isDrawing = FALSE;
+        inst->cursorCol = col;
+        inst->cursorRow = row;
+        renderSelf(cl, o, msg->gpi_GInfo);
+        return GMR_MEACTIVE;
+    }
+
     if (inst->currentTool == TOOL_BRUSH) {
         /* ---- TOOL_BRUSH click ---------------------------------------- */
         if (isClick) {
@@ -343,14 +358,74 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
     WORD               col;
     WORD               row;
     BOOL               isIn;
-    BOOL            brushAlreadyStamped=0;
+    BOOL               brushAlreadyStamped = 0;
+    /* text-mode key mapping temporaries */
+    struct InputEvent  mapEvent;
+    UBYTE              mapbuf[8];
+    LONG               nchars;
+    int                screenCode;
 
     inst = (PetsciiCanvasData *)INST_DATA(cl, o);
     ie   = msg->gpi_IEvent;
-    /* allow to pass key events up - else we would hog messages
-     *  since this canvas is most of the time "activated" it's important.
-     */
-    if (ie->ie_Class == IECLASS_RAWKEY) return GMR_REUSE;
+
+    /* ---------------------------------------------------------------- */
+    /* RAWKEY events                                                      */
+    /* In text mode: consume and handle typed characters.                */
+    /* Otherwise:    pass up so window/menu handlers receive them.       */
+    /* ---------------------------------------------------------------- */
+    if (ie->ie_Class == IECLASS_RAWKEY) {
+        if (inst->currentTool == TOOL_TEXT &&
+            !(ie->ie_Code & IECODE_UP_PREFIX)) {
+            /* Key-down: translate raw key to ASCII via system keymap */
+            mapEvent              = *ie;
+            mapEvent.ie_NextEvent = NULL;
+            nchars = MapRawKey(&mapEvent, (STRPTR)mapbuf,
+                               (LONG)sizeof(mapbuf), NULL);
+
+            if (nchars > 0 && (UBYTE)mapbuf[0] <= 127 &&
+                inst->screen && inst->screenbuf && inst->style) {
+
+                if (inst->screen->charset == PETSCII_CHARSET_LOWER)
+                    screenCode = PetsciiAscii_ToLowerScreenCode(mapbuf[0]);
+                else
+                    screenCode = PetsciiAscii_ToUpperScreenCode(mapbuf[0]);
+
+                if (screenCode >= 0 &&
+                    inst->textCursorCol >= 0 && inst->textCursorRow >= 0) {
+
+                    if (inst->undoBuf)
+                        PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+
+                    PetsciiScreen_SetPixel(inst->screen,
+                                           (UWORD)inst->textCursorCol,
+                                           (UWORD)inst->textCursorRow,
+                                           (UBYTE)screenCode,
+                                           inst->fgColor);
+                    PetsciiScreenBuf_UpdateCell(inst->screenbuf, inst->screen,
+                                                inst->style,
+                                                (UWORD)inst->textCursorCol,
+                                                (UWORD)inst->textCursorRow);
+                    inst->scaledBufDirty = TRUE;
+
+                    /* Advance cursor right; wrap at end of line then screen */
+                    inst->textCursorCol++;
+                    if (inst->textCursorCol >= (WORD)inst->screen->width) {
+                        inst->textCursorCol = 0;
+                        inst->textCursorRow++;
+                        if (inst->textCursorRow >= (WORD)inst->screen->height) {
+                            inst->textCursorCol = 0;
+                            inst->textCursorRow = 0;
+                        }
+                    }
+                    renderSelf(cl, o, msg->gpi_GInfo);
+                }
+            }
+        }
+        /* text mode: consume (key-down handled above, key-up ignored).
+         * other modes: pass key events up to window/menu handlers.    */
+        //return (inst->currentTool == TOOL_TEXT) ? GMR_MEACTIVE : GMR_REUSE;
+        return GMR_REUSE;
+    } // rawkey end
 
     if (ie->ie_Class != IECLASS_RAWMOUSE)
         return GMR_MEACTIVE;
@@ -359,6 +434,10 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
     /* LBUTTON UP                                                        */
     /* ---------------------------------------------------------------- */
     if (ie->ie_Code == (IECODE_LBUTTON | IECODE_UP_PREFIX)) {
+
+        /* Text mode: stay active to keep receiving keyboard events */
+        if (inst->currentTool == TOOL_TEXT)
+            return GMR_MEACTIVE;
 
         if (inst->currentTool == TOOL_BRUSH && inst->isLassoing) {
             /* Finalize lasso: capture the selected rectangle into brush */
@@ -432,6 +511,18 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
 
         mouseToCell(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y, &col, &row);
 
+        /* Text mode: click repositions the text cursor */
+        if (inst->currentTool == TOOL_TEXT) {
+            if (col >= 0 && row >= 0) {
+                inst->textCursorCol = col;
+                inst->textCursorRow = row;
+            }
+            inst->cursorCol = col;
+            inst->cursorRow = row;
+            renderSelf(cl, o, msg->gpi_GInfo);
+            return GMR_MEACTIVE;
+        }
+
         if (inst->currentTool == TOOL_BRUSH) {
 
             if (!inst->brush && !inst->isLassoing) {
@@ -490,6 +581,12 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
     /* MOUSE MOVE (NOBUTTON)                                             */
     /* ---------------------------------------------------------------- */
     if (ie->ie_Code == IECODE_NOBUTTON) {
+
+        /* Text mode: mouse move doesn't affect the text cursor.
+         * Stay active regardless of mouse position so keyboard events
+         * continue to arrive while the user is typing.               */
+        if (inst->currentTool == TOOL_TEXT)
+            return GMR_MEACTIVE;
 
         isIn = isInsideRect(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y);
 

@@ -43,6 +43,7 @@ include_directories(
 # Phase 1: Core sources
 # Phase 8: petscii_undo.c added
 # Phase 10: petscii_brush.c added
+# Phase 11: petscii_ascii.c added
 set(PETMATE_SOURCES
     petmate.c
     petscii_screen.c
@@ -51,6 +52,7 @@ set(PETMATE_SOURCES
     petscii_charset.c
     petscii_undo.c
     petscii_brush.c
+    petscii_ascii.c
 
     bdbprintf.c
     bdbprintf.h
