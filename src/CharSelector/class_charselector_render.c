@@ -301,7 +301,6 @@ ULONG CharSelector_OnDomain(Class *cl, Object *o, struct gpDomain  *msg)
     domain->Width = 128;  // Nominal width
     domain->Height = 128;  // Nominal height
 
- bdbprintf("CharSelector_OnDomain\n");
     // Adjust based on gpd_Which
     switch (msg->gpd_Which) {
         case GDOMAIN_MINIMUM:
