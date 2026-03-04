@@ -21,6 +21,7 @@
 
 typedef struct PmToolbar {
     Object *layout;                      /* outer VLayout (place in main layout) */
+    Object *layoutUndoRedo;
     Object *toolBtns[TOOLBAR_TOOL_COUNT]; /* Draw/Colorize/CharDraw/Brush/Text   */
     Object *undoBtn;
     Object *redoBtn;

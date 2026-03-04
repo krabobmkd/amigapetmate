@@ -94,38 +94,38 @@ int PmToolbar_Create(PmToolbar *tb)
     /* Tool group VLayout */
     toolGroup = (Object *)NewObject(LAYOUT_GetClass(), NULL,
 
-        LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
+        LAYOUT_Orientation,  /*LAYOUT_ORIENT_VERT*/LAYOUT_ORIENT_HORIZ,
         LAYOUT_InnerSpacing, 1,
 
         LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_DRAW],
-            CHILD_WeightedHeight, 0,
+         //   CHILD_WeightedHeight, 0,
         LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_COLORIZE],
-            CHILD_WeightedHeight, 0,
+         //   CHILD_WeightedHeight, 0,
         LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_CHARDRAW],
-            CHILD_WeightedHeight, 0,
+         //   CHILD_WeightedHeight, 0,
         LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_BRUSH],
-            CHILD_WeightedHeight, 0,
+         //   CHILD_WeightedHeight, 0,
         LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_TEXT],
-            CHILD_WeightedHeight, 0,
+         //   CHILD_WeightedHeight, 0,
         TAG_END);
 
     if (!toolGroup) return 0;
 
     /* Action group VLayout */
-    actionGroup = (Object *)NewObject(LAYOUT_GetClass(), NULL,
+    tb->layoutUndoRedo = (Object *)NewObject(LAYOUT_GetClass(), NULL,
 
-        LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
+        LAYOUT_Orientation,  LAYOUT_ORIENT_HORIZ,
         LAYOUT_InnerSpacing, 1,
 
         LAYOUT_AddChild, (ULONG)tb->undoBtn,
-            CHILD_WeightedHeight, 0,
+       //     CHILD_WeightedHeight, 0,
         LAYOUT_AddChild, (ULONG)tb->redoBtn,
-            CHILD_WeightedHeight, 0,
+       //     CHILD_WeightedHeight, 0,
         LAYOUT_AddChild, (ULONG)tb->clearBtn,
-            CHILD_WeightedHeight, 0,
+       //     CHILD_WeightedHeight, 0,
         TAG_END);
 
-    if (!actionGroup) return 0;
+    if (!tb->layoutUndoRedo) return 0;
 
     /* Outer VLayout: tool group then action group, filler eats remaining */
     tb->layout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
@@ -134,11 +134,12 @@ int PmToolbar_Create(PmToolbar *tb)
         LAYOUT_InnerSpacing, 2,
 
         LAYOUT_AddChild, (ULONG)toolGroup,
-            CHILD_WeightedHeight, 0,
+            CHILD_WeightedHeight, 1,
 
+        /*moved
         LAYOUT_AddChild, (ULONG)actionGroup,
-            CHILD_WeightedHeight, 0,
-
+            CHILD_WeightedHeight, 1,
+        */
         TAG_END);
 
     return (tb->layout != NULL) ? 1 : 0;

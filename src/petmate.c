@@ -532,23 +532,39 @@ int main(int argc, char **argv)
                 // CHILD_MaxHeight,      28,
             TAG_END);
 
-
-
-
         }
+
+        Object *canvhl = (Object *)NewObject(LAYOUT_GetClass(), NULL,
+            LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
+            LAYOUT_InnerSpacing, 2,
+            LAYOUT_AddChild, (ULONG)app->toolbar.layout,
+                CHILD_WeightedHeight, 0,
+            LAYOUT_AddChild, (ULONG)app->canvasGadget,
+                CHILD_WeightedHeight, 1, /* use width in char as weight */
+            LAYOUT_AddChild, (ULONG)app->toolbar.layoutUndoRedo,
+                CHILD_WeightedHeight, 0, /* use width in char as weight */
+
+            TAG_END);
+
 
         /* Work area: toolbar | canvas | right panel */
         workAreaLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
             LAYOUT_Orientation,  LAYOUT_ORIENT_HORIZ,
             LAYOUT_InnerSpacing, 2,
-
+/* moved
             LAYOUT_AddChild, (ULONG)app->toolbar.layout,
                 CHILD_WeightedWidth, 0,
+*/
               //  CHILD_MinWidth,      52,
               //  CHILD_MaxWidth,      72,
 
-            LAYOUT_AddChild, (ULONG)app->canvasGadget,
+
+            // LAYOUT_AddChild, (ULONG)app->canvasGadget,
+            //     CHILD_WeightedWidth, 42, /* use width in char as weight */
+
+            LAYOUT_AddChild, (ULONG)canvhl,
                 CHILD_WeightedWidth, 42, /* use width in char as weight */
+
 
             LAYOUT_AddChild, (ULONG)rightPanelLayout,
                 CHILD_WeightedWidth, 16, /* use width of the char selector in char as weight */
@@ -571,6 +587,9 @@ int main(int argc, char **argv)
                 CHILD_WeightedHeight, 0,
                 CHILD_MinHeight,      20,
                 CHILD_MaxHeight,      28,
+        /* moved here */
+        // LAYOUT_AddChild, (ULONG)app->toolbar.layout,
+        //     CHILD_WeightedWidth, 0,
 
             LAYOUT_AddChild, (ULONG)workAreaLayout,
                 CHILD_WeightedHeight, 1000,
