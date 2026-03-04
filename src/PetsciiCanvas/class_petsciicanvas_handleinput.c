@@ -633,8 +633,6 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
             {
                 /* Partial render: repair the last overlay, draw nothing new */
                 renderSelf(cl, o, msg->gpi_GInfo);
-                PetsciiCanvas_NotifyAttribChange(cl,o, msg->gpi_GInfo,
-                                        PCA_SignalStopTool,TRUE);
                 return GMR_REUSE; /* clicked outside, leave this click to other buttons */
             }
             if (col >= 0 && row >= 0) {
@@ -685,7 +683,6 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
             }
 
             if (col >= 0 && row >= 0) {
-            bdbprintf("go paintCell\n");
                 paintCell(inst, col, row);
                 inst->lastPaintCol = col;
                 inst->lastPaintRow = row;

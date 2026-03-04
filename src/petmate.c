@@ -803,16 +803,11 @@ int main(int argc, char **argv)
                         //&&  (newTool != app->toolState.currentTool)
                             )
                         {
-                            printf("setTool %d\n",newTool);
                              /* down key */
                              setTool(newTool);
                         } else
                         {
-                            // means signal up...
-                            //ULONG currenTool=0;
-                            //GetAttr(PCA_CurrentTool,app->canvasGadget,&currenTool);
-                            printf(" signal up %d\n",newTool);
-
+                            // means signal up... force toggle button down
                             if(app->toolState.currentTool == newTool)
                             {
                                 PmToolbar_ForceDownTrick(&app->toolbar, newTool,CurrentMainWindow);
@@ -829,7 +824,6 @@ int main(int argc, char **argv)
                                 if (ptag)
                                 {
                                     /* if text or brush finish, back to previous draw tool */
-                                    printf("sent stop !\n");
                                     setTool(app->toolState.lastDrawTool);
 
                                     // PmToolbar_SetActiveTool(&app->toolbar, app->toolState.lastDrawTool,
@@ -840,7 +834,7 @@ int main(int argc, char **argv)
                             break;
 
                             case GAD_CHARSELECTOR:
-                            {
+                            {                             
                                 /* Value comes from OM_NOTIFY (preferred) or WMHI_GADGETUP */
                                 ULONG newChar = 0;
                                 ptag = FindTagItem(CHSA_SelectedChar, msg);
@@ -870,6 +864,7 @@ int main(int argc, char **argv)
                                 else GetAttr(CPA_SelectedColor,
                                              app->colorPickerFgGadget, &newColor);
                                 app->toolState.fgColor = (UBYTE)newColor;
+
                                 SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
                                     PCA_FgColor, newColor,
                                     TAG_END);

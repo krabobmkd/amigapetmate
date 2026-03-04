@@ -268,6 +268,7 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                 break;
 
             case PCA_SelectedChar:
+             bdbprintf("canvas received: PCA_SelectedChar\n");
                 inst->selectedChar = (UBYTE)tag->ti_Data;
                 /* Clicking the char selector: reset to 1x1 single-char draw mode */
                 FreeBrush(inst);
@@ -276,6 +277,7 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                 break;
 
             case PCA_FgColor:
+            bdbprintf("canvas received PCA_FgColor:\n");
                 inst->fgColor = (UBYTE)tag->ti_Data;
                 result = 1; /* no need for redraw, just change the drawing prefs */
                 break;
