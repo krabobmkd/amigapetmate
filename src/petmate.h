@@ -25,6 +25,7 @@
 
 typedef struct ToolState {
     UBYTE currentTool;      /* TOOL_DRAW, TOOL_COLORIZE, etc. */
+    UBYTE lastDrawTool;         /* used for fallback if some tool end */
     UBYTE selectedChar;     /* 0-255 screen code */
     UBYTE fgColor;          /* 0-15 foreground color */
     UBYTE bgColor;          /* 0-15 background color */

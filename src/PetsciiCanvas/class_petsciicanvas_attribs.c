@@ -58,7 +58,7 @@ ULONG PetsciiCanvas_OnNew(Class *cl, Object *o, struct opSet *msg)
 
     /* Drawing tool defaults */
     inst->currentTool   = TOOL_DRAW;
-    inst->selectedChar  = 32;   /* space */
+    inst->selectedChar  = 0xa0;   /* space, reversed */
     inst->fgColor       = 14;   /* C64_LIGHTBLUE */
     screen->backgroundColor = 6;    /* C64_BLUE */
 

@@ -47,6 +47,13 @@
  * Set via OM_NEW or OM_SET to enable in-stroke undo snapshots.   */
 #define PCA_UndoBuffer   (PCA_Dummy +13) /* (PetsciiUndoBuffer *) new/set  */
 
+/* Signal: tell outside this tool is finisehd
+   -brush lasso ends, meaning a new brush.
+   -Text pressed Esc
+*/
+#define PCA_SignalStopTool   (PCA_Dummy +14)
+
+
 /* Global class pointer, set by PetsciiCanvas_Init() */
 extern Class *PetsciiCanvasClass;
 

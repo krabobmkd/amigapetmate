@@ -36,7 +36,7 @@ ULONG CharSelector_OnNew(Class *cl, Object *o, struct opSet *msg)
     inst->charset      = 0;//charset;
     inst->fgColor      = 1;
     inst->bgColor      = 0;
-    inst->selectedChar = 0;
+    inst->selectedChar =  0xa0; /* space reverted: full char */
     inst->cbuf         = NULL;
     inst->valid        = 0;
     inst->scaledBuf    = NULL;

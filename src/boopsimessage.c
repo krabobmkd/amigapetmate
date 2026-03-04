@@ -66,7 +66,9 @@ static ULONG delayedAttribs[] = {
     PCA_BgColor,
 
     PCA_CursorCol,
-    PCA_CursorRow
+    PCA_CursorRow,
+
+    PCA_SignalStopTool
 
 };
 

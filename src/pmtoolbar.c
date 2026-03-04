@@ -18,7 +18,7 @@
 #include "pmlocale.h"
 #include "gadgetid.h"
 #include "petscii_types.h"
-
+#include <stdio.h>
 
 /* Library bases declared in petmate.c */
 extern struct Library *LayoutBase;
@@ -151,34 +151,22 @@ int PmToolbar_Create(PmToolbar *tb)
 
 void PmToolbar_SetActiveTool(PmToolbar *tb, UBYTE tool, struct Window *win)
 {
-    /* really just unselect the other ->no ! */
     int i;
     for (i = 0; i < TOOLBAR_TOOL_COUNT; i++) {
         if (!tb->toolBtns[i]) continue;
-        if(i == (int)tool)
-        {
-            ULONG cstate=0;
-            GetAttr(GA_Selected,tb->toolBtns[i],&cstate);
-            if(!cstate)
-                if (win)
-                    SetGadgetAttrs((struct Gadget *)tb->toolBtns[i], win, NULL,
-                                   GA_Selected, TRUE,
-                                   TAG_END);
-                else
-                    SetAttrs(tb->toolBtns[i],
-                             GA_Selected,TRUE,
-                             TAG_END);
-            continue;
-        }
+        ULONG doselect = (i == (int)tool);
+        ULONG cstate=0;
+        GetAttr(GA_Selected,tb->toolBtns[i],&cstate);
 
-        if (win)
-            SetGadgetAttrs((struct Gadget *)tb->toolBtns[i], win, NULL,
-                           GA_Selected, FALSE,
-                           TAG_END);
-        else
-            SetAttrs(tb->toolBtns[i],
-                     GA_Selected,FALSE,
-                     TAG_END);
+        if(doselect != cstate) /* important test, or would go infinite recursion */
+            if (win)
+                SetGadgetAttrs((struct Gadget *)tb->toolBtns[i], win, NULL,
+                               GA_Selected, doselect,
+                               TAG_END);
+            else
+                SetAttrs(tb->toolBtns[i],
+                         GA_Selected,doselect,
+                         TAG_END);
     }
 }
 /* just so the selected tool doesnt toggle up when reclicked. */

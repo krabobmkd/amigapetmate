@@ -48,6 +48,35 @@
 #include "petscii_canvas_private.h"
 #include "petscii_ascii.h"
 #include <bdbprintf.h>
+
+static ULONG PetsciiCanvas_NotifyAttribChange(Class *cl,Object *Gad, struct GadgetInfo *GInfo,
+                                        ULONG attrib, ULONG value)
+{
+    struct opUpdate notifymsg;
+    ULONG messageTags[]={
+     GA_ID,0,
+     0,0,
+     TAG_DONE
+    };
+
+    /* build the boopsi message taglist in table messageTags and link it to opUpdate struct  */
+
+    GetAttr(GA_ID,Gad,&messageTags[1]);
+    if(messageTags[1]==0) return 0; /* there must be a valid GA_ID */
+
+    messageTags[2] = attrib;
+    messageTags[3] = value;
+    notifymsg.MethodID = OM_NOTIFY;
+    notifymsg.opu_AttrList = (struct TagItem *)&messageTags[0];
+    notifymsg.opu_GInfo = GInfo; /* always there for gadget, in all messages */
+    notifymsg.opu_Flags = 0;
+
+    /* will be received by object registered by ICA_TARGET attrib */
+    return DoSuperMethodA(cl,(APTR)Gad,(Msg)&notifymsg );
+}
+
+
+
 /* ------------------------------------------------------------------ */
 /* Static helpers                                                       */
 /* ------------------------------------------------------------------ */
@@ -373,14 +402,91 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
     /* In text mode: consume and handle typed characters.                */
     /* Otherwise:    pass up so window/menu handlers receive them.       */
     /* ---------------------------------------------------------------- */
-    if (ie->ie_Class == IECLASS_RAWKEY) {
+    if (ie->ie_Class == IECLASS_RAWKEY) {     
         if (inst->currentTool == TOOL_TEXT &&
             !(ie->ie_Code & IECODE_UP_PREFIX)) {
+            BOOL justRender=FALSE;
+           // bdbprintf("code:%02x\n",(int)(ie->ie_Code & 0x7f));
+            if((ie->ie_Code & 0x7f)==0x45) // esc key,ask to quit text mode
+            {
+                bdbprintf("ESC KEY ->PCA_SignalStopTool\n");
+                PetsciiCanvas_NotifyAttribChange(cl,o, msg->gpi_GInfo,
+                                        PCA_SignalStopTool,TRUE);
+                return GMR_NOREUSE;
+            }
+            if((ie->ie_Code & 0x7f)==0x44 || (ie->ie_Code & 0x7f)==0x43) // the 2 return
+            {
+                /*Cursor start of next line */
+                inst->textCursorCol=0;
+                inst->textCursorRow++;
+                if (inst->textCursorRow >= (WORD)inst->screen->height) {
+                    inst->textCursorRow = 0;
+                }
+                justRender=TRUE;
+            } else
+            if((ie->ie_Code & 0x7f)==0x42) // the tab key, with shift
+            {
+                /*Cursor start of next line */
+                if(ie->ie_Qualifier & (IEQUALIFIER_LSHIFT|IEQUALIFIER_RSHIFT))
+                {
+                    inst->textCursorCol-=4;
+                    if(inst->textCursorCol<0  )
+                        inst->textCursorCol =0;
+                } else
+                {
+                    inst->textCursorCol+=4;
+                    if( inst->textCursorCol >= (WORD)inst->screen->width )
+                    {
+                        inst->textCursorCol -= (WORD)inst->screen->width;
+                        inst->textCursorRow++;
+                        if (inst->textCursorRow >= (WORD)inst->screen->height) {
+                            inst->textCursorRow = 0;
+                        }
+                    }
+                }
+                inst->textCursorCol &= ~3;
+                justRender = TRUE;
+            } else
+            if((ie->ie_Code & 0x7f)==0x4c)
+            {
+                inst->textCursorRow--;
+                if(inst->textCursorRow==0) inst->textCursorRow = (WORD)inst->screen->height-1;
+                justRender = TRUE;
+            } else
+            if((ie->ie_Code & 0x7f)==0x4d)
+            {
+                inst->textCursorRow++;
+                if(inst->textCursorRow==(WORD)inst->screen->height) inst->textCursorRow = 0;
+                justRender = TRUE;
+            }else
+            if((ie->ie_Code & 0x7f)==0x4f)
+            {
+                inst->textCursorCol--;
+                if(inst->textCursorCol==0) inst->textCursorCol = (WORD)inst->screen->width-1;
+                justRender = TRUE;
+            } else
+            if((ie->ie_Code & 0x7f)==0x4e)
+            {
+                inst->textCursorCol++;
+                if(inst->textCursorCol==(WORD)inst->screen->width) inst->textCursorCol = 0;
+                justRender = TRUE;
+            }
+
+            if(justRender)
+            {
+                renderSelf(cl, o, msg->gpi_GInfo);
+                return GMR_MEACTIVE;
+            }
+
             /* Key-down: translate raw key to ASCII via system keymap */
             mapEvent              = *ie;
             mapEvent.ie_NextEvent = NULL;
             nchars = MapRawKey(&mapEvent, (STRPTR)mapbuf,
-                               (LONG)sizeof(mapbuf), NULL);
+                               (LONG)sizeof(mapbuf)-1, NULL);
+            mapbuf[nchars]= 0; /* you forgoted this , it's to be done by user */
+
+
+ //bdbprintf("map key %s\n",mapbuf);
 
             if (nchars > 0 && (UBYTE)mapbuf[0] <= 127 &&
                 inst->screen && inst->screenbuf && inst->style) {
@@ -392,7 +498,7 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
 
                 if (screenCode >= 0 &&
                     inst->textCursorCol >= 0 && inst->textCursorRow >= 0) {
-
+// bdbprintf("print one\n");
                     if (inst->undoBuf)
                         PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
 
@@ -418,17 +524,27 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
                         }
                     }
                     renderSelf(cl, o, msg->gpi_GInfo);
+                } // end if char ok
+                else {
+                    // char not compatible with charset
+                    return GMR_REUSE;
                 }
             }
-        }
+        } /* if not text mode */
+       // else return GMR_REUSE;
         /* text mode: consume (key-down handled above, key-up ignored).
          * other modes: pass key events up to window/menu handlers.    */
-        //return (inst->currentTool == TOOL_TEXT) ? GMR_MEACTIVE : GMR_REUSE;
-        return GMR_REUSE;
+        return (inst->currentTool == TOOL_TEXT) ? GMR_MEACTIVE : GMR_REUSE;
+        //return GMR_REUSE;
     } // rawkey end
 
     if (ie->ie_Class != IECLASS_RAWMOUSE)
         return GMR_MEACTIVE;
+
+    if ((ie->ie_Code &  0x7f) == (IECODE_RBUTTON))
+    {
+        return GMR_REUSE;
+    }
 
     /* ---------------------------------------------------------------- */
     /* LBUTTON UP                                                        */
@@ -436,8 +552,8 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
     if (ie->ie_Code == (IECODE_LBUTTON | IECODE_UP_PREFIX)) {
 
         /* Text mode: stay active to keep receiving keyboard events */
-        if (inst->currentTool == TOOL_TEXT)
-            return GMR_MEACTIVE;
+        //NO if (inst->currentTool == TOOL_TEXT)
+        //     return GMR_MEACTIVE;
 
         if (inst->currentTool == TOOL_BRUSH && inst->isLassoing) {
             /* Finalize lasso: capture the selected rectangle into brush */
@@ -508,11 +624,19 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
     /* LBUTTON DOWN                                                      */
     /* ---------------------------------------------------------------- */
     if (ie->ie_Code == IECODE_LBUTTON) {
-
+        isIn = isInsideRect(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y);
         mouseToCell(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y, &col, &row);
 
         /* Text mode: click repositions the text cursor */
         if (inst->currentTool == TOOL_TEXT) {
+            if(!isIn)
+            {
+                /* Partial render: repair the last overlay, draw nothing new */
+                renderSelf(cl, o, msg->gpi_GInfo);
+                PetsciiCanvas_NotifyAttribChange(cl,o, msg->gpi_GInfo,
+                                        PCA_SignalStopTool,TRUE);
+                return GMR_REUSE; /* clicked outside, leave this click to other buttons */
+            }
             if (col >= 0 && row >= 0) {
                 inst->textCursorCol = col;
                 inst->textCursorRow = row;
@@ -555,12 +679,13 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
         } else {
             /* Normal draw tools */
             if (inst->undoBuf && inst->screen &&
-                inst->currentTool != TOOL_BRUSH &&
-                inst->currentTool != TOOL_TEXT) {
+                inst->currentTool != TOOL_BRUSH /*&&
+                inst->currentTool != TOOL_TEXT*/) {
                 PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
             }
 
             if (col >= 0 && row >= 0) {
+            bdbprintf("go paintCell\n");
                 paintCell(inst, col, row);
                 inst->lastPaintCol = col;
                 inst->lastPaintRow = row;

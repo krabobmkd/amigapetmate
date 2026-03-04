@@ -235,6 +235,22 @@ static void rebuildUndoBuffers(void)
     }
 }
 
+void setTool(ULONG newTool)
+{
+    if(newTool == app->toolState.currentTool) return;
+
+    if(newTool>=TOOL_DRAW && newTool<=TOOL_CHARDRAW)
+        app->toolState.lastDrawTool = newTool;
+
+    app->toolState.currentTool = newTool;
+
+    SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+        PCA_CurrentTool, (ULONG)newTool,TAG_END);
+
+    PmToolbar_SetActiveTool(&app->toolbar, newTool,
+                        CurrentMainWindow);
+}
+
 void updateCharSelectedLabel(ULONG ichar);
 
 int testGadgetRect(Object *o, int x, int y)
@@ -280,7 +296,7 @@ int main(int argc, char **argv)
 
     /* Initialize tool state defaults */
     app->toolState.currentTool = TOOL_DRAW;
-    app->toolState.selectedChar = 32;   /* space */
+    app->toolState.selectedChar = 0xa0;   /* space reverted */
     app->toolState.fgColor = C64_LIGHTBLUE;
     app->toolState.bgColor = C64_BLUE;
     app->toolState.showGrid = 0;
@@ -325,6 +341,7 @@ int main(int argc, char **argv)
     /* Create canvas gadget for the main editing area */
     app->canvasGadget = (Object *)NewObject(PetsciiCanvasClass, NULL,
         GA_ID,           (ULONG)GAD_CANVAS,
+        ICA_TARGET,        (ULONG)TargetInstance,
         //tests
     // GA_FollowMouse, TRUE,
      GA_Immediate,   TRUE,
@@ -782,22 +799,21 @@ int main(int argc, char **argv)
                              ((ptag = FindTagItem(GA_SELECTED, msg))!=0))
                      {
                          UBYTE newTool = (UBYTE)(sender_ID - GAD_TOOL_FIRST);
-                        if(ptag->ti_Data)
+                        if(ptag->ti_Data
+                        //&&  (newTool != app->toolState.currentTool)
+                            )
                         {
+                            printf("setTool %d\n",newTool);
                              /* down key */
-
-                            app->toolState.currentTool = newTool;
-                            SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
-                                PCA_CurrentTool, (ULONG)newTool,
-                                TAG_END);
-                            PmToolbar_SetActiveTool(&app->toolbar, newTool,
-                                                    CurrentMainWindow);
+                             setTool(newTool);
                         } else
                         {
                             // means signal up...
-                            ULONG currenTool=0;
-                            GetAttr(PCA_CurrentTool,app->canvasGadget,&currenTool);
-                            if(currenTool == newTool)
+                            //ULONG currenTool=0;
+                            //GetAttr(PCA_CurrentTool,app->canvasGadget,&currenTool);
+                            printf(" signal up %d\n",newTool);
+
+                            if(app->toolState.currentTool == newTool)
                             {
                                 PmToolbar_ForceDownTrick(&app->toolbar, newTool,CurrentMainWindow);
                             }
@@ -808,7 +824,20 @@ int main(int argc, char **argv)
                         switch (sender_ID) {
                             case GAD_CANVAS:
                                 /* Draw stroke complete - canvas updated in-place */
-                                break;
+                            {
+                                ptag = FindTagItem(PCA_SignalStopTool, msg);
+                                if (ptag)
+                                {
+                                    /* if text or brush finish, back to previous draw tool */
+                                    printf("sent stop !\n");
+                                    setTool(app->toolState.lastDrawTool);
+
+                                    // PmToolbar_SetActiveTool(&app->toolbar, app->toolState.lastDrawTool,
+                                    //             CurrentMainWindow);
+
+                                }
+                            }
+                            break;
 
                             case GAD_CHARSELECTOR:
                             {
@@ -823,15 +852,10 @@ int main(int argc, char **argv)
                                     PCA_SelectedChar, newChar,
                                     TAG_END);
                                 /* to be clear, set draw if was brush in tool */
-                                if(app->toolState.currentTool == TOOL_BRUSH )
+                                if(app->toolState.currentTool == TOOL_BRUSH ||
+                                   app->toolState.currentTool == TOOL_TEXT )
                                 {
-                                    app->toolState.currentTool = TOOL_DRAW;
-
-                                    SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
-                                        PCA_CurrentTool, (ULONG)TOOL_DRAW,
-                                        TAG_END);
-                                    PmToolbar_SetActiveTool(&app->toolbar, TOOL_DRAW,
-                                                    CurrentMainWindow);
+                                    setTool(app->toolState.lastDrawTool);
                                 }
 
                                 updateCharSelectedLabel(newChar);
