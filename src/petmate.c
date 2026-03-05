@@ -46,6 +46,9 @@
 #include "petscii_palette.h"
 #include "petscii_charset.h"
 
+#include "class_colorswatch.h"
+#include "class_layoutwithpopup.h"
+
 /* Phase 2 */
 #include "petscii_style.h"
 #include "pmlocale.h"
@@ -336,7 +339,12 @@ int main(int argc, char **argv)
     if (!CharSelector_Init()) cleanexit("Can't create CharSelector class");
     if (!ColorPicker_Init())  cleanexit("Can't create ColorPicker class");
 
-    if (!CharLayout_Init())  cleanexit("Can't create CharLayout class");
+    if (!CharLayout_Init() ||
+        !ColorSwatch_Init() ||
+        !LayoutWithPopup_Init()
+            )  cleanexit("Can't create CharLayout class");
+
+
 
     /* Create canvas gadget for the main editing area */
     app->canvasGadget = (Object *)NewObject(PetsciiCanvasClass, NULL,
@@ -534,6 +542,25 @@ int main(int argc, char **argv)
 
         }
 
+
+    /* add that to toolbar */
+    app->bgColorWatch = NewObject(ColorSwatchClass, NULL,
+                     CSW_Style,(ULONG)&app->style,
+                     CSW_ColorIndex,4,
+                    TAG_END);
+
+    app->borderColorWatch = NewObject(ColorSwatchClass, NULL,
+                     CSW_Style,(ULONG)&app->style,
+                     CSW_ColorIndex,5,
+                    TAG_END);
+   SetGadgetAttrs(app->toolbar.layout,CurrentMainWindow ,NULL,
+                    LAYOUT_AddChild,(ULONG)app->bgColorWatch,
+                    LAYOUT_AddChild,(ULONG)app->borderColorWatch,
+//                    CHILD_MinHeight,16,
+//                    CHILD_MinWidth,24,
+                    TAG_END
+                    );
+
         Object *canvhl = (Object *)NewObject(LAYOUT_GetClass(), NULL,
             LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
             LAYOUT_InnerSpacing, 2,
@@ -600,6 +627,9 @@ int main(int argc, char **argv)
     }
 
     if (!app->mainvlayout) cleanexit("Layout error");
+
+
+
 
     /* Create message port */
     app->app_port = CreateMsgPort();
@@ -1099,6 +1129,9 @@ void exitclose(void)
         // CurrentMainWindow = NULL;
 
         /* Free BOOPSI classes (instances disposed by window cascade above) */
+
+        LayoutWithPopup_Exit();
+        ColorSwatch_Exit();
         CharLayout_Exit();
         PetsciiCanvas_Exit();
         CharSelector_Exit();

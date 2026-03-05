@@ -56,6 +56,10 @@ struct App {
     /*moved to BoopsiMainWindow  PmMenu            menu;  */      /* GadTools menus */
     PmActionContext   actionCtx;   /* Context passed to all actions */
 
+
+    /* ... */
+    Object          *bgColorWatch;
+    Object          *borderColorWatch;
     /* Phase 4 */
     Object           *canvasGadget;        /* PetsciiCanvas BOOPSI instance  */
 
@@ -71,6 +75,7 @@ struct App {
     PmScreenTabs      screenTabs;          /* top screen-tab button bar      */
     Object           *charsetUpperBtn;     /* charset "Upper" toggle button  */
     Object           *charsetLowerBtn;     /* charset "Lower" toggle button  */
+
 
     /* Phase 8 */
     PetsciiUndoBuffer *undoBufs[PETSCII_MAX_SCREENS]; /* one per screen slot */

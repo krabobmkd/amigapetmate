@@ -1,0 +1,38 @@
+﻿
+
+ O brush draw with 3 modes, brush action with draw mode
+
+ O cybergraphics RTG blits
+ O Color popup ! + single color chooser
+ O color selction visibe in colorPicker
+ 
+ O screen selection O> use miniatures + arrows.
+ 
+ O toggle fullscreen, finalize
+
+ O finalize Menus and actions
+ O Keys: F1/F3 for draw, arrow for char selection when draw, F10 togle screen.
+ 
+ O Export image using datatypes
+ 
+ O expor seq , prg,asm
+ 
+ O screen scroll
+ O brush flip and rotate actions
+
+ O icons on bt, better layout
+ O settings screen with modeid choice
+ O messages on status bar for lasso begin
+ O messages on status bar for load/save/export return ...
+ O save modeid and current w/fs state + current color mode to tooltypes
+ O 4 recent files !
+ 
+ O about requester
+ O ask when quitting
+ O AmigaGuide documentation
+ O catalog for 5 languages
+ O installer ?
+ O have example files
+ 
+ 
+ 
