@@ -69,6 +69,9 @@ set(PETMATE_FRAMEWORK_SOURCES
     appsettings.c
     pmsettingsview.c
     tooltypepref.c
+    class_charlayout.c
+    class_colorswatch.c
+    class_layoutwithpopup.c
 )
 
 # Phase 3: Screen render buffer
@@ -117,7 +120,6 @@ set(PETMATE_COLORPICKER_SOURCES
 set(PETMATE_VIEW_SOURCES
     pmtoolbar.c
     pmscreentabs.c
-    class_charlayout.c
 )
 
 # Phase 8+: Undo, file I/O, export
