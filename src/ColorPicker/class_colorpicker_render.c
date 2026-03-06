@@ -13,7 +13,6 @@
 
 
 
-
 ULONG ColorPicker_OnDomain(Class *cl, Object *o, struct gpDomain  *msg)
 {
     struct IBox *domain = &msg->gpd_Domain;
@@ -56,14 +55,12 @@ ULONG ColorPicker_OnRender(Class *cl, Object *o, struct gpRender *msg)
     WORD             top;
     WORD             width;
     WORD             height;
-    WORD             cellW;
-    WORD             cellH;
     UBYTE            colorIdx;
     UBYTE            savedMode;
     WORD             col;
     WORD             row;
-    WORD             x;
-    WORD             y;
+    WORD             x,x2;
+    WORD             y,y2;
     WORD             selCol;
     WORD             selRow;
     WORD             selX;
@@ -80,43 +77,85 @@ ULONG ColorPicker_OnRender(Class *cl, Object *o, struct gpRender *msg)
     width  = G(o)->Width;
     height = G(o)->Height;
 
-    if (width <= 0 || height <= 0) return 0;
+    if (width <= 2 || height <= 2) return 0;
 
-    cellW = width  / COLORPICKER_COLS;
-    cellH = height / COLORPICKER_ROWS;
-    if (cellW < 1 || cellH < 1) return 0;
+    /* grid */
+    SetAPen(rp, (LONG)PetsciiStyle_Pen(inst->style, 0));
+    Move(rp, (LONG)left,(LONG)top+height-1);
+    Draw(rp, (LONG)left,(LONG)top);
+    Draw(rp, (LONG)left+width-1, (LONG)top);
 
     /* Draw all 16 colour swatches */
     for (colorIdx = 0; colorIdx < 16; colorIdx++) {
         col = (WORD)(colorIdx % COLORPICKER_COLS);
         row = (WORD)(colorIdx / COLORPICKER_COLS);
-        x   = left + col * cellW;
-        y   = top  + row * cellH;
+
+        x   = left +1+  (col *(width-1) /COLORPICKER_COLS);
+        y   = top  +1+  (row *(height-1)/COLORPICKER_ROWS);
+        x2   = left +1+  ((col+1) *(width-1) /COLORPICKER_COLS);
+        y2   = top  +1+  ((row+1) *(height-1)/COLORPICKER_ROWS);
 
         SetAPen(rp, (LONG)PetsciiStyle_Pen(inst->style, colorIdx));
         RectFill(rp,
                  (LONG)x,              (LONG)y,
-                 (LONG)(x + cellW - 1),(LONG)(y + cellH - 1));
+                 (LONG)(x2 - 2),(LONG)(y2 - 2));
+                 /* grid like this */
+
+//        if((colorIdx == inst-> selectedColor))
+//        {
+//            SetAPen(rp, (LONG)PetsciiStyle_Pen(inst->style,1));
+//            Move(rp, (LONG)x-1, (LONG)y2-1);
+//            Draw(rp, (LONG)x2-1, (LONG)y2-1);
+//            Draw(rp, (LONG)x2-1, (LONG)y-1);
+//            Draw(rp, (LONG)x-1, (LONG)y-1);
+//            Draw(rp, (LONG)x-1, (LONG)y2-1);
+//        } else
+//        {
+            SetAPen(rp, (LONG)PetsciiStyle_Pen(inst->style, 0));
+            Move(rp, (LONG)x, (LONG)y2-1);
+            Draw(rp, (LONG)x2-1, (LONG)y2-1);
+            Draw(rp, (LONG)x2-1, (LONG)y-1);
+//        }
+
     }
 
     /* COMPLEMENT border around the selected colour */
     selCol = (WORD)(inst->selectedColor % COLORPICKER_COLS);
     selRow = (WORD)(inst->selectedColor / COLORPICKER_COLS);
-    selX   = left + selCol * cellW;
-    selY   = top  + selRow * cellH;
 
-    savedMode = rp->DrawMode;
-    SetDrMd(rp, COMPLEMENT);
-    SetAPen(rp, 1);
+    x   = left +1+  (selCol *(width-1) /COLORPICKER_COLS);
+    y   = top  +1+  (selRow *(height-1)/COLORPICKER_ROWS);
+    x2   = left +1+  ((selCol+1) *(width-1) /COLORPICKER_COLS);
+    y2   = top  +1+  ((selRow+1) *(height-1)/COLORPICKER_ROWS);
 
-    Move(rp, (LONG)selX,               (LONG)selY);
-    Draw(rp, (LONG)(selX + cellW - 1), (LONG)selY);
-    Draw(rp, (LONG)(selX + cellW - 1), (LONG)(selY + cellH - 1));
-    Draw(rp, (LONG)selX,               (LONG)(selY + cellH - 1));
-    Draw(rp, (LONG)selX,               (LONG)selY);
+    SetAPen(rp, (LONG)PetsciiStyle_Pen(inst->style,1));
+    Move(rp, (LONG)x-1, (LONG)y2-1);
+    Draw(rp, (LONG)x2-1, (LONG)y2-1);
+    Draw(rp, (LONG)x2-1, (LONG)y-1);
+    Draw(rp, (LONG)x-1, (LONG)y-1);
+    Draw(rp, (LONG)x-1, (LONG)y2-1);
 
-    SetDrMd(rp, (LONG)savedMode);
+//    selX   = left + selCol * cellW;
+//    selY   = top  + selRow * cellH;
 
+
+//    savedMode = rp->DrawMode;
+//    SetDrMd(rp, COMPLEMENT);
+//    SetAPen(rp, 1);
+
+//    Move(rp, (LONG)selX,               (LONG)selY);
+//    Draw(rp, (LONG)(selX + cellW - 1), (LONG)selY);
+//    Draw(rp, (LONG)(selX + cellW - 1), (LONG)(selY + cellH - 1));
+//    Draw(rp, (LONG)selX,               (LONG)(selY + cellH - 1));
+//    Draw(rp, (LONG)selX,               (LONG)selY);
+
+////    SetDrMd(rp, (LONG)savedMode);
+
+//    drawSelection(rp,
+//              WORD left, WORD top,
+//              WORD width, WORD height,
+//              WORD gridCol, WORD gridRow,
+//              1);
     return 0;
 }
 

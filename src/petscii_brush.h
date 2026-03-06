@@ -35,4 +35,15 @@ PetsciiBrush *PetsciiBrush_CaptureFromScreen(
     const PetsciiScreen *scr,
     UWORD col, UWORD row, UWORD w, UWORD h);
 
+/* Apply a geometric transformation to a brush.
+ * transform: one of BRUSH_TRANSFORM_FLIP_X/Y, BRUSH_TRANSFORM_ROT90CW/CCW/180
+ *            (constants defined in petscii_canvas.h via PCA_TransformBrush).
+ * charTable: 256-entry table [src_code] -> dst_code for character remapping,
+ *            e.g. petsciiUpperFlipX[] from petscii_chartransform.h.
+ *            Pass NULL to rearrange cells without remapping character codes.
+ * Returns a newly allocated PetsciiBrush (caller must destroy), or NULL. */
+PetsciiBrush *PetsciiBrush_Transform(const PetsciiBrush *src,
+                                      int                 transform,
+                                      const UBYTE        *charTable);
+
 #endif /* PETSCII_BRUSH_H */

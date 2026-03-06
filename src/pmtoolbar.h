@@ -15,6 +15,7 @@
 #include <exec/types.h>
 #include <intuition/intuition.h>
 #include <intuition/classusr.h>
+struct PetsciiStyle;
 
 /* Number of mutually-exclusive tool buttons */
 #define TOOLBAR_TOOL_COUNT 5
@@ -26,11 +27,14 @@ typedef struct PmToolbar {
     Object *undoBtn;
     Object *redoBtn;
     Object *clearBtn;
+
+    Object          *bgColorWatch;
+    Object          *borderColorWatch;
 } PmToolbar;
 
 /* Build the toolbar layout.  di must be valid.
  * Returns 1 on success, 0 on allocation failure. */
-int  PmToolbar_Create(PmToolbar *tb);
+int  PmToolbar_Create(PmToolbar *tb,struct PetsciiStyle  *style);
 
 /* Update which tool button shows as selected.
  * tool is one of the TOOL_* constants from petscii_types.h.

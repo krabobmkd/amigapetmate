@@ -18,6 +18,7 @@
 #include "pmlocale.h"
 #include "gadgetid.h"
 #include "petscii_types.h"
+#include "class_colorswatch.h"
 #include <stdio.h>
 
 /* Library bases declared in petmate.c */
@@ -55,7 +56,7 @@ static Object *makeBtnActionUp( ULONG gadID,
 /* PmToolbar_Create                                                    */
 /* ------------------------------------------------------------------ */
 
-int PmToolbar_Create(PmToolbar *tb)
+int PmToolbar_Create(PmToolbar *tb,struct PetsciiStyle  *style)
 {
     Object *toolGroup;
     Object *actionGroup;
@@ -81,6 +82,20 @@ int PmToolbar_Create(PmToolbar *tb)
                                            LOC(MSG_TOOL_TEXT),     FALSE);
 
     /* Action buttons */
+    tb->bgColorWatch = NewObject(ColorSwatchClass, NULL,
+                    GA_ID,GAD_COLORWATCH_BG,
+                    ICA_TARGET,TargetInstance,
+                     CSW_Style,(ULONG)style,
+                     CSW_ColorIndex,4,
+                    TAG_END);
+
+    tb->borderColorWatch = NewObject(ColorSwatchClass, NULL,
+                    GA_ID,GAD_COLORWATCH_BD,
+                    ICA_TARGET,TargetInstance,
+                     CSW_Style,(ULONG)style,
+                     CSW_ColorIndex,5,
+                    TAG_END);
+
     tb->undoBtn  = makeBtnActionUp( GAD_TOOL_UNDO,  LOC(MSG_EDIT_UNDO));
     tb->redoBtn  = makeBtnActionUp( GAD_TOOL_REDO,  LOC(MSG_EDIT_REDO));
     tb->clearBtn = makeBtnActionUp( GAD_TOOL_CLEAR, LOC(MSG_BTN_CLEAR));
@@ -95,7 +110,7 @@ int PmToolbar_Create(PmToolbar *tb)
     toolGroup = (Object *)NewObject(LAYOUT_GetClass(), NULL,
 
         LAYOUT_Orientation,  /*LAYOUT_ORIENT_VERT*/LAYOUT_ORIENT_HORIZ,
-        LAYOUT_InnerSpacing, 1,
+        LAYOUT_InnerSpacing, 2,
 
         LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_DRAW],
          //   CHILD_WeightedHeight, 0,
@@ -115,7 +130,10 @@ int PmToolbar_Create(PmToolbar *tb)
     tb->layoutUndoRedo = (Object *)NewObject(LAYOUT_GetClass(), NULL,
 
         LAYOUT_Orientation,  LAYOUT_ORIENT_HORIZ,
-        LAYOUT_InnerSpacing, 1,
+        LAYOUT_InnerSpacing, 2,
+
+        LAYOUT_AddChild, (ULONG)tb->bgColorWatch,
+        LAYOUT_AddChild, (ULONG)tb->borderColorWatch,
 
         LAYOUT_AddChild, (ULONG)tb->undoBtn,
        //     CHILD_WeightedHeight, 0,

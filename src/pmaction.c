@@ -17,6 +17,7 @@
 #include <libraries/asl.h>
 
 #include "boopsimainwindow.h"
+#include "petscii_canvas.h"  /* PCA_TransformBrush, BRUSH_TRANSFORM_* */
 
 /* External globals from petmate.c */
 extern struct Library *AslBase;
@@ -469,6 +470,29 @@ BOOL Action_PalettePepto(PmActionContext *ctx)    { applyPalette(ctx, PALETTE_PE
 BOOL Action_PaletteVice(PmActionContext *ctx)     { applyPalette(ctx, PALETTE_VICE);     return TRUE; }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Brush transform actions
+   Applies a geometric transformation to the current brush in PetsciiCanvas.
+   No-op if no brush is active (canvas ignores PCA_TransformBrush then).
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static BOOL brushTransform(int xform)
+{
+    if (!app || !app->canvasGadget) return FALSE;
+    SetAttrs(app->canvasGadget,
+             PCA_TransformBrush, (ULONG)xform,
+             TAG_END);
+    RefreshGList((struct Gadget *)app->canvasGadget,
+                 CurrentMainWindow, NULL, 1);
+    return TRUE;
+}
+
+BOOL Action_BrushFlipX(PmActionContext *ctx)    { (void)ctx; return brushTransform(BRUSH_TRANSFORM_FLIP_X);   }
+BOOL Action_BrushFlipY(PmActionContext *ctx)    { (void)ctx; return brushTransform(BRUSH_TRANSFORM_FLIP_Y);   }
+BOOL Action_BrushRot90CW(PmActionContext *ctx)  { (void)ctx; return brushTransform(BRUSH_TRANSFORM_ROT90CW);  }
+BOOL Action_BrushRot180(PmActionContext *ctx)   { (void)ctx; return brushTransform(BRUSH_TRANSFORM_ROT180);   }
+BOOL Action_BrushRot90CCW(PmActionContext *ctx) { (void)ctx; return brushTransform(BRUSH_TRANSFORM_ROT90CCW); }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Action table - C89 sequential initialization.
    Order MUST match the ACTION_* enum exactly.
    Fields: { func, nameStringID, name (NULL until Init), shortcutKey, shortcutQual }
@@ -531,7 +555,18 @@ static PmAction actionTable[ACTION_COUNT] = {
     /* 25 ACTION_PALETTE_PEPTO */
     {Action_PalettePepto,    MSG_PALETTE_PEPTO,    NULL, 0, 0},
     /* 26 ACTION_PALETTE_VICE */
-    {Action_PaletteVice,     MSG_PALETTE_VICE,     NULL, 0, 0}
+    {Action_PaletteVice,     MSG_PALETTE_VICE,     NULL, 0, 0},
+
+    /* 27 ACTION_BRUSH_FLIP_X */
+    {Action_BrushFlipX,    MSG_BRUSH_FLIP_X,    NULL, 0, 0},
+    /* 28 ACTION_BRUSH_FLIP_Y */
+    {Action_BrushFlipY,    MSG_BRUSH_FLIP_Y,    NULL, 0, 0},
+    /* 29 ACTION_BRUSH_ROT90CW */
+    {Action_BrushRot90CW,  MSG_BRUSH_ROT90CW,   NULL, 0, 0},
+    /* 30 ACTION_BRUSH_ROT180 */
+    {Action_BrushRot180,   MSG_BRUSH_ROT180,    NULL, 0, 0},
+    /* 31 ACTION_BRUSH_ROT90CCW */
+    {Action_BrushRot90CCW, MSG_BRUSH_ROT90CCW,  NULL, 0, 0}
 };
 
 void PmAction_Init(void)

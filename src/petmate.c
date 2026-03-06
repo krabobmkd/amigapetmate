@@ -399,17 +399,17 @@ int main(int argc, char **argv)
         TAG_END);
     if (!app->colorPickerFgGadget) cleanexit("Can't create fg color picker");
     /* Create background colour picker gadget */
-    app->colorPickerBgGadget = (Object *)NewObject(ColorPickerClass, NULL,
-        GA_ID,             (ULONG)GAD_COLORPICKER_BG,
+//    app->colorPickerBgGadget = (Object *)NewObject(ColorPickerClass, NULL,
+//        GA_ID,             (ULONG)GAD_COLORPICKER_BG,
 
-        ICA_TARGET,        (ULONG)TargetInstance,
-        CPA_Style,         (ULONG)&app->style,
-        CPA_SelectedColor, (ULONG)app->toolState.bgColor,
-        TAG_END);
-    if (!app->colorPickerBgGadget) cleanexit("Can't create bg color picker");
+//        ICA_TARGET,        (ULONG)TargetInstance,
+//        CPA_Style,         (ULONG)&app->style,
+//        CPA_SelectedColor, (ULONG)app->toolState.bgColor,
+//        TAG_END);
+//    if (!app->colorPickerBgGadget) cleanexit("Can't create bg color picker");
 
     app->colorPickerPopUp = (Object *)NewObject(ColorPickerClass, NULL,
-        GA_ID,             (ULONG)GAD_COLORPICKER_BORDER,
+        GA_ID,             (ULONG)GAD_COLORPICKER_POPUP,
         ICA_TARGET,        (ULONG)TargetInstance,
         CPA_Style,         (ULONG)&app->style,
         CPA_SelectedColor, (ULONG)app->toolState.bdColor,
@@ -417,7 +417,7 @@ int main(int argc, char **argv)
 
 
     /* Phase 7: create toolbar and screen-tab bar */
-    if (!PmToolbar_Create(&app->toolbar))
+    if (!PmToolbar_Create(&app->toolbar,&app->style))
         cleanexit("Can't create toolbar");
 
     if (!PmScreenTabs_Create(&app->screenTabs, app->project->screenCount))
@@ -497,13 +497,13 @@ int main(int argc, char **argv)
                 BUTTON_Justification, BCJ_LEFT,
                 GA_Text, (ULONG)LOC(MSG_LABEL_DRAWCOLOR),
                 TAG_END);
-            Object *BGColorLabel = (Object *)NewObject(BUTTON_GetClass(), NULL,
-                GA_ReadOnly, TRUE,
-                BUTTON_BevelStyle, BVS_NONE,
-                BUTTON_Transparent, TRUE,
-                BUTTON_Justification, BCJ_LEFT,
-                GA_Text, (ULONG)LOC(MSG_LABEL_BACKGROUNDCOLOR),
-                TAG_END);
+//            Object *BGColorLabel = (Object *)NewObject(BUTTON_GetClass(), NULL,
+//                GA_ReadOnly, TRUE,
+//                BUTTON_BevelStyle, BVS_NONE,
+//                BUTTON_Transparent, TRUE,
+//                BUTTON_Justification, BCJ_LEFT,
+//                GA_Text, (ULONG)LOC(MSG_LABEL_BACKGROUNDCOLOR),
+//                TAG_END);
             // Object *Spacer = (Object *)NewObject(BUTTON_GetClass(), NULL,
             //     GA_ReadOnly, TRUE,
             //     BUTTON_BevelStyle, BVS_NONE,
@@ -523,15 +523,15 @@ int main(int argc, char **argv)
                 CHILD_WeightedHeight, 4,
                 CHILD_MinHeight,      16,
                 // CHILD_MaxHeight,      64,
+/* old, now managed by popups like original app
+//            LAYOUT_AddChild, (ULONG)BGColorLabel,
+//                CHILD_WeightedHeight, 0,
 
-            LAYOUT_AddChild, (ULONG)BGColorLabel,
-                CHILD_WeightedHeight, 0,
-
-            LAYOUT_AddChild, (ULONG)app->colorPickerBgGadget,
-                CHILD_WeightedHeight, 4,
-                CHILD_MinHeight,      16,
+//            LAYOUT_AddChild, (ULONG)app->colorPickerBgGadget,
+//                CHILD_WeightedHeight, 4,
+//                CHILD_MinHeight,      16,
                 // CHILD_MaxHeight,      64,
-
+*/
             LAYOUT_AddChild, (ULONG)app->charSelectorGadget,
                 CHILD_WeightedHeight, 16,
                 // CHILD_MinHeight,      128,
@@ -550,29 +550,28 @@ int main(int argc, char **argv)
 
         }
 
-
     /* add that to toolbar */
-    app->bgColorWatch = NewObject(ColorSwatchClass, NULL,
-                    GA_ID,GAD_COLORWATCH_BG,
-                    ICA_TARGET,TargetInstance,
-                     CSW_Style,(ULONG)&app->style,
-                     CSW_ColorIndex,4,
-                    TAG_END);
+//    app->bgColorWatch = NewObject(ColorSwatchClass, NULL,
+//                    GA_ID,GAD_COLORWATCH_BG,
+//                    ICA_TARGET,TargetInstance,
+//                     CSW_Style,(ULONG)&app->style,
+//                     CSW_ColorIndex,4,
+//                    TAG_END);
 
-    app->borderColorWatch = NewObject(ColorSwatchClass, NULL,
-                    GA_ID,GAD_COLORWATCH_BD,
-                    ICA_TARGET,TargetInstance,
-                     CSW_Style,(ULONG)&app->style,
-                     CSW_ColorIndex,5,
-                    TAG_END);
+//    app->borderColorWatch = NewObject(ColorSwatchClass, NULL,
+//                    GA_ID,GAD_COLORWATCH_BD,
+//                    ICA_TARGET,TargetInstance,
+//                     CSW_Style,(ULONG)&app->style,
+//                     CSW_ColorIndex,5,
+//                    TAG_END);
 
-   SetGadgetAttrs(app->toolbar.layout,CurrentMainWindow ,NULL,
-                    LAYOUT_AddChild,(ULONG)app->bgColorWatch,
-                    LAYOUT_AddChild,(ULONG)app->borderColorWatch,
-//                    CHILD_MinHeight,16,
-//                    CHILD_MinWidth,24,
-                    TAG_END
-                    );
+//   SetGadgetAttrs(app->toolbar.layout,CurrentMainWindow ,NULL,
+//                    LAYOUT_AddChild,(ULONG)app->bgColorWatch,
+//                    LAYOUT_AddChild,(ULONG)app->borderColorWatch,
+////                    CHILD_MinHeight,16,
+////                    CHILD_MinWidth,24,
+//                    TAG_END
+//                    );
 
         Object *canvhl = (Object *)NewObject(LAYOUT_GetClass(), NULL,
             LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
@@ -622,6 +621,9 @@ int main(int argc, char **argv)
             LAYOUT_RightSpacing,  0,
             LAYOUT_InnerSpacing,  2,
             LAYOUT_Orientation,   LAYOUT_ORIENT_VERT,
+            LAYOUT_AddChild,(ULONG)app->colorPickerPopUp,
+               CHILD_MaxWidth,0,
+               CHILD_MaxHeight,0,
 
             LAYOUT_AddChild, (ULONG)app->screenTabs.layout,
                 CHILD_WeightedHeight, 0,
@@ -638,8 +640,6 @@ int main(int argc, char **argv)
                 CHILD_WeightedHeight, 0,
 
             LAYOUTWP_POPUPGADGET,(ULONG)app->colorPickerPopUp,
-            LAYOUTWP_POPUPX,80,
-            LAYOUTWP_POPUPY,40,
             TAG_END);
     }
 
@@ -756,8 +756,13 @@ int main(int argc, char **argv)
                         (( CurrentMainWindow->Flags & WFLG_WINDOWACTIVE) !=0 )&&
                             app->canvasGadget)
                         {
+                            /* do not force activation if popup is currently on */
+                            ULONG popupIsOn;
+                            GetAttr(LAYOUTWP_POPUPVISIBLE,app->mainvlayout,&popupIsOn);
+
                             /* trick to allow "hovering" with the canvas, before it is even clicked */
-                            if(testGadgetRect(app->canvasGadget,CurrentMainWindow->MouseX,CurrentMainWindow->MouseY))
+                            if(!popupIsOn &&
+                              testGadgetRect(app->canvasGadget,CurrentMainWindow->MouseX,CurrentMainWindow->MouseY))
                             {
                                 struct Gadget *canvas = (struct Gadget *)app->canvasGadget;
                                 if((canvas->Activation & GACT_ACTIVEGADGET)==0 )
@@ -890,13 +895,21 @@ int main(int argc, char **argv)
                                 if (ptag)
                                 {
                                     LONG x,y;
-                                    GetAttr(GA_Left,app->borderColorWatch,&x);
-                                    GetAttr(GA_Top,app->borderColorWatch,&y);
+                                    Object *sender = (sender_ID==GAD_COLORWATCH_BG)?
+                                            app->toolbar.bgColorWatch:
+                                            app->toolbar.borderColorWatch;
+                                    GetAttr(GA_Left,sender,&x);
+                                    GetAttr(GA_Top,sender,&y);
 
-                                    //printf("ckl clicked\n");
+                                    SetAttrs(app->colorPickerPopUp,
+                                            CPA_ColorRole,sender_ID,
+                                            );
+
+                                    // open the popup
                                     SetGadgetAttrs(app->mainvlayout,CurrentMainWindow,NULL,
+                                    LAYOUTWP_SENDERID,sender_ID,
                                     LAYOUTWP_POPUPX,x,
-                                    LAYOUTWP_POPUPY,y,
+                                    LAYOUTWP_POPUPY,y-64,
                                             LAYOUTWP_POPUPVISIBLE,TRUE
                                             );
 
@@ -959,7 +972,57 @@ int main(int argc, char **argv)
                                     TAG_END);
                                 break;
                             }
+                            case GAD_COLORPICKER_POPUP:
+                            {
+                                /* message from the colorpicker popup */
+                                ptag = FindTagItem(CPA_SelectedColor, msg);
+                                if (ptag)
+                                {
+                                    ULONG newColor = ptag->ti_Data;
 
+                                    /* close the popup first */
+                                    SetGadgetAttrs(app->mainvlayout,CurrentMainWindow,NULL,
+                                            LAYOUTWP_POPUPVISIBLE,FALSE
+                                            );
+
+                                     ptag = FindTagItem(CPA_ColorRole, msg);
+                                     if(ptag)
+                                     {
+                                        ULONG role = ptag->ti_Data; /* the colorwatch id */
+                                        if(role == GAD_COLORWATCH_BG)
+                                        {
+                                            app->toolState.bgColor = (UBYTE)newColor;
+                                            SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+                                                PCA_BgColor, newColor,
+                                                TAG_END);
+                                            SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
+                                                CHSA_BgColor, newColor,
+                                                TAG_END);
+                                            SetGadgetAttrs(app->toolbar.bgColorWatch,CurrentMainWindow,NULL,
+                                                CSW_ColorIndex, newColor,
+                                                TAG_END);
+
+                                        }else
+                                        if(role == GAD_COLORWATCH_BD)
+                                        {
+                                            app->toolState.bdColor = (UBYTE)newColor;
+                                            SetGadgetAttrs(app->toolbar.borderColorWatch,CurrentMainWindow,NULL,
+                                                CSW_ColorIndex, newColor,
+                                                TAG_END);
+                                            SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+                                                PCA_BdColor, newColor,
+                                                TAG_END);
+
+                                        }
+
+                                     }
+
+
+                                }
+                                break;
+                            }
+                            break;
+/*old
                             case GAD_COLORPICKER_BG:
                             {
                                 ULONG newColor = 0;
@@ -976,7 +1039,7 @@ int main(int argc, char **argv)
                                     TAG_END);
                                 break;
                             }
-
+*/
                             case GAD_CHARSET_UPPER:
                             {
                                 /* note message is bursted when keepping the bt click down */

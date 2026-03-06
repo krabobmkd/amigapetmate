@@ -86,6 +86,19 @@ static const char *defaultStrings[MSG_COUNT] = {
     /* MSG_PALETTE_VICE */
     "VICE",
 
+    /* MSG_MENU_BRUSH */
+    "Brush",
+    /* MSG_BRUSH_FLIP_X */
+    "Flip Horizontally",
+    /* MSG_BRUSH_FLIP_Y */
+    "Flip Vertically",
+    /* MSG_BRUSH_ROT90CW */
+    "Rotate 90\xb0 CW",
+    /* MSG_BRUSH_ROT180 */
+    "Rotate 180\xb0",
+    /* MSG_BRUSH_ROT90CCW */
+    "Rotate 90\xb0 CCW",
+
     "Draw Color",
     "Background Color",
     "Border Color",

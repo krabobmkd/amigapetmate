@@ -67,6 +67,15 @@ static struct NewMenu menuTemplate[] = {
         {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_VIEW_CHARSET_UPPER},
         {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_VIEW_CHARSET_LOWER},
 
+    /* - - - Brush - - - */
+    {NM_TITLE, NULL, 0, 0, 0, (APTR)MSG_MENU_BRUSH},
+        {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_BRUSH_FLIP_X},
+        {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_BRUSH_FLIP_Y},
+        {NM_ITEM, NM_BARLABEL, 0, 0, 0, NULL},
+        {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_BRUSH_ROT90CW},
+        {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_BRUSH_ROT180},
+        {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_BRUSH_ROT90CCW},
+
     /* - - - Palette - - - */
     {NM_TITLE, NULL, 0, 0, 0, (APTR)MSG_MENU_PALETTE},
         {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_PALETTE_PETMATE},

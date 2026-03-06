@@ -70,15 +70,12 @@ static void popupShow(Object *o, LayoutWithPopupData *inst,
     // popupH = (domMsg.gpd_Domain.Height > 0)
     //          ? (WORD)domMsg.gpd_Domain.Height : 64;
 
-bdbprintf("show p: l:%d t:%d h:%d\n",(int)G(o)->LeftEdge,(int)G(o)->TopEdge,(int)G(o)->Height);
+//bdbprintf("show p: l:%d t:%d h:%d\n",(int)G(o)->LeftEdge,(int)G(o)->TopEdge,(int)G(o)->Height);
     /* Position popup over the layout at the requested offset */
     G(inst->popup)->LeftEdge = G(o)->LeftEdge + inst->popup_x;
     G(inst->popup)->TopEdge  = G(o)->TopEdge  + inst->popup_y;
     G(inst->popup)->Width    = 128;
     G(inst->popup)->Height   = 32;
-
- bdbprintf("show p: x%d y%d w%d h%d\n", G(inst->popup)->LeftEdge, G(inst->popup)->TopEdge,
-        G(inst->popup)->Width, G(inst->popup)->Height);
 
     /* Recursively lay out popup's own children */
     layoutMsg.MethodID    = GM_LAYOUT;
@@ -173,6 +170,7 @@ static ULONG LayoutWithPopup_OnNew(Class *cl, Object *o, struct opSet *msg)
     /* Add popup to super's child list with zero-height constraints so the
      * normal layout flow allocates it no space.  We override its position
      * in GM_LAYOUT.                                                      */
+/* removed now popup explicitly added first
     if (popupGad) {
         addPopupTags[0].ti_Tag  = LAYOUT_AddChild;
         addPopupTags[0].ti_Data = (ULONG)popupGad;
@@ -190,7 +188,7 @@ static ULONG LayoutWithPopup_OnNew(Class *cl, Object *o, struct opSet *msg)
         addMsg.ops_GInfo    = NULL;
         DoSuperMethodA(cl, newObj, (APTR)&addMsg);
     }
-
+*/
     return (ULONG)newObj;
 }
 
@@ -253,7 +251,7 @@ static ULONG LayoutWithPopup_OnLayout(Class *cl, Object *o,
             G(inst->popup)->Height   = 0;
         }
     }
-
+  
     return result;
 }
 
@@ -285,7 +283,12 @@ static ULONG LayoutWithPopup_OnSet(Class *cl, Object *o, struct opSet *msg)
                 break;
 
             case LAYOUTWP_POPUPVISIBLE:
-            bdbprintf("Set visible %08x %08x %d\n",(int)inst->popup,(int) msg->ops_GInfo,tag->ti_Data);
+            //bdbprintf("Set visible %08x %08x %d\n",(int)inst->popup,(int) msg->ops_GInfo,tag->ti_Data);
+                if(inst->popup_visible && (int)tag->ti_Data)
+                {
+                    // if was already visible, need kind of reset
+                    popupHide(o, inst, msg->ops_GInfo);
+                }
                 inst->popup_visible = (int)tag->ti_Data;
                 if (inst->popup && msg->ops_GInfo) {
                     if (inst->popup_visible)

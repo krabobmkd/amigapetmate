@@ -8,6 +8,7 @@
 #include <proto/graphics.h>
 #include <proto/utility.h>
 #include "petscii_canvas_private.h"
+#include "petscii_chartransform.h"
 #include <bdbprintf.h>
 ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg);
 /* ------------------------------------------------------------------ */
@@ -295,11 +296,89 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                 }
                 result = 1;
                 break;
+            case PCA_BdColor:
+                if(inst->screen)
+                {
+                    if(inst->screen->borderColor != (UBYTE)tag->ti_Data)
+                    {
+                        inst->screen->borderColor = (UBYTE)tag->ti_Data;
+                        if(inst->screenbuf) inst->screenbuf->valid = 0;
+                        inst->scaledBufDirty = TRUE; /* could optimize just redraw bodrers... */
+                        redraw = 1; /* need a total redraw, background color affect all */
+                    }
+                }
+                result = 1;
+                break;
+
+
 
             case PCA_UndoBuffer:
                 inst->undoBuf = (PetsciiUndoBuffer *)(void *)tag->ti_Data;
                 result = 1;
                 break;
+
+            case PCA_TransformBrush:
+            {
+                /* Apply geometric transform to the current brush.
+                 * Selects the correct char-remapping table based on charset. */
+                if (inst->brush && inst->screen) {
+                    const UBYTE  *charTable;
+                    PetsciiBrush *newBrush;
+                    int           xform;
+                    int           isLower;
+
+                    xform   = (int)tag->ti_Data;
+                    isLower = (inst->screen->charset == PETSCII_CHARSET_LOWER);
+
+                    switch (xform) {
+                        case BRUSH_TRANSFORM_FLIP_X:
+                            charTable = isLower
+                                ? petsciiLowerFlipX : petsciiUpperFlipX;
+                            break;
+                        case BRUSH_TRANSFORM_FLIP_Y:
+                            charTable = isLower
+                                ? petsciiLowerFlipY : petsciiUpperFlipY;
+                            break;
+                        case BRUSH_TRANSFORM_ROT90CW:
+                            charTable = isLower
+                                ? petsciiLowerRot90 : petsciiUpperRot90;
+                            break;
+                        case BRUSH_TRANSFORM_ROT180:
+                            charTable = isLower
+                                ? petsciiLowerRot180 : petsciiUpperRot180;
+                            break;
+                        case BRUSH_TRANSFORM_ROT90CCW:
+                            charTable = isLower
+                                ? petsciiLowerRotN90 : petsciiUpperRotN90;
+                            break;
+                        default:
+                            charTable = NULL;
+                            break;
+                    }
+
+                    newBrush = PetsciiBrush_Transform(inst->brush, xform,
+                                                       charTable);
+                    if (newBrush) {
+                        PetsciiBrush_Destroy(inst->brush);
+                        inst->brush  = newBrush;
+                        inst->brushW = newBrush->w;
+                        inst->brushH = newBrush->h;
+                        inst->brushHotx = 0;
+                        inst->brushHoty = 0;
+
+                        /* nativeBrushBuf will be reallocated on next render */
+                        if (inst->nativeBrushBuf) {
+                            FreeVec(inst->nativeBrushBuf);
+                            inst->nativeBrushBuf     = NULL;
+                            inst->nativeBrushBufSize = 0;
+                        }
+
+                        inst->scaledBufDirty = TRUE;
+                        result = 1;
+                    }
+                }
+                break;
+            }
 
             default:
                 break;
@@ -370,6 +449,13 @@ ULONG PetsciiCanvas_OnGet(Class *cl, Object *o, struct opGet *msg)
             if(inst->screen)
             {
                 *msg->opg_Storage = (ULONG)inst->screen->backgroundColor;
+                return TRUE;
+            } else
+            return FALSE;
+        case PCA_BdColor:
+            if(inst->screen)
+            {
+                *msg->opg_Storage = (ULONG)inst->screen->borderColor;
                 return TRUE;
             } else
             return FALSE;

@@ -31,5 +31,6 @@ void LayoutWithPopup_Exit(void);
 #define LAYOUTWP_POPUPX         (LAYOUTWP_Dummy + 2)  /* WORD:     popup X offset    */
 #define LAYOUTWP_POPUPY         (LAYOUTWP_Dummy + 3)  /* WORD:     popup Y offset    */
 #define LAYOUTWP_POPUPVISIBLE   (LAYOUTWP_Dummy + 4)  /* BOOL:     show/hide popup   */
+#define LAYOUTWP_SENDERID       (LAYOUTWP_Dummy + 5)  /* id: who asked for opening   */
 
 #endif /* CLASS_LAYOUTWITHPOPUP_H */

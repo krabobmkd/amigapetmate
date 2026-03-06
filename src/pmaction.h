@@ -78,6 +78,13 @@ enum {
     ACTION_PALETTE_PEPTO,
     ACTION_PALETTE_VICE,
 
+    /* Brush transforms */
+    ACTION_BRUSH_FLIP_X,
+    ACTION_BRUSH_FLIP_Y,
+    ACTION_BRUSH_ROT90CW,
+    ACTION_BRUSH_ROT180,
+    ACTION_BRUSH_ROT90CCW,
+
     /* Must be last */
     ACTION_COUNT
 };
@@ -123,5 +130,11 @@ BOOL Action_PalettePetmate(PmActionContext *ctx);
 BOOL Action_PaletteColodore(PmActionContext *ctx);
 BOOL Action_PalettePepto(PmActionContext *ctx);
 BOOL Action_PaletteVice(PmActionContext *ctx);
+
+BOOL Action_BrushFlipX(PmActionContext *ctx);
+BOOL Action_BrushFlipY(PmActionContext *ctx);
+BOOL Action_BrushRot90CW(PmActionContext *ctx);
+BOOL Action_BrushRot180(PmActionContext *ctx);
+BOOL Action_BrushRot90CCW(PmActionContext *ctx);
 
 #endif /* PMACTION_H */

@@ -18,23 +18,27 @@
     we can just define our own messages with attribs enums or any sort of enum and values to precise parameters.
 
 */
-static ULONG ColorPicker_NotifyAttribChange(Class *cl,Object *Gad, struct GadgetInfo *GInfo,
-                                        ULONG attrib, ULONG value)
+static ULONG ColorPicker_NotifyAttribChange(Class *cl,Object *Gad, struct GadgetInfo *GInfo)
 {
+    ColorPickerData *inst;
     struct opUpdate notifymsg;
     ULONG messageTags[]={
      GA_ID,0,
-     0,0,
+     CPA_SelectedColor,0,
+     CPA_ColorRole,0,
      TAG_DONE
     };
+
+    inst = (ColorPickerData *)INST_DATA(cl, Gad);
 
     /* build the boopsi message taglist in table messageTags and link it to opUpdate struct  */
 
     GetAttr(GA_ID,Gad,&messageTags[1]);
     if(messageTags[1]==0) return 0; /* there must be a valid GA_ID */
 
-    messageTags[2] = attrib;
-    messageTags[3] = value;
+    messageTags[3] = (ULONG)inst->selectedColor;
+    messageTags[5] = (ULONG)inst->ColorRole;
+
     notifymsg.MethodID = OM_NOTIFY;
     notifymsg.opu_AttrList = (struct TagItem *)&messageTags[0];
     notifymsg.opu_GInfo = GInfo; /* always there for gadget, in all messages */
@@ -114,7 +118,7 @@ ULONG ColorPicker_OnGoActive(Class *cl, Object *o, struct gpInput *msg)
         inst->selectedColor = newColor;
         renderSelf(cl, o, msg->gpi_GInfo);
         /* this is how you notify ICA_TARGET object from a gadget other than the limited gadgetup. */
-        ColorPicker_NotifyAttribChange(cl,o,msg->gpi_GInfo,CPA_SelectedColor,(ULONG)newColor);
+        ColorPicker_NotifyAttribChange(cl,o,msg->gpi_GInfo);
     }
 
     *msg->gpi_Termination = 0;

@@ -60,8 +60,8 @@ struct App {
 
 
     /* ... */
-    Object          *bgColorWatch;
-    Object          *borderColorWatch;
+//    Object          *bgColorWatch;
+//    Object          *borderColorWatch;
     /* Phase 4 */
     Object           *canvasGadget;        /* PetsciiCanvas BOOPSI instance  */
 
@@ -70,7 +70,7 @@ struct App {
     Object           *currentCharLabel;
 
     Object           *colorPickerFgGadget; /* ColorPicker (fg) BOOPSI instance */
-    Object           *colorPickerBgGadget; /* ColorPicker (bg) BOOPSI instance */
+    //old Object           *colorPickerBgGadget; /* ColorPicker (bg) BOOPSI instance */
 
     Object           *colorPickerPopUp;
 

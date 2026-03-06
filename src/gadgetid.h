@@ -14,8 +14,8 @@
 /* Right panel gadgets */
 #define GAD_CHARSELECTOR        2
 #define GAD_COLORPICKER_FG      3
-#define GAD_COLORPICKER_BG      4
-#define GAD_COLORPICKER_BORDER  5
+//#define GAD_COLORPICKER_BG      4
+#define GAD_COLORPICKER_POPUP  5
 
 #define GAD_COLORWATCH_BG       6
 #define GAD_COLORWATCH_BD       7

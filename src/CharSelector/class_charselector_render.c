@@ -203,7 +203,7 @@ static void drawSelection(struct RastPort *rp,
                           WORD gridCol, WORD gridRow,
                           int selpen)
 {
-    UBYTE savedMode;
+    //UBYTE savedMode;
     int lw = (width>=128+64)?2:1;
     WORD  selX;
     WORD  selY;
@@ -213,7 +213,7 @@ static void drawSelection(struct RastPort *rp,
     WORD  cx2  = (WORD)(left + (((gridCol+1)*8*width)/128) );
     WORD  cy2  = (WORD)(top + (((gridRow+1)*8*height)/128) );
 
-    savedMode = rp->DrawMode;
+    //savedMode = rp->DrawMode;
     //SetDrMd(rp, COMPLEMENT);
     SetAPen(rp, selpen);
     if( lw == 1 )

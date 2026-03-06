@@ -38,20 +38,33 @@
 #define PCA_SelectedChar (PCA_Dummy + 8) /* (UBYTE) 0-255     new/set/get  */
 #define PCA_FgColor      (PCA_Dummy + 9) /* (UBYTE) 0-15      new/set/get  */
 #define PCA_BgColor      (PCA_Dummy +10) /* (UBYTE) 0-15      new/set/get  */
+#define PCA_BdColor      (PCA_Dummy +11) /* (UBYTE) 0-15      new/set/get  */
 
 /* Cursor position (updated by input handler; -1 = not shown) */
-#define PCA_CursorCol    (PCA_Dummy +11) /* (WORD) col, -1=hidden     get  */
-#define PCA_CursorRow    (PCA_Dummy +12) /* (WORD) row, -1=hidden     get  */
+#define PCA_CursorCol    (PCA_Dummy +12) /* (WORD) col, -1=hidden     get  */
+#define PCA_CursorRow    (PCA_Dummy +13) /* (WORD) row, -1=hidden     get  */
 
 /* Undo/redo buffer for this screen (not owned by the gadget).
  * Set via OM_NEW or OM_SET to enable in-stroke undo snapshots.   */
-#define PCA_UndoBuffer   (PCA_Dummy +13) /* (PetsciiUndoBuffer *) new/set  */
+#define PCA_UndoBuffer   (PCA_Dummy +14) /* (PetsciiUndoBuffer *) new/set  */
 
 /* Signal: tell outside this tool is finisehd
    -brush lasso ends, meaning a new brush.
    -Text pressed Esc
 */
-#define PCA_SignalStopTool   (PCA_Dummy +14)
+#define PCA_SignalStopTool   (PCA_Dummy +15)
+
+/* Apply a geometric transformation to the current brush (TOOL_BRUSH).
+ * Value is one of the BRUSH_TRANSFORM_* constants below.
+ * No-op if there is no brush (inst->brush == NULL).              */
+#define PCA_TransformBrush   (PCA_Dummy +16)
+
+/* Brush transform operation codes for PCA_TransformBrush */
+#define BRUSH_TRANSFORM_FLIP_X   0  /* mirror left <-> right              */
+#define BRUSH_TRANSFORM_FLIP_Y   1  /* mirror top  <-> bottom             */
+#define BRUSH_TRANSFORM_ROT90CW  2  /* rotate 90 degrees clockwise        */
+#define BRUSH_TRANSFORM_ROT180   3  /* rotate 180 degrees                 */
+#define BRUSH_TRANSFORM_ROT90CCW 4  /* rotate 90 degrees counter-clockwise*/
 
 
 /* Global class pointer, set by PetsciiCanvas_Init() */

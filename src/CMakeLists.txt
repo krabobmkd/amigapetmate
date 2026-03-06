@@ -53,7 +53,7 @@ set(PETMATE_SOURCES
     petscii_undo.c
     petscii_brush.c
     petscii_ascii.c
-
+    petscii_chartransform.c
     bdbprintf.c
     bdbprintf.h
 )

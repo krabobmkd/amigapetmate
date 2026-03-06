@@ -70,6 +70,9 @@ ULONG ColorPicker_OnSet(Class *cl, Object *o, struct opSet *msg)
             case CPA_SelectedColor:
                 inst->selectedColor = (UBYTE)tag->ti_Data;
                 break;
+            case CPA_ColorRole:
+                inst->ColorRole = (UWORD)tag->ti_Data;
+            break;
             default:
                 break;
         }
@@ -90,6 +93,9 @@ ULONG ColorPicker_OnGet(Class *cl, Object *o, struct opGet *msg)
         case CPA_SelectedColor:
             *msg->opg_Storage = (ULONG)inst->selectedColor;
             return TRUE;
+          case CPA_ColorRole:
+               *msg->opg_Storage = (ULONG)inst->ColorRole;
+            break;
         default:
             return DoSuperMethodA(cl, o, (APTR)msg);
     }

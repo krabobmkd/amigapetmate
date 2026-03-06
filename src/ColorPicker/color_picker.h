@@ -25,6 +25,7 @@
 #define CPA_Style         (CPA_Dummy + 1)   /* PetsciiStyle * (not owned) */
 #define CPA_SelectedColor (CPA_Dummy + 2)   /* UBYTE 0..15                */
 #define CPA_ColorsPerWidth (CPA_Dummy + 3)   /* 4 or 8   */
+#define CPA_ColorRole (CPA_Dummy + 4)   /*  currently managing that color */
 
 extern Class *ColorPickerClass;
 

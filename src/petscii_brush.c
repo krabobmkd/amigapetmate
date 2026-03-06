@@ -79,3 +79,75 @@ PetsciiBrush *PetsciiBrush_CaptureFromScreen(
 
     return b;
 }
+
+/* ------------------------------------------------------------------ */
+
+PetsciiBrush *PetsciiBrush_Transform(const PetsciiBrush *src,
+                                      int                 transform,
+                                      const UBYTE        *charTable)
+{
+    PetsciiBrush *dst;
+    UWORD         dstW;
+    UWORD         dstH;
+    UWORD         r;
+    UWORD         c;
+
+    if (!src || !src->cells) return NULL;
+
+    /* Rotations swap width and height; flips and 180 keep them the same */
+    if (transform == 2 || transform == 4) { /* ROT90CW / ROT90CCW */
+        dstW = src->h;
+        dstH = src->w;
+    } else {
+        dstW = src->w;
+        dstH = src->h;
+    }
+
+    dst = PetsciiBrush_Create(dstW, dstH);
+    if (!dst) return NULL;
+
+    for (r = 0; r < src->h; r++) {
+        for (c = 0; c < src->w; c++) {
+            PetsciiPixel pix;
+            ULONG        dstIdx;
+
+            pix = src->cells[(ULONG)r * src->w + c];
+
+            switch (transform) {
+                case 0: /* BRUSH_TRANSFORM_FLIP_X: mirror columns */
+                    dstIdx = (ULONG)r * dstW + (dstW - 1 - c);
+                    break;
+
+                case 1: /* BRUSH_TRANSFORM_FLIP_Y: mirror rows */
+                    dstIdx = (ULONG)(src->h - 1 - r) * dstW + c;
+                    break;
+
+                case 2: /* BRUSH_TRANSFORM_ROT90CW: dst[c][h-1-r] = src[r][c]
+                         * dst.w=src.h, dst.h=src.w */
+                    dstIdx = (ULONG)c * dstW + (src->h - 1 - r);
+                    break;
+
+                case 3: /* BRUSH_TRANSFORM_ROT180 */
+                    dstIdx = (ULONG)(src->h - 1 - r) * dstW + (dstW - 1 - c);
+                    break;
+
+                case 4: /* BRUSH_TRANSFORM_ROT90CCW: dst[w-1-c][r] = src[r][c]
+                         * dst.w=src.h, dst.h=src.w */
+                    dstIdx = (ULONG)(src->w - 1 - c) * dstW + r;
+                    break;
+
+                default:
+                    dstIdx = (ULONG)r * dstW + c;
+                    break;
+            }
+
+            /* Apply character-code remapping if a table was provided */
+            if (charTable)
+                pix.code = charTable[pix.code];
+
+            dst->cells[dstIdx] = pix;
+        }
+    }
+
+    return dst;
+}
