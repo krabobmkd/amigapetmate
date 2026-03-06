@@ -48,6 +48,7 @@
 
 #include "class_colorswatch.h"
 #include "class_layoutwithpopup.h"
+#include "class_charlayout.h"
 
 /* Phase 2 */
 #include "petscii_style.h"
@@ -59,7 +60,7 @@
 #include "pmsettingsview.h"
 #include "appsettings.h"
 
-#include "class_charlayout.h"
+
 /* Phase 4 */
 #include "petscii_canvas.h"
 
@@ -397,7 +398,6 @@ int main(int argc, char **argv)
         CPA_SelectedColor, (ULONG)app->toolState.fgColor,
         TAG_END);
     if (!app->colorPickerFgGadget) cleanexit("Can't create fg color picker");
-
     /* Create background colour picker gadget */
     app->colorPickerBgGadget = (Object *)NewObject(ColorPickerClass, NULL,
         GA_ID,             (ULONG)GAD_COLORPICKER_BG,
@@ -407,6 +407,14 @@ int main(int argc, char **argv)
         CPA_SelectedColor, (ULONG)app->toolState.bgColor,
         TAG_END);
     if (!app->colorPickerBgGadget) cleanexit("Can't create bg color picker");
+
+    app->colorPickerPopUp = (Object *)NewObject(ColorPickerClass, NULL,
+        GA_ID,             (ULONG)GAD_COLORPICKER_BORDER,
+        ICA_TARGET,        (ULONG)TargetInstance,
+        CPA_Style,         (ULONG)&app->style,
+        CPA_SelectedColor, (ULONG)app->toolState.bdColor,
+        TAG_END);
+
 
     /* Phase 7: create toolbar and screen-tab bar */
     if (!PmToolbar_Create(&app->toolbar))
@@ -545,14 +553,19 @@ int main(int argc, char **argv)
 
     /* add that to toolbar */
     app->bgColorWatch = NewObject(ColorSwatchClass, NULL,
+                    GA_ID,GAD_COLORWATCH_BG,
+                    ICA_TARGET,TargetInstance,
                      CSW_Style,(ULONG)&app->style,
                      CSW_ColorIndex,4,
                     TAG_END);
 
     app->borderColorWatch = NewObject(ColorSwatchClass, NULL,
+                    GA_ID,GAD_COLORWATCH_BD,
+                    ICA_TARGET,TargetInstance,
                      CSW_Style,(ULONG)&app->style,
                      CSW_ColorIndex,5,
                     TAG_END);
+
    SetGadgetAttrs(app->toolbar.layout,CurrentMainWindow ,NULL,
                     LAYOUT_AddChild,(ULONG)app->bgColorWatch,
                     LAYOUT_AddChild,(ULONG)app->borderColorWatch,
@@ -598,9 +611,9 @@ int main(int argc, char **argv)
                // CHILD_MinWidth,      128,
                // CHILD_MaxWidth,      256,
             TAG_END);
-
+// LayoutWithPopupClass LAYOUT_GetClass()
         /* Main vertical layout: screen tabs | work area | status bar */
-        app->mainvlayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
+        app->mainvlayout = (Object *)NewObject(LayoutWithPopupClass, NULL,
             LAYOUT_DeferLayout,   TRUE,
             LAYOUT_SpaceOuter,    TRUE,
             LAYOUT_BottomSpacing, 2,
@@ -623,6 +636,10 @@ int main(int argc, char **argv)
 
             LAYOUT_AddChild, (ULONG)app->statusBarLayout,
                 CHILD_WeightedHeight, 0,
+
+            LAYOUTWP_POPUPGADGET,(ULONG)app->colorPickerPopUp,
+            LAYOUTWP_POPUPX,80,
+            LAYOUTWP_POPUPY,40,
             TAG_END);
     }
 
@@ -866,6 +883,26 @@ int main(int argc, char **argv)
 
                     else {
                         switch (sender_ID) {
+                            case GAD_COLORWATCH_BD:
+                            case GAD_COLORWATCH_BG:
+                            {
+                                ptag = FindTagItem(CSW_Clicked, msg);
+                                if (ptag)
+                                {
+                                    LONG x,y;
+                                    GetAttr(GA_Left,app->borderColorWatch,&x);
+                                    GetAttr(GA_Top,app->borderColorWatch,&y);
+
+                                    //printf("ckl clicked\n");
+                                    SetGadgetAttrs(app->mainvlayout,CurrentMainWindow,NULL,
+                                    LAYOUTWP_POPUPX,x,
+                                    LAYOUTWP_POPUPY,y,
+                                            LAYOUTWP_POPUPVISIBLE,TRUE
+                                            );
+
+                                }
+
+                            } break;
                             case GAD_CANVAS:
                                 /* Draw stroke complete - canvas updated in-place */
                             {

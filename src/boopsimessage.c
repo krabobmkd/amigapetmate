@@ -21,7 +21,7 @@
 #include "ColorPicker/color_picker.h"
 #include "CharSelector/char_selector.h"
 #include "PetsciiCanvas/petscii_canvas.h"
-
+#include "class_colorswatch.h"
 
 /* Maximum tag entries in the queue */
 #define BOOPSIDELAY_QUEUE_SIZE 256
@@ -68,7 +68,11 @@ static ULONG delayedAttribs[] = {
     PCA_CursorCol,
     PCA_CursorRow,
 
-    PCA_SignalStopTool
+    PCA_SignalStopTool,
+
+    CSW_ColorIndex,
+    CSW_Clicked,
+
 
 };
 

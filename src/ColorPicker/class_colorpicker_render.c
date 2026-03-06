@@ -22,17 +22,17 @@ ULONG ColorPicker_OnDomain(Class *cl, Object *o, struct gpDomain  *msg)
     domain->Left = 0;
     domain->Top = 0;
     domain->Width = 128;  // Nominal width
-    domain->Height = 128;  // Nominal height
+    domain->Height = 32;  // Nominal height
 
     // Adjust based on gpd_Which
     switch (msg->gpd_Which) {
         case GDOMAIN_MINIMUM:
-            domain->Width = 128;
-            domain->Height = 128;
+            domain->Width = 96;
+            domain->Height = 96/4;
             break;
         case GDOMAIN_MAXIMUM:
             domain->Width = 128*4;
-            domain->Height = 128*4;
+            domain->Height = 128;
             break;
         case GDOMAIN_NOMINAL:
         default:

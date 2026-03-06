@@ -29,7 +29,9 @@ typedef struct ToolState {
     UBYTE selectedChar;     /* 0-255 screen code */
     UBYTE fgColor;          /* 0-15 foreground color */
     UBYTE bgColor;          /* 0-15 background color */
+    UBYTE bdColor;          /* 0-15 border color */
     UBYTE showGrid;         /* grid overlay toggle */
+    UBYTE ww;
 } ToolState;
 
 /* Application struct */
@@ -69,6 +71,8 @@ struct App {
 
     Object           *colorPickerFgGadget; /* ColorPicker (fg) BOOPSI instance */
     Object           *colorPickerBgGadget; /* ColorPicker (bg) BOOPSI instance */
+
+    Object           *colorPickerPopUp;
 
     /* Phase 7 */
     PmToolbar         toolbar;             /* left-side tool button panel    */

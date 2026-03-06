@@ -128,19 +128,20 @@ int PmToolbar_Create(PmToolbar *tb)
     if (!tb->layoutUndoRedo) return 0;
 
     /* Outer VLayout: tool group then action group, filler eats remaining */
-    tb->layout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
+    // tb->layout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
 
-        LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
-        LAYOUT_InnerSpacing, 2,
+    //     LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
+    //     LAYOUT_InnerSpacing, 2,
 
-        LAYOUT_AddChild, (ULONG)toolGroup,
-            CHILD_WeightedHeight, 1,
+    //     LAYOUT_AddChild, (ULONG)toolGroup,
+    //         CHILD_WeightedHeight, 1,
 
-        /*moved
-        LAYOUT_AddChild, (ULONG)actionGroup,
-            CHILD_WeightedHeight, 1,
-        */
-        TAG_END);
+    //     /*moved
+    //     LAYOUT_AddChild, (ULONG)actionGroup,
+    //         CHILD_WeightedHeight, 1,
+    //     */
+    //     TAG_END);
+    tb->layout =toolGroup;
 
     return (tb->layout != NULL) ? 1 : 0;
 }

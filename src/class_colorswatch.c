@@ -18,7 +18,7 @@
 #include "compilers.h"
 #include "class_colorswatch.h"
 #include "petscii_style.h"
-
+#include "bdbprintf.h"
 /* Convenience cast: Object * -> struct Gadget * */
 #ifndef G
 #define G(o) ((struct Gadget *)(o))
@@ -240,10 +240,13 @@ static ULONG ColorSwatch_OnGoActive(Class *cl, Object *o, struct gpInput *msg)
     ColorSwatchData *inst;
     inst = (ColorSwatchData *)INST_DATA(cl, o);
 
+    //bdbprintf("ColorSwatch_OnGoActive\n");
+
     notifyClicked(cl, o, msg->gpi_GInfo, inst->colorIndex);
 
+
     *msg->gpi_Termination = 0;
-    return GMR_VERIFY | GMR_NOREUSE;
+    return /*GMR_VERIFY |*/ GMR_NOREUSE;
 }
 
 /* ------------------------------------------------------------------ */

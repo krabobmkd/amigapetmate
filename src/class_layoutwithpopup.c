@@ -17,6 +17,7 @@
 
 #include "compilers.h"
 #include "class_layoutwithpopup.h"
+#include "bdbprintf.h"
 
 /* Convenience cast: Object * -> struct Gadget * */
 #ifndef G
@@ -56,24 +57,28 @@ static void popupShow(Object *o, LayoutWithPopupData *inst,
     struct RastPort *rp;
     WORD             popupH;
 
-    /* Ask popup for its preferred height */
-    domMsg.MethodID          = GM_DOMAIN;
-    domMsg.gpd_GInfo         = ginfo;
-    domMsg.gpd_RPort         = ginfo ? ginfo->gi_RastPort : NULL;
-    domMsg.gpd_Which         = GDOMAIN_NOMINAL;
-    domMsg.gpd_Domain.Left   = 0;
-    domMsg.gpd_Domain.Top    = 0;
-    domMsg.gpd_Domain.Width  = G(o)->Width;
-    domMsg.gpd_Domain.Height = 0;
-    DoMethodA(inst->popup, (Msg)&domMsg);
-    popupH = (domMsg.gpd_Domain.Height > 0)
-             ? (WORD)domMsg.gpd_Domain.Height : 64;
+    // /* Ask popup for its preferred height */
+    // domMsg.MethodID          = GM_DOMAIN;
+    // domMsg.gpd_GInfo         = ginfo;
+    // domMsg.gpd_RPort         = ginfo ? ginfo->gi_RastPort : NULL;
+    // domMsg.gpd_Which         = GDOMAIN_NOMINAL;
+    // domMsg.gpd_Domain.Left   = 0;
+    // domMsg.gpd_Domain.Top    = 0;
+    // domMsg.gpd_Domain.Width  = 0; // G(o)->Width;
+    // domMsg.gpd_Domain.Height = 0;
+    // DoMethodA(inst->popup, (Msg)&domMsg);
+    // popupH = (domMsg.gpd_Domain.Height > 0)
+    //          ? (WORD)domMsg.gpd_Domain.Height : 64;
 
+bdbprintf("show p: l:%d t:%d h:%d\n",(int)G(o)->LeftEdge,(int)G(o)->TopEdge,(int)G(o)->Height);
     /* Position popup over the layout at the requested offset */
     G(inst->popup)->LeftEdge = G(o)->LeftEdge + inst->popup_x;
     G(inst->popup)->TopEdge  = G(o)->TopEdge  + inst->popup_y;
-    G(inst->popup)->Width    = G(o)->Width;
-    G(inst->popup)->Height   = popupH;
+    G(inst->popup)->Width    = 128;
+    G(inst->popup)->Height   = 32;
+
+ bdbprintf("show p: x%d y%d w%d h%d\n", G(inst->popup)->LeftEdge, G(inst->popup)->TopEdge,
+        G(inst->popup)->Width, G(inst->popup)->Height);
 
     /* Recursively lay out popup's own children */
     layoutMsg.MethodID    = GM_LAYOUT;
@@ -280,6 +285,7 @@ static ULONG LayoutWithPopup_OnSet(Class *cl, Object *o, struct opSet *msg)
                 break;
 
             case LAYOUTWP_POPUPVISIBLE:
+            bdbprintf("Set visible %08x %08x %d\n",(int)inst->popup,(int) msg->ops_GInfo,tag->ti_Data);
                 inst->popup_visible = (int)tag->ti_Data;
                 if (inst->popup && msg->ops_GInfo) {
                     if (inst->popup_visible)
