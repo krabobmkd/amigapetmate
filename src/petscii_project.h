@@ -12,7 +12,7 @@ typedef struct PetsciiProject {
     PetsciiScreen *screens[PETSCII_MAX_SCREENS];
     UWORD screenCount;          /* number of screens */
     UWORD currentScreen;        /* index of currently displayed screen */
-    char filepath[PETSCII_PATH_LEN]; /* last saved/loaded path */
+    char *filepath; /* last saved/loaded path (AllocVec'd, NULL if unset) */
     UBYTE modified;             /* dirty flag: non-zero if unsaved changes */
     UBYTE currentPalette;       /* palette index 0-3 */
 } PetsciiProject;

@@ -118,6 +118,7 @@ static ULONG ColorSwatch_OnSet(Class *cl, Object *o, struct opSet *msg)
     struct TagItem  *state;
     struct TagItem  *tag;
     ULONG            result;
+    int redraw = 0;
 
     inst   = (ColorSwatchData *)INST_DATA(cl, o);
     result = DoSuperMethodA(cl, o, (APTR)msg);
@@ -129,13 +130,35 @@ static ULONG ColorSwatch_OnSet(Class *cl, Object *o, struct opSet *msg)
                 inst->style = (PetsciiStyle *)tag->ti_Data;
                 break;
             case CSW_ColorIndex:
+            if(inst->colorIndex != (UBYTE)tag->ti_Data)
+            {
                 inst->colorIndex = (UBYTE)tag->ti_Data;
+                redraw = 1;
+            }
+
                 break;
             default:
                 break;
         }
     }
+    if(redraw && msg->ops_GInfo )
+    {
+        struct RastPort *rp;
 
+        rp = ObtainGIRPort(msg->ops_GInfo);
+        if (rp)
+        {
+            struct gpRender  renderMsg;
+            renderMsg.MethodID   = GM_RENDER;
+            renderMsg.gpr_GInfo  = msg->ops_GInfo;
+            renderMsg.gpr_RPort  = rp;
+            renderMsg.gpr_Redraw = GREDRAW_UPDATE;
+
+            DoMethodA(o, (Msg)(APTR)&renderMsg);
+
+            ReleaseGIRPort(rp);
+        }
+    }
     return result;
 }
 
@@ -176,8 +199,8 @@ static ULONG ColorSwatch_OnDomain(Class *cl, Object *o, struct gpDomain *msg)
             domain->Height = 16;
             break;
         case GDOMAIN_MAXIMUM:
-            domain->Width = 64;
-            domain->Height = 48;
+            domain->Width = 128;
+            domain->Height = 96;
             break;
         case GDOMAIN_NOMINAL:
         default:
@@ -218,6 +241,12 @@ static ULONG ColorSwatch_OnRender(Class *cl, Object *o, struct gpRender *msg)
     RectFill(rp, (LONG)left, (LONG)top,
                  (LONG)(left + w - 1), (LONG)(top + h - 1));
 
+    SetAPen(rp, (LONG)PetsciiStyle_Pen(inst->style, 0));
+    Move(rp, (LONG)left,(LONG)top);
+    Draw(rp, (LONG)left + w - 1,(LONG)top);
+    Draw(rp, (LONG)left + w - 1, (LONG)top + h-1);
+    Draw(rp, (LONG)left , (LONG)top + h-1);
+    Draw(rp, (LONG)left , (LONG)top);
     return 0;
 }
 

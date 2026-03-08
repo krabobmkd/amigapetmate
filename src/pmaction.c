@@ -4,6 +4,9 @@
 #include "petscii_screen.h"
 #include "petscii_undo.h"
 #include "petscii_fileio.h"
+#include "petscii_export.h"
+#include "pmlocale.h"
+#include "pmstring.h"
 #include "petmate.h"
 
 #include <stdio.h>
@@ -16,6 +19,10 @@
 #include <proto/asl.h>
 #include <libraries/asl.h>
 
+#include <proto/requester.h>
+#include <classes/requester.h>
+
+
 #include "boopsimainwindow.h"
 #include "petscii_canvas.h"  /* PCA_TransformBrush, BRUSH_TRANSFORM_* */
 
@@ -25,7 +32,12 @@ extern struct IntuitionBase *IntuitionBase;
 
 
 /* Last directory used in a file requester (persists across open/save calls) */
-static char s_lastDir[PETSCII_PATH_LEN];
+static char *s_lastDir = NULL;
+
+// const char *PetsciiFileIO_ErrorString(int strnum)
+// {
+//     return LOC(MSG_PETSCII_FILEIO_OK+strnum);
+// }
 
 /* - - - Helper: apply a new palette to the style and re-obtain pens - - - */
 static void applyPalette(PmActionContext *ctx, UBYTE paletteID)
@@ -84,30 +96,35 @@ static BOOL confirmDiscard(PmActionContext *ctx)
 }
 
 /* - - - Helper: show an error requester for file I/O failures - - - */
-static void showFileError(const char *title, const char *errMsg)
-{
-    static struct EasyStruct es = {
-        sizeof(struct EasyStruct), 0,
-        NULL, NULL,
-        (STRPTR)"OK"
-    };
-    es.es_Title   = (STRPTR)title;
-    es.es_TextFormat = (STRPTR)errMsg;
-    EasyRequest(CurrentMainWindow, &es, NULL, NULL);
-}
+// static void showFileError(const char *title, const char *errMsg)
+// {
+//     static struct EasyStruct es = {
+//         sizeof(struct EasyStruct), 0,
+//         NULL, NULL,
+//         (STRPTR)"OK"
+//     };
+//     es.es_Title   = (STRPTR)title;
+//     es.es_TextFormat = (STRPTR)errMsg;
+//     EasyRequest(CurrentMainWindow, &es, NULL, NULL);
+
+// }
 
 /* - - - Helper: run an ASL file requester.
  * saveMode=TRUE for Save As, FALSE for Open.
- * Fills pathbuf (size PETSCII_PATH_LEN) with the selected path.
- * Returns TRUE if user selected a file, FALSE if cancelled.     - - - */
-static BOOL aslFileRequest(BOOL saveMode, char *pathbuf)
+ * Returns an AllocVec'd full path string on success, NULL if cancelled.
+ * Caller must PmStr_Free() the result.                          - - - */
+static char *aslFileRequest(BOOL saveMode)
 {
     struct FileRequester *req;
-    BOOL   ok = FALSE;
+    char  *result = NULL;
+    BOOL   ok;
+    ULONG  dirLen;
+    ULONG  fileLen;
+    char  *buf;
 
     req = (struct FileRequester *)AllocAslRequestTags(ASL_FileRequest,
             TAG_END);
-    if (!req) return FALSE;
+    if (!req) return NULL;
 
     ok = (BOOL)AslRequestTags(req,
             ASLFR_Window,          (ULONG)CurrentMainWindow,
@@ -116,20 +133,26 @@ static BOOL aslFileRequest(BOOL saveMode, char *pathbuf)
             ASLFR_InitialPattern,  (ULONG)"#?.petmate",
             ASLFR_DoPatterns,      TRUE,
             ASLFR_DoSaveMode,      (ULONG)saveMode,
-            s_lastDir[0] ? ASLFR_InitialDrawer : TAG_IGNORE,
-            s_lastDir[0] ? (ULONG)s_lastDir    : 0UL,
+            s_lastDir ? ASLFR_InitialDrawer : TAG_IGNORE,
+            s_lastDir ? (ULONG)s_lastDir    : 0UL,
             TAG_END);
 
     if (ok) {
-        strncpy(s_lastDir, req->rf_Dir, PETSCII_PATH_LEN - 1);
-        s_lastDir[PETSCII_PATH_LEN - 1] = '\0';
-        strncpy(pathbuf, req->rf_Dir, PETSCII_PATH_LEN - 1);
-        pathbuf[PETSCII_PATH_LEN - 1] = '\0';
-        AddPart(pathbuf, req->rf_File, PETSCII_PATH_LEN);
+        PmStr_Free(s_lastDir);
+        s_lastDir = PmStr_Alloc(req->rf_Dir);
+
+        dirLen  = (ULONG)strlen(req->rf_Dir);
+        fileLen = (ULONG)strlen(req->rf_File);
+        buf = (char *)AllocVec(dirLen + fileLen + 2, MEMF_ANY);
+        if (buf) {
+            CopyMem((APTR)req->rf_Dir, (APTR)buf, dirLen + 1);
+            AddPart(buf, req->rf_File, dirLen + fileLen + 2);
+            result = buf;
+        }
     }
 
     FreeAslRequest(req);
-    return ok;
+    return result;
 }
 
 BOOL Action_ProjectNew(PmActionContext *ctx)
@@ -144,20 +167,19 @@ BOOL Action_ProjectNew(PmActionContext *ctx)
 
 BOOL Action_ProjectOpen(PmActionContext *ctx)
 {
-    char pathbuf[PETSCII_PATH_LEN];
-    int  err;
+    char *pathbuf;
+    int   err;
 
     if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
 
  //   if (!confirmDiscard(ctx)) return FALSE;
 
-    if (!aslFileRequest(FALSE, pathbuf)) return FALSE; /* user cancelled */
+    pathbuf = aslFileRequest(FALSE);
+    if (!pathbuf) return FALSE; /* user cancelled */
 
     err = PetsciiFileIO_Load(*ctx->pproject, pathbuf);
-    if (err != PETSCII_FILEIO_OK) {
-        showFileError("Open failed", PetsciiFileIO_ErrorString(err));
-        return FALSE;
-    }
+    PmStr_Free(pathbuf);
+    SetStatusBarMessage(MSG_PETSCII_FILEIO_OK+err);
 
     return TRUE;
 }
@@ -171,41 +193,70 @@ BOOL Action_ProjectSave(PmActionContext *ctx)
     proj = *ctx->pproject;
 
     /* If no path is set yet, delegate to Save As */
-    if (proj->filepath[0] == '\0')
+    if (!proj->filepath)
         return Action_ProjectSaveAs(ctx);
 
     err = PetsciiFileIO_Save(proj, proj->filepath);
-    if (err != PETSCII_FILEIO_OK) {
-        showFileError("Save failed", PetsciiFileIO_ErrorString(err));
-        return FALSE;
-    }
+
+     SetStatusBarMessage(
+         (err == MSG_PETSCII_FILEIO_OK)?MSG_PETSCII_FILEIO_WRITEOK:
+         (MSG_PETSCII_FILEIO_OK+err)
+         );
 
     return TRUE;
 }
 
 BOOL Action_ProjectSaveAs(PmActionContext *ctx)
 {
-    char pathbuf[PETSCII_PATH_LEN];
-    int  err;
+    char *pathbuf;
+    int   err;
 
     if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
 
-    if (!aslFileRequest(TRUE, pathbuf)) return FALSE; /* user cancelled */
+    pathbuf = aslFileRequest(TRUE);
+    if (!pathbuf) return FALSE; /* user cancelled */
 
     err = PetsciiFileIO_Save(*ctx->pproject, pathbuf);
-    if (err != PETSCII_FILEIO_OK) {
-        showFileError("Save As failed", PetsciiFileIO_ErrorString(err));
-        return FALSE;
-    }
-
+    PmStr_Free(pathbuf);
+    SetStatusBarMessage(
+        (err == MSG_PETSCII_FILEIO_OK)?MSG_PETSCII_FILEIO_WRITEOK:
+        (MSG_PETSCII_FILEIO_OK+err)
+        );
     return TRUE;
 }
 
 BOOL Action_ProjectAbout(PmActionContext *ctx)
 {
-    /* TODO: show EasyRequester */
-    (void)ctx;
-    printf("Petmate - C64 PETSCII Art Editor\nAmiga port v0.1\n");
+    Object *req;
+    if(!CurrentMainWindow) return;
+    if(!app->aboutRequester)
+    {
+        app->aboutRequester = NewObject( REQUESTER_GetClass(), NULL,
+			REQ_Image,REQIMAGE_INFO,
+			REQ_BodyText,(ULONG)
+"\33b\33uAmiga PetMate - C64 PETSCII Art Editor \33n - port v0.1\n\n"
+"\33cThis is all about drawing with the character sets that were\n"
+"integrated with old Commodore 8 Bit machines, the first of\n"
+"which was the \"PET\", hence the name PETSCII in regard to ASCII.\n\n"
+"Forked and ported to C by Krb from the original TypeScript source.\33n\n\n"
+"     \33c\33b (c)2026 License is MIT, read file LICENSE.\33n\n\n"
+"\33cSources for Amiga PetMate are hosted at:\n"
+"https://github.com/krabobmkd/amigapetmate\33n\n\n"
+" \33bOriginal PetMate projects are hosted at:\33n\n"
+"\33c\33bnurpax https://github.com/nurpax/petmate\33n\n"
+"\33c\33bwbochar https://github.com/wbochar/petmate9\33n\n\n"
+"\33cThis is also a project made to explore Intuition BOOPSI and\n"
+"wouldn't exist without the Official Amiga developer forum:\n"
+"https://developer.amigaos3.net/forum"
+			,
+            REQ_TitleText,(ULONG)"About Amiga PetMate",
+			REQ_GadgetText,(ULONG)"_Ok",
+            TAG_END);
+    }
+    if(!app->aboutRequester) return FALSE;
+
+    OpenRequester(app->aboutRequester,CurrentMainWindow);
+
     return TRUE;
 }
 
@@ -220,7 +271,29 @@ BOOL Action_ProjectQuit(PmActionContext *ctx)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Edit actions
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
+extern void setTool(ULONG newTool);
+BOOL Action_Draw1(PmActionContext *ctx)
+{
+    setTool( TOOL_DRAW );
+    return TRUE;
+}
+BOOL Action_Draw2(PmActionContext *ctx)
+{
+    setTool( TOOL_COLORIZE );
+    return TRUE;
+}BOOL Action_Draw3(PmActionContext *ctx)
+{
+    setTool( TOOL_CHARDRAW );
+    return TRUE;
+}BOOL Action_Draw4(PmActionContext *ctx)
+{
+    setTool( TOOL_LASSOBRUSH );
+    return TRUE;
+}BOOL Action_Draw5(PmActionContext *ctx)
+{
+    setTool( TOOL_TEXT );
+    return TRUE;
+}
 BOOL Action_EditUndo(PmActionContext *ctx)
 {
     PetsciiProject     *proj;
@@ -460,6 +533,17 @@ BOOL Action_ViewCharsetLower(PmActionContext *ctx)
     return TRUE;
 }
 
+
+BOOL Action_ViewToggleFullScreen(PmActionContext *ctx)
+{
+    BMainWindow_Toggle(
+        &app->mainwindow,
+        app->window_obj,
+        &app->appSettings);
+
+    return TRUE;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Palette actions
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -493,6 +577,125 @@ BOOL Action_BrushRot180(PmActionContext *ctx)   { (void)ctx; return brushTransfo
 BOOL Action_BrushRot90CCW(PmActionContext *ctx) { (void)ctx; return brushTransform(BRUSH_TRANSFORM_ROT90CCW); }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Export actions
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* Helper: ASL save requester for export.  Uses s_lastDir for persistence.
+ * Returns an AllocVec'd full path string on success, NULL if cancelled.
+ * Caller must PmStr_Free() the result.                                     */
+static char *aslExportRequest(const char *title, const char *pattern)
+{
+    struct FileRequester *req;
+    char  *result = NULL;
+    BOOL   ok;
+    ULONG  dirLen;
+    ULONG  fileLen;
+    char  *buf;
+
+    req = (struct FileRequester *)AllocAslRequestTags(ASL_FileRequest, TAG_END);
+    if (!req) return NULL;
+
+    ok = (BOOL)AslRequestTags(req,
+            ASLFR_Window,         (ULONG)CurrentMainWindow,
+            ASLFR_TitleText,      (ULONG)title,
+            ASLFR_InitialPattern, (ULONG)pattern,
+            ASLFR_DoPatterns,     TRUE,
+            ASLFR_DoSaveMode,     TRUE,
+            s_lastDir ? ASLFR_InitialDrawer : TAG_IGNORE,
+            s_lastDir ? (ULONG)s_lastDir    : 0UL,
+            TAG_END);
+
+    if (ok) {
+        PmStr_Free(s_lastDir);
+        s_lastDir = PmStr_Alloc(req->rf_Dir);
+
+        dirLen  = (ULONG)strlen(req->rf_Dir);
+        fileLen = (ULONG)strlen(req->rf_File);
+        buf = (char *)AllocVec(dirLen + fileLen + 2, MEMF_ANY);
+        if (buf) {
+            CopyMem((APTR)req->rf_Dir, (APTR)buf, dirLen + 1);
+            AddPart(buf, req->rf_File, dirLen + fileLen + 2);
+            result = buf;
+        }
+    }
+
+    FreeAslRequest(req);
+    return result;
+}
+
+BOOL Action_ExportBAS(PmActionContext *ctx)
+{
+    char          *rawpath;
+    char          *pathbuf;
+    PetsciiScreen *scr;
+    BOOL           ok;
+
+    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+    scr = PetsciiProject_GetCurrentScreen(*ctx->pproject);
+    if (!scr) return FALSE;
+
+    rawpath = aslExportRequest("Export as BASIC (.bas)", "#?.bas");
+    if (!rawpath) return FALSE;
+
+    pathbuf = PmStr_WithExt(rawpath, ".bas");
+    PmStr_Free(rawpath);
+    if (!pathbuf) return FALSE;
+
+    ok = (BOOL)(PetsciiExport_SaveBAS(scr, pathbuf) == PETSCII_EXPORT_OK);
+    PmStr_Free(pathbuf);
+    SetStatusBarMessage(ok ? MSG_PETSCII_FILEIO_WRITEOK : MSG_PETSCII_FILEIO_EWRITE);
+    return ok;
+}
+
+BOOL Action_ExportASM(PmActionContext *ctx)
+{
+    char          *rawpath;
+    char          *pathbuf;
+    PetsciiScreen *scr;
+    BOOL           ok;
+
+    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+    scr = PetsciiProject_GetCurrentScreen(*ctx->pproject);
+    if (!scr) return FALSE;
+
+    rawpath = aslExportRequest("Export as ASM (.asm)", "#?.asm");
+    if (!rawpath) return FALSE;
+
+    pathbuf = PmStr_WithExt(rawpath, ".asm");
+    PmStr_Free(rawpath);
+    if (!pathbuf) return FALSE;
+
+    ok = (BOOL)(PetsciiExport_SaveASM(scr, pathbuf) == PETSCII_EXPORT_OK);
+    PmStr_Free(pathbuf);
+    SetStatusBarMessage(ok ? MSG_PETSCII_FILEIO_WRITEOK : MSG_PETSCII_FILEIO_EWRITE);
+    return ok;
+}
+
+BOOL Action_ExportSEQ(PmActionContext *ctx)
+{
+    char          *rawpath;
+    char          *pathbuf;
+    PetsciiScreen *scr;
+    BOOL           ok;
+
+    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+    scr = PetsciiProject_GetCurrentScreen(*ctx->pproject);
+    if (!scr) return FALSE;
+
+    rawpath = aslExportRequest("Export as SEQ (.seq)", "#?.seq");
+    if (!rawpath) return FALSE;
+
+    pathbuf = PmStr_WithExt(rawpath, ".seq");
+    PmStr_Free(rawpath);
+    if (!pathbuf) return FALSE;
+
+    ok = (BOOL)(PetsciiExport_SaveSEQ(scr, pathbuf) == PETSCII_EXPORT_OK);
+    PmStr_Free(pathbuf);
+    SetStatusBarMessage(ok ? MSG_PETSCII_FILEIO_WRITEOK : MSG_PETSCII_FILEIO_EWRITE);
+    return ok;
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Action table - C89 sequential initialization.
    Order MUST match the ACTION_* enum exactly.
    Fields: { func, nameStringID, name (NULL until Init), shortcutKey, shortcutQual }
@@ -510,6 +713,13 @@ static PmAction actionTable[ACTION_COUNT] = {
     {Action_ProjectAbout,    MSG_MENU_ABOUT,  NULL, 0, 0},
     /* 5  ACTION_PROJECT_QUIT */
     {Action_ProjectQuit,     MSG_MENU_QUIT,   NULL, 0x45, 0}, /* ESC raw key */
+
+
+    {Action_Draw1,MSG_TOOL_DRAW,        NULL, 0, 0},
+    {Action_Draw2,MSG_TOOL_COLORIZE,        NULL, 0, 0},
+    {Action_Draw3,MSG_TOOL_CHARDRAW,        NULL, 0, 0},
+    {Action_Draw4,MSG_TOOL_BRUSH,        NULL, 0, 0},
+    {Action_Draw5,MSG_TOOL_TEXT,        NULL, 0, 0},
 
     /* 6  ACTION_EDIT_UNDO */
     {Action_EditUndo,        MSG_EDIT_UNDO,        NULL, 0, 0},
@@ -548,6 +758,9 @@ static PmAction actionTable[ACTION_COUNT] = {
     /* 22 ACTION_VIEW_CHARSET_LOWER */
     {Action_ViewCharsetLower,  MSG_VIEW_CHARSET_LOWER,  NULL, 0, 0},
 
+    /* 22 ACTION_VIEW_CHARSET_LOWER */
+    {Action_ViewToggleFullScreen,  MSG_TOGGLE_FULLSCREEN,  NULL, 0, 0},
+
     /* 23 ACTION_PALETTE_PETMATE */
     {Action_PalettePetmate,  MSG_PALETTE_PETMATE,  NULL, 0, 0},
     /* 24 ACTION_PALETTE_COLODORE */
@@ -566,7 +779,14 @@ static PmAction actionTable[ACTION_COUNT] = {
     /* 30 ACTION_BRUSH_ROT180 */
     {Action_BrushRot180,   MSG_BRUSH_ROT180,    NULL, 0, 0},
     /* 31 ACTION_BRUSH_ROT90CCW */
-    {Action_BrushRot90CCW, MSG_BRUSH_ROT90CCW,  NULL, 0, 0}
+    {Action_BrushRot90CCW, MSG_BRUSH_ROT90CCW,  NULL, 0, 0},
+
+    /* 32 ACTION_EXPORT_BAS */
+    {Action_ExportBAS, MSG_EXPORT_BAS, NULL, 0, 0},
+    /* 33 ACTION_EXPORT_ASM */
+    {Action_ExportASM, MSG_EXPORT_ASM, NULL, 0, 0},
+    /* 34 ACTION_EXPORT_SEQ */
+    {Action_ExportSEQ, MSG_EXPORT_SEQ, NULL, 0, 0}
 };
 
 void PmAction_Init(void)

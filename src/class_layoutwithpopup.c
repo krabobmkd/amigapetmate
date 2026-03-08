@@ -48,68 +48,53 @@ ULONG ASM SAVEDS LayoutWithPopup_Dispatch(
 /* Popup show/hide helpers                                             */
 /* ------------------------------------------------------------------ */
 
-static void popupShow(Object *o, LayoutWithPopupData *inst,
+static void refresh(Object *o, LayoutWithPopupData *inst,
                       struct GadgetInfo *ginfo)
 {
-    struct gpDomain domMsg;
     struct gpLayout layoutMsg;
     struct gpRender renderMsg;
     struct RastPort *rp;
-    WORD             popupH;
-
-    // /* Ask popup for its preferred height */
-    // domMsg.MethodID          = GM_DOMAIN;
-    // domMsg.gpd_GInfo         = ginfo;
-    // domMsg.gpd_RPort         = ginfo ? ginfo->gi_RastPort : NULL;
-    // domMsg.gpd_Which         = GDOMAIN_NOMINAL;
-    // domMsg.gpd_Domain.Left   = 0;
-    // domMsg.gpd_Domain.Top    = 0;
-    // domMsg.gpd_Domain.Width  = 0; // G(o)->Width;
-    // domMsg.gpd_Domain.Height = 0;
-    // DoMethodA(inst->popup, (Msg)&domMsg);
-    // popupH = (domMsg.gpd_Domain.Height > 0)
-    //          ? (WORD)domMsg.gpd_Domain.Height : 64;
-
-//bdbprintf("show p: l:%d t:%d h:%d\n",(int)G(o)->LeftEdge,(int)G(o)->TopEdge,(int)G(o)->Height);
-    /* Position popup over the layout at the requested offset */
-    G(inst->popup)->LeftEdge = G(o)->LeftEdge + inst->popup_x;
-    G(inst->popup)->TopEdge  = G(o)->TopEdge  + inst->popup_y;
-    G(inst->popup)->Width    = 128;
-    G(inst->popup)->Height   = 32;
-
+    UWORD i;
     /* Recursively lay out popup's own children */
-    layoutMsg.MethodID    = GM_LAYOUT;
-    layoutMsg.gpl_GInfo   = ginfo;
-    layoutMsg.gpl_Initial = FALSE;
-    DoMethodA(inst->popup, (Msg)&layoutMsg);
+    if(inst->popup)
+    {
+        if (inst->popup_visible) {
+            G(inst->popup)->LeftEdge = G(o)->LeftEdge + inst->popup_x;
+            G(inst->popup)->TopEdge  = G(o)->TopEdge  + inst->popup_y;
+            G(inst->popup)->Width    = 128+16;
+            G(inst->popup)->Height   = 64;
 
-    /* Render popup */
-    if (ginfo) {
-        rp = ObtainGIRPort(ginfo);
-        if (rp) {
-            renderMsg.MethodID   = GM_RENDER;
-            renderMsg.gpr_GInfo  = ginfo;
-            renderMsg.gpr_RPort  = rp;
-            renderMsg.gpr_Redraw = GREDRAW_REDRAW;
-            DoMethodA(inst->popup, (Msg)&renderMsg);
-            ReleaseGIRPort(rp);
+        } else {
+            G(inst->popup)->LeftEdge = 16384;
+            G(inst->popup)->TopEdge  = 16384;
+            G(inst->popup)->Width    = 0;
+            G(inst->popup)->Height   = 0;
         }
+
+        layoutMsg.MethodID    = GM_LAYOUT;
+        layoutMsg.gpl_GInfo   = ginfo;
+        layoutMsg.gpl_Initial = FALSE;
+        DoMethodA(inst->popup, (Msg)&layoutMsg);
     }
-}
 
-static void popupHide(Object *o, LayoutWithPopupData *inst,
-                      struct GadgetInfo *ginfo)
-{
-    struct gpRender  renderMsg;
-    struct RastPort *rp;
+   //  inst->children[inst->childCount++]
 
-    /* Move popup off-screen with zero size so it is invisible */
-    G(inst->popup)->LeftEdge = 32767;
-    G(inst->popup)->TopEdge  = 32767;
-    G(inst->popup)->Width    = 0;
-    G(inst->popup)->Height   = 0;
-
-    /* Repaint the whole layout to cover the area where popup was shown */
+    /* Render all */
+    // if (ginfo) {
+    //     rp = ObtainGIRPort(ginfo);
+    //     if (rp) {
+    //        renderMsg.MethodID   = GM_RENDER;
+    //         renderMsg.gpr_GInfo  = ginfo;
+    //         renderMsg.gpr_RPort  = rp;
+    //         renderMsg.gpr_Redraw = GREDRAW_REDRAW;
+    //         for( i=0 ; i<inst->childCount ; i++ )
+    //         {
+    //             if(inst->children[i])
+    //              DoMethodA(inst->children[i], (Msg)&renderMsg);
+    //         }
+    //         ReleaseGIRPort(rp);
+    //     }
+    // }
     if (ginfo) {
         rp = ObtainGIRPort(ginfo);
         if (rp) {
@@ -121,6 +106,21 @@ static void popupHide(Object *o, LayoutWithPopupData *inst,
             ReleaseGIRPort(rp);
         }
     }
+
+}
+
+static void popupShow(Object *o, LayoutWithPopupData *inst,
+                      struct GadgetInfo *ginfo)
+{
+    inst->popup_visible = TRUE;
+    refresh(o,inst,ginfo);
+}
+
+static void popupHide(Object *o, LayoutWithPopupData *inst,
+                      struct GadgetInfo *ginfo)
+{
+    inst->popup_visible = FALSE;
+    refresh(o,inst,ginfo);
 }
 
 /* ------------------------------------------------------------------ */
@@ -167,28 +167,6 @@ static ULONG LayoutWithPopup_OnNew(Class *cl, Object *o, struct opSet *msg)
         }
     }
 
-    /* Add popup to super's child list with zero-height constraints so the
-     * normal layout flow allocates it no space.  We override its position
-     * in GM_LAYOUT.                                                      */
-/* removed now popup explicitly added first
-    if (popupGad) {
-        addPopupTags[0].ti_Tag  = LAYOUT_AddChild;
-        addPopupTags[0].ti_Data = (ULONG)popupGad;
-        addPopupTags[1].ti_Tag  = CHILD_WeightedHeight;
-        addPopupTags[1].ti_Data = 0;
-        addPopupTags[2].ti_Tag  = CHILD_MinHeight;
-        addPopupTags[2].ti_Data = 0;
-        addPopupTags[3].ti_Tag  = CHILD_MaxHeight;
-        addPopupTags[3].ti_Data = 0;
-        addPopupTags[4].ti_Tag  = TAG_END;
-        addPopupTags[4].ti_Data = 0;
-
-        addMsg.MethodID     = OM_SET;
-        addMsg.ops_AttrList = addPopupTags;
-        addMsg.ops_GInfo    = NULL;
-        DoSuperMethodA(cl, newObj, (APTR)&addMsg);
-    }
-*/
     return (ULONG)newObj;
 }
 
@@ -221,35 +199,19 @@ static ULONG LayoutWithPopup_OnLayout(Class *cl, Object *o,
     /* Override popup position after super has positioned everything else */
     if (inst->popup) {
         if (inst->popup_visible) {
-            struct gpDomain domMsg;
-            WORD            popupH;
-
-            domMsg.MethodID          = GM_DOMAIN;
-            domMsg.gpd_GInfo         = msg->gpl_GInfo;
-            domMsg.gpd_RPort         = msg->gpl_GInfo
-                                       ? msg->gpl_GInfo->gi_RastPort : NULL;
-            domMsg.gpd_Which         = GDOMAIN_NOMINAL;
-            domMsg.gpd_Domain.Left   = 0;
-            domMsg.gpd_Domain.Top    = 0;
-            domMsg.gpd_Domain.Width  = G(o)->Width;
-            domMsg.gpd_Domain.Height = 0;
-            DoMethodA(inst->popup, (Msg)&domMsg);
-            popupH = (domMsg.gpd_Domain.Height > 0)
-                     ? (WORD)domMsg.gpd_Domain.Height : 64;
-
             G(inst->popup)->LeftEdge = G(o)->LeftEdge + inst->popup_x;
             G(inst->popup)->TopEdge  = G(o)->TopEdge  + inst->popup_y;
-            G(inst->popup)->Width    = G(o)->Width;
-            G(inst->popup)->Height   = popupH;
+            G(inst->popup)->Width    = 128+16;
+            G(inst->popup)->Height   = 64;
 
-            /* Recursively lay out popup internals */
-            DoMethodA(inst->popup, (Msg)msg);
         } else {
-            G(inst->popup)->LeftEdge = 32767;
-            G(inst->popup)->TopEdge  = 32767;
+            G(inst->popup)->LeftEdge = 16384;
+            G(inst->popup)->TopEdge  = 16384;
             G(inst->popup)->Width    = 0;
             G(inst->popup)->Height   = 0;
         }
+        /* Recursively lay out popup internals */
+        DoMethodA(inst->popup, (Msg)msg);
     }
   
     return result;
@@ -284,9 +246,10 @@ static ULONG LayoutWithPopup_OnSet(Class *cl, Object *o, struct opSet *msg)
 
             case LAYOUTWP_POPUPVISIBLE:
             //bdbprintf("Set visible %08x %08x %d\n",(int)inst->popup,(int) msg->ops_GInfo,tag->ti_Data);
-                if(inst->popup_visible && (int)tag->ti_Data)
+                if(inst->popup_visible && ((int)tag->ti_Data != 0))
                 {
-                    // if was already visible, need kind of reset
+                    /* may reopen elsewhere,
+                     * if was already visible, need repair */
                     popupHide(o, inst, msg->ops_GInfo);
                 }
                 inst->popup_visible = (int)tag->ti_Data;

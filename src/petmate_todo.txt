@@ -1,38 +1,56 @@
 ﻿
-
- O brush draw with 3 modes, brush action with draw mode
-
  O cybergraphics RTG blits
- O Color popup ! + single color chooser
- O color selction visibe in colorPicker
- 
- O screen selection O> use miniatures + arrows.
- 
- O toggle fullscreen, finalize
-
+ O brush flip and rotate actions bugs
+ O ask when quitting
+ O export png/gif/ilbm with dataypes
+ O the "import image" function
  O finalize Menus and actions
- O Keys: F1/F3 for draw, arrow for char selection when draw, F10 togle screen.
- 
- O Export image using datatypes
- 
- O expor seq , prg,asm
- 
- O screen scroll
- O brush flip and rotate actions
 
- O icons on bt, better layout
+ O icons on bt,
  O settings screen with modeid choice
- O messages on status bar for lasso begin
+
  O messages on status bar for load/save/export return ...
  O save modeid and current w/fs state + current color mode to tooltypes
  O 4 recent files !
- 
- O about requester
- O ask when quitting
+
+
  O AmigaGuide documentation
  O catalog for 5 languages
  O installer ?
  O have example files
+
+
+
+ ------------------
+
+ X bug: click char selector let button char color, but has changed to draw color&char
+
+ X bug: flipx brush trash the hotspot
+ X bug: if popup open and click elsewhere -> mess -> but ko ?
+
+---------
+
+ X about requester
+ X better layout
+ X brush draw with 3 modes, brush action with draw mode
+
+ X Color popup ! + single color chooser
+ X color selction visible in colorPicker
+	X name BG BD in color chooser
+	X ->fionaly not recode popup with windows
  
+ X screen selection -> use miniatures + arrows.
  
- 
+ X toggle fullscreen, finalize
+
+ X expor seq , prg,asm
+ X screen scroll
+
+
+  X messages on status bar for lasso begin
+--------------
+" As those charsets are full of nice geometric figures that allows\n"
+"tons of tricks and may become your favorite source of inspiration.\n\n"
+" - This is also a project intended to explore Intuition BOOPSI and\n"
+"give to the world concrete examples of \"gadget classes\" sources\n"
+"which lacked for decades. This project wouldn't exists if the\n"

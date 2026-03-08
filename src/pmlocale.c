@@ -75,10 +75,13 @@ static const char *defaultStrings[MSG_COUNT] = {
     /* MSG_VIEW_CHARSET_LOWER */
     "Lowercase Charset",
 
+    /* MSG_TOGGLE_FULLSCREEN */
+    "Toggle Full Screen",
+
     /* MSG_MENU_PALETTE */
     "Palette",
     /* MSG_PALETTE_PETMATE */
-    "Petmate",
+    "PetMate",
     /* MSG_PALETTE_COLODORE */
     "Colodore",
     /* MSG_PALETTE_PEPTO */
@@ -102,9 +105,9 @@ static const char *defaultStrings[MSG_COUNT] = {
     "Draw Color",
     "Background Color",
     "Border Color",
-     // MSG_LABEL_DRAWCOLOR,
-     // MSG_LABEL_BACKGROUNDCOLOR,
-     // MSG_LABEL_BORDERCOLOR,
+     /* MSG_LABEL_DRAWCOLOR,
+      MSG_LABEL_BACKGROUNDCOLOR,
+      MSG_LABEL_BORDERCOLOR,*/
 
     /* MSG_STATUS_READY */
     "Ready",
@@ -123,6 +126,17 @@ static const char *defaultStrings[MSG_COUNT] = {
     "Out of memory",
     /* MSG_ERROR_INVALIDFILE */
     "Invalid file format",
+
+    /* follow enum in petscii_fileio.h, message for status bar */
+    "Project read OK.",
+    "Cannot open file.",
+    "File read error.",
+    "JSON parse error.",
+    "Unexpected json file format.",
+    "Out of memory.",
+    "File write error.",
+
+    "File written.",
 
     /* MSG_TOOL_DRAW */
     "Char & Color",
@@ -143,7 +157,21 @@ static const char *defaultStrings[MSG_COUNT] = {
     "Lower",
 
     /* MSG_SETTINGS */
-    "Settings"
+    "Settings",
+
+    /* MSG_EXPORT_BAS */
+    "Export as BASIC (.bas)...",
+    /* MSG_EXPORT_ASM */
+    "Export as ASM (.asm)...",
+    /* MSG_EXPORT_SEQ */
+    "Export as SEQ (.seq)...",
+
+    /* status bar message per tools - keep it same order as enum */
+    "Draw char and Color.",
+    "Colorize mode.",
+    "Draw char mode.",
+    "Use the lasso to detour a brush.",
+    "Set cursor position and type text."
 };
 
 /* LocaleBase declared in petmate.c */

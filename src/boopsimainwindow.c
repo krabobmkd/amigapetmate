@@ -16,6 +16,10 @@
 //#include "appsettings.h"
 #include "petmate.h"
 
+#include <proto/requester.h>
+#include <classes/requester.h>
+
+
 #include <stdio.h>
 #include <string.h>
 // This is the intuition level Window, on OS3 it's recreated when iconizing/reopening !
@@ -26,6 +30,8 @@ struct Window *CurrentMainWindow=NULL;
 
 /* can be either the WB locked screen, or our private screen */
 struct Screen *CurrentMainScreen=NULL;
+
+int  CurrentMainScreen_PreIndexed=FALSE;
 
 /* external window management */
 void OpenSettingsWindow()
@@ -45,6 +51,12 @@ void CloseSettingsWindow()
         }
     }
     PmSettingsView_Close(&app->settingsView);
+
+    /* would close requester, but ther'es nio method for this
+     if(app->aboutRequester)
+     {
+     	DoMethod(obj, ..., , TAG_DONE)
+     }*/
 }
 
 
@@ -105,7 +117,17 @@ void BMainWindow_Show(struct BoopsiMainWindow *mw,Object *window_obj,struct AppS
         BMainWindow_SwitchToWB(mw,window_obj,appSettings);
     }
 }
-
+void BMainWindow_Toggle(struct BoopsiMainWindow *mw,Object *window_obj,struct AppSettings *appSettings)
+{
+    if(!mw) return;
+    if(!mw->fullscreen)
+    {
+        BMainWindow_SwitchToFullScreen(mw,window_obj,appSettings);
+    } else
+    {   // WB window
+        BMainWindow_SwitchToWB(mw,window_obj,appSettings);
+    }
+}
 /* at iconify or close */
 void BMainWindow_Close(struct BoopsiMainWindow *mw,Object *window_obj, int iconify)
 {
@@ -169,21 +191,6 @@ void GenericOpenWindow(BoopsiMainWindow *mw,Object *window_obj,struct AppSetting
 /* This function realloc pens if screen changed  */
 extern void UpdatePensToCurrentMainScreen();
 
-
-// static const ULONG c64ColorsScreen[C64_COLOR_COUNT] =
-// {
-//     /* original order
-//     0x000000, 0xFFFFFF, 0x924A40, 0x84C5CC,
-//     0x9351B6, 0x72B14B, 0x483AA4, 0xD5DF7C,
-//     0x99692D, 0x675201, 0xC08178, 0x606060,
-//     0x8A8A8A, 0xB2EC91, 0x867ADE, 0xAEAEAE
-//     */
-//     /* gey-black-white-first */
-//     0x8A8A8A, 0x000000, 0xFFFFFF, 0x924A40, 0x84C5CC,
-//     0x9351B6, 0x72B14B, 0x483AA4, 0xD5DF7C,
-//     0x99692D, 0x675201, 0xC08178, 0x606060,
-//     0xB2EC91, 0x867ADE, 0xAEAEAE
-// };
 /* particular treatment for palette in fullscreen mode:
   since there is a colormap per screen, if we create the screen
   we can just ask 16 colors and set the C64 paletteId directly to it.
@@ -215,7 +222,6 @@ static void pmPaletteToColorSpec(struct ColorSpec * pccolor)
     pal[1] = pal[0];
     pal[0] = t;
 
-
     for (i = 0; i < C64_COLOR_COUNT; i++) {
         ULONG cRGB = pal[i];
 
@@ -227,24 +233,14 @@ static void pmPaletteToColorSpec(struct ColorSpec * pccolor)
     }
     pccolor->ColorIndex = -1;
 }
-
+extern void RefreshAllColorGadgets();
 
 void BMainWindow_SwitchToFullScreen(struct BoopsiMainWindow *mw,Object *window_obj,struct AppSettings *appSettings)
 {
         int x1,y1,w,h;
-   // note: all this is regular OS intuition, no CGX
 	struct ColorSpec colspec[16+1];
-	// ={ // let's do it amiga default like
- //                0,  0,0,0, //black  inverte black and grey against amiga default.
- //                                // this will draw screen black by default.
- //                1,  8,8,8,  // grey
- //                2,  15,15,15,
- //                3,  1,8,15, // blue 1
- //                4,  0,1,8, // blue 2
- //                // end
- //                -1,0,0,0};
     struct Screen *myScreen;
-    printf("go fs\n");
+
     if(!mw || !window_obj) return;
     if(mw->fullPubScreen) return; // already ok
 
@@ -259,7 +255,7 @@ void BMainWindow_SwitchToFullScreen(struct BoopsiMainWindow *mw,Object *window_o
         SA_PubName,   (ULONG) "PetMate",  // Optional: custom name
         SA_LikeWorkbench, TRUE,             // Inherit Workbench settings
         SA_Title,     (ULONG) &mw->title[0],
-        SA_Colors,(ULONG)&colspec[0],
+        SA_Colors,(ULONG)&colspec[0], /*really need a palette at opening or intuition will manage colors */
         TAG_DONE);
     if(!myScreen) return;
 
@@ -290,10 +286,6 @@ void BMainWindow_SwitchToFullScreen(struct BoopsiMainWindow *mw,Object *window_o
 
     }
     CurrentMainScreen = myScreen;
- printf("new screen ok\n");
-    /* need to reattribute pens on this screen */
-    UpdatePensToCurrentMainScreen();
-
 
     /* reconfigure persistant boopsi window object while closed */
     {
@@ -302,7 +294,7 @@ void BMainWindow_SwitchToFullScreen(struct BoopsiMainWindow *mw,Object *window_o
         y1 = myScreen->BarHeight;
         w = myScreen->Width;
         h = myScreen->Height - y1;
-        printf("fs w:%d h:%d myScreen->BarHeight:%d\n",w,h,myScreen->BarHeight);
+     //   printf("fs w:%d h:%d myScreen->BarHeight:%d\n",w,h,myScreen->BarHeight);
 
         SetAttrs(window_obj,
             WA_CustomScreen,(ULONG)myScreen,
@@ -322,6 +314,10 @@ void BMainWindow_SwitchToFullScreen(struct BoopsiMainWindow *mw,Object *window_o
 
             TAG_END);
     }
+
+    /* need to reattribute pens on this screen */
+    UpdatePensToCurrentMainScreen();
+
     /* re-open */
     GenericOpenWindow( mw, window_obj, appSettings );
 
@@ -329,7 +325,7 @@ void BMainWindow_SwitchToFullScreen(struct BoopsiMainWindow *mw,Object *window_o
     {
         struct Gadget *mlayout=NULL;
         GetAttr(WINDOW_ParentGroup,window_obj,(ULONG *)&mlayout);
-        //printf("got WINDOW_ParentGroup:%08x\n",(int)mlayout);
+
         if(mlayout)
         {
             SetGadgetAttrs(mlayout,CurrentMainWindow,NULL,
@@ -341,10 +337,10 @@ void BMainWindow_SwitchToFullScreen(struct BoopsiMainWindow *mw,Object *window_o
         }
 
     }
-
-
-
+    CurrentMainScreen_PreIndexed = TRUE;
     mw->fullscreen = TRUE;
+    /* some may need reindexation and window must be opened */
+    RefreshAllColorGadgets();
 }
 
 
@@ -383,6 +379,7 @@ void BMainWindow_SwitchToWB(struct BoopsiMainWindow *mw,Object *window_obj,struc
     CurrentMainScreen =  mw->lockedScreen;
 
     /* need to reattribute pens on this screen */
+    CurrentMainScreen_PreIndexed = FALSE;
     UpdatePensToCurrentMainScreen();
 
     {
@@ -425,13 +422,11 @@ void BMainWindow_SwitchToWB(struct BoopsiMainWindow *mw,Object *window_obj,struc
             TAG_END);
     }
 
-// WFLG_REPORTMOUSE
-   //     WA_ReportMouse,TRUE,
-
     mw->fullscreen = FALSE;
 
     /* re-open */
     GenericOpenWindow( mw, window_obj, appSettings );
 
-
+    /* some may need reindexation and window must be opened */
+    RefreshAllColorGadgets();
 }

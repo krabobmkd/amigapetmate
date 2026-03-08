@@ -39,7 +39,7 @@ const ULONG c64Palettes[PALETTE_COUNT][C64_COLOR_COUNT] = {
 };
 
 const char *c64PaletteNames[PALETTE_COUNT] = {
-    "Petmate",
+    "PetMate",
     "Colodore",
     "Pepto",
     "VICE"

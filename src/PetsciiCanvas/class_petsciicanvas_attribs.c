@@ -261,7 +261,10 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                 if(inst->currentTool != (UBYTE)tag->ti_Data)
                 {
                     inst->currentTool = (UBYTE)tag->ti_Data;
-                    FreeBrush(inst);
+                    if(inst->currentTool == TOOL_LASSOBRUSH)
+                    {
+                        FreeBrush(inst);
+                    }
                     /* Cancel any active lasso when the tool changes */
                     inst->isLassoing = FALSE;
                 }
@@ -269,16 +272,15 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                 break;
 
             case PCA_SelectedChar:
-             bdbprintf("canvas received: PCA_SelectedChar\n");
+            // bdbprintf("canvas received: PCA_SelectedChar\n");
                 inst->selectedChar = (UBYTE)tag->ti_Data;
                 /* Clicking the char selector: reset to 1x1 single-char draw mode */
                 FreeBrush(inst);
-                inst->currentTool = TOOL_DRAW;
                 result = 1;
                 break;
 
             case PCA_FgColor:
-            bdbprintf("canvas received PCA_FgColor:\n");
+           // bdbprintf("canvas received PCA_FgColor:\n");
                 inst->fgColor = (UBYTE)tag->ti_Data;
                 result = 1; /* no need for redraw, just change the drawing prefs */
                 break;
@@ -363,8 +365,8 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                         inst->brush  = newBrush;
                         inst->brushW = newBrush->w;
                         inst->brushH = newBrush->h;
-                        inst->brushHotx = 0;
-                        inst->brushHoty = 0;
+                        inst->brushHotx = inst->brushW>>1;
+                        inst->brushHoty = inst->brushH>>1;
 
                         /* nativeBrushBuf will be reallocated on next render */
                         if (inst->nativeBrushBuf) {

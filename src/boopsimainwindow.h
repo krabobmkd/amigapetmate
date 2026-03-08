@@ -50,10 +50,14 @@ void BMainWindow_SetTitle(struct BoopsiMainWindow *mw, const char *title);
 
 /* at uniconify */
 void BMainWindow_Show(struct BoopsiMainWindow *mw,Object *window_obj,struct AppSettings *appSettings);
+void BMainWindow_Toggle(struct BoopsiMainWindow *mw,Object *window_obj,struct AppSettings *appSettings);
+
 /* at iconify or quitting */
 void BMainWindow_Close(struct BoopsiMainWindow *mw,Object *window_obj, int iconify);
 
 extern struct Window *CurrentMainWindow;
 extern struct Screen *CurrentMainScreen;
+/* direct C64 color mapping */
+extern int  CurrentMainScreen_PreIndexed;
 
 #endif /* PmMenu_H */

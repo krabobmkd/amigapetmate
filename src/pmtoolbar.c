@@ -60,6 +60,7 @@ int PmToolbar_Create(PmToolbar *tb,struct PetsciiStyle  *style)
 {
     Object *toolGroup;
     Object *actionGroup;
+    Object *spacers[4];
     int     i;
 
     for (i = 0; i < TOOLBAR_TOOL_COUNT; i++)
@@ -69,6 +70,14 @@ int PmToolbar_Create(PmToolbar *tb,struct PetsciiStyle  *style)
     tb->clearBtn = NULL;
     tb->layout   = NULL;
 
+    for(i=0;i<4;i++)
+        spacers[i] = (Object *)NewObject(BUTTON_GetClass(), NULL,
+        GA_ReadOnly, TRUE,
+        BUTTON_BevelStyle, BVS_NONE,
+        BUTTON_Transparent, TRUE,
+        TAG_END);
+
+
     /* Tool buttons (TOOL_DRAW is initially selected) */
     tb->toolBtns[TOOL_DRAW]     = makeBtnSwitch( GAD_TOOL_DRAW,
                                            LOC(MSG_TOOL_DRAW),     TRUE);
@@ -76,7 +85,7 @@ int PmToolbar_Create(PmToolbar *tb,struct PetsciiStyle  *style)
                                            LOC(MSG_TOOL_COLORIZE), FALSE);
     tb->toolBtns[TOOL_CHARDRAW] = makeBtnSwitch( GAD_TOOL_CHARDRAW,
                                            LOC(MSG_TOOL_CHARDRAW), FALSE);
-    tb->toolBtns[TOOL_BRUSH]    = makeBtnSwitch( GAD_TOOL_BRUSH,
+    tb->toolBtns[TOOL_LASSOBRUSH]    = makeBtnSwitch( GAD_TOOL_BRUSH,
                                            LOC(MSG_TOOL_BRUSH),    FALSE);
     tb->toolBtns[TOOL_TEXT]     = makeBtnSwitch( GAD_TOOL_TEXT,
                                            LOC(MSG_TOOL_TEXT),     FALSE);
@@ -86,14 +95,14 @@ int PmToolbar_Create(PmToolbar *tb,struct PetsciiStyle  *style)
                     GA_ID,GAD_COLORWATCH_BG,
                     ICA_TARGET,TargetInstance,
                      CSW_Style,(ULONG)style,
-                     CSW_ColorIndex,4,
+                     CSW_ColorIndex,6,
                     TAG_END);
 
     tb->borderColorWatch = NewObject(ColorSwatchClass, NULL,
                     GA_ID,GAD_COLORWATCH_BD,
                     ICA_TARGET,TargetInstance,
                      CSW_Style,(ULONG)style,
-                     CSW_ColorIndex,5,
+                     CSW_ColorIndex,14,
                     TAG_END);
 
     tb->undoBtn  = makeBtnActionUp( GAD_TOOL_UNDO,  LOC(MSG_EDIT_UNDO));
@@ -111,17 +120,21 @@ int PmToolbar_Create(PmToolbar *tb,struct PetsciiStyle  *style)
 
         LAYOUT_Orientation,  /*LAYOUT_ORIENT_VERT*/LAYOUT_ORIENT_HORIZ,
         LAYOUT_InnerSpacing, 2,
-
+        LAYOUT_TopSpacing,2,
+        LAYOUT_AddChild, (ULONG)spacers[0],
+            CHILD_WeightedWidth, 1,
         LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_DRAW],
-         //   CHILD_WeightedHeight, 0,
+            CHILD_WeightedWidth, 1,
         LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_COLORIZE],
-         //   CHILD_WeightedHeight, 0,
+            CHILD_WeightedWidth, 1,
         LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_CHARDRAW],
-         //   CHILD_WeightedHeight, 0,
-        LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_BRUSH],
-         //   CHILD_WeightedHeight, 0,
+            CHILD_WeightedWidth, 1,
+        LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_LASSOBRUSH],
+            CHILD_WeightedWidth, 1,
         LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_TEXT],
-         //   CHILD_WeightedHeight, 0,
+            CHILD_WeightedWidth, 1,
+        LAYOUT_AddChild, (ULONG)spacers[1],
+            CHILD_WeightedWidth, 1,
         TAG_END);
 
     if (!toolGroup) return 0;
@@ -132,15 +145,22 @@ int PmToolbar_Create(PmToolbar *tb,struct PetsciiStyle  *style)
         LAYOUT_Orientation,  LAYOUT_ORIENT_HORIZ,
         LAYOUT_InnerSpacing, 2,
 
-        LAYOUT_AddChild, (ULONG)tb->bgColorWatch,
-        LAYOUT_AddChild, (ULONG)tb->borderColorWatch,
+        LAYOUT_AddChild, (ULONG)spacers[2],
+            CHILD_WeightedWidth, 2,
 
+        LAYOUT_AddChild, (ULONG)tb->bgColorWatch,
+            CHILD_WeightedWidth, 1,
+        LAYOUT_AddChild, (ULONG)tb->borderColorWatch,
+            CHILD_WeightedWidth, 1,
         LAYOUT_AddChild, (ULONG)tb->undoBtn,
-       //     CHILD_WeightedHeight, 0,
+            CHILD_WeightedWidth, 1,
         LAYOUT_AddChild, (ULONG)tb->redoBtn,
-       //     CHILD_WeightedHeight, 0,
+            CHILD_WeightedWidth, 1,
         LAYOUT_AddChild, (ULONG)tb->clearBtn,
-       //     CHILD_WeightedHeight, 0,
+            CHILD_WeightedWidth, 1,
+
+        LAYOUT_AddChild, (ULONG)spacers[3],
+            CHILD_WeightedWidth, 2,
         TAG_END);
 
     if (!tb->layoutUndoRedo) return 0;

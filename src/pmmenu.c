@@ -31,12 +31,24 @@ static struct NewMenu menuTemplate[] = {
         {NM_ITEM, NULL, "S", 0, 0, (APTR)ACTION_PROJECT_SAVE},
         {NM_ITEM, NULL, "A", 0, 0, (APTR)ACTION_PROJECT_SAVEAS},
         {NM_ITEM, NM_BARLABEL, 0, 0, 0, NULL},
+        {NM_ITEM, (STRPTR)"Export As", 0, 0, 0, 0},
+            {NM_SUB, NULL, 0, 0, 0, (APTR)ACTION_EXPORT_BAS},
+            {NM_SUB, NULL, 0, 0, 0, (APTR)ACTION_EXPORT_ASM},
+            {NM_SUB, NULL, 0, 0, 0, (APTR)ACTION_EXPORT_SEQ},
+        {NM_ITEM, NM_BARLABEL, 0, 0, 0, NULL},
         {NM_ITEM, NULL, 0,   0, 0, (APTR)ACTION_PROJECT_ABOUT},
         {NM_ITEM, NM_BARLABEL, 0, 0, 0, NULL},
         {NM_ITEM, NULL, "Q", 0, 0, (APTR)ACTION_PROJECT_QUIT},
 
     /* - - - Edit - - - */
     {NM_TITLE, NULL, 0,   0, 0, (APTR)MSG_MENU_EDIT},
+        {NM_ITEM, NULL, "F1", NM_COMMANDSTRING, 0, (APTR)ACTION_EDIT_DRAW1},
+        {NM_ITEM, NULL, "F2", NM_COMMANDSTRING, 0, (APTR)ACTION_EDIT_DRAW2},
+        {NM_ITEM, NULL, "F3", NM_COMMANDSTRING, 0, (APTR)ACTION_EDIT_DRAW3},
+        {NM_ITEM, NULL, "F4", NM_COMMANDSTRING, 0, (APTR)ACTION_EDIT_DRAW4},
+        {NM_ITEM, NULL, "F5", NM_COMMANDSTRING, 0, (APTR)ACTION_EDIT_DRAW5},
+
+        {NM_ITEM, NM_BARLABEL, 0, 0, 0, NULL},
         {NM_ITEM, NULL, "Z", 0, 0, (APTR)ACTION_EDIT_UNDO},
         {NM_ITEM, NULL, "Y", 0, 0, (APTR)ACTION_EDIT_REDO},
         {NM_ITEM, NM_BARLABEL, 0, 0, 0, NULL},
@@ -66,6 +78,8 @@ static struct NewMenu menuTemplate[] = {
         {NM_ITEM, NM_BARLABEL, 0, 0, 0, NULL},
         {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_VIEW_CHARSET_UPPER},
         {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_VIEW_CHARSET_LOWER},
+        {NM_ITEM, NM_BARLABEL, 0, 0, 0, NULL},
+        {NM_ITEM,NULL, "F10", NM_COMMANDSTRING, 0, (APTR)ACTION_VIEW_TOGGLE_FULL_SCREEN},
 
     /* - - - Brush - - - */
     {NM_TITLE, NULL, 0, 0, 0, (APTR)MSG_MENU_BRUSH},

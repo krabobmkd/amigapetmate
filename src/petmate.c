@@ -101,6 +101,7 @@ struct Library *LayoutBase = NULL;
 struct Library *ButtonBase = NULL;
 struct Library *LabelBase  = NULL;
 struct Library *GetFileBase=NULL;
+struct Library *RequesterBase=NULL;
 
 /* Library table for automated opening/closing */
 typedef struct {
@@ -124,6 +125,7 @@ static LibraryEntry libraryTable[] = {
     {"gadgets/layout.gadget",  45, &LayoutBase},
     {"gadgets/button.gadget",  45, &ButtonBase},
     {"gadgets/getfile.gadget", 45, &GetFileBase},
+    {"requester.class", 45, &RequesterBase},
     {NULL, 0, NULL} /* Terminator */
 };
 
@@ -172,9 +174,10 @@ static void refreshUI(void)
         RefreshGList((struct Gadget *)app->canvasGadget,
                      CurrentMainWindow, NULL, 1);
 
-    /* Sync CharSelector charset */
+    /* Sync CharSelector charset and background color */
     SetAttrs(app->charSelectorGadget,
-        CHSA_Charset, (ULONG)charset,
+        CHSA_Charset,  (ULONG)charset,
+        CHSA_BgColor,  (ULONG)scr->backgroundColor,
         TAG_END);
     if (CurrentMainWindow)
         RefreshGList((struct Gadget *)app->charSelectorGadget,
@@ -192,11 +195,31 @@ static void refreshUI(void)
             TAG_END);
     }
 
-    /* Sync screen tabs */
+    /* Sync bg/border color watches to the current screen's colors */
+    if (CurrentMainWindow && app->toolbar.bgColorWatch && app->toolbar.borderColorWatch) {
+        SetGadgetAttrs((struct Gadget *)app->toolbar.bgColorWatch,
+            CurrentMainWindow, NULL,
+            CSW_ColorIndex, (ULONG)scr->backgroundColor,
+            TAG_END);
+        SetGadgetAttrs((struct Gadget *)app->toolbar.borderColorWatch,
+            CurrentMainWindow, NULL,
+            CSW_ColorIndex, (ULONG)scr->borderColor,
+            TAG_END);
+    }
+
+    /* Sync screen tabs: first scroll window to keep current screen visible */
+    {
+        UWORD cur = app->project->currentScreen;
+        UWORD off = app->screenTabs.tabOffset;
+        if (cur < off)
+            app->screenTabs.tabOffset = cur;
+        else if (cur >= off + SCREENTABS_VISIBLE)
+            app->screenTabs.tabOffset = (UWORD)(cur - SCREENTABS_VISIBLE + 1);
+    }
     PmScreenTabs_Update(&app->screenTabs,
                         app->project->screenCount,
                         app->project->currentScreen,
-                        CurrentMainWindow,1);
+                        CurrentMainWindow, 1);
 
     /* Sync toolbar selected tool */
     PmToolbar_SetActiveTool(&app->toolbar,
@@ -239,8 +262,27 @@ static void rebuildUndoBuffers(void)
     }
 }
 
+void SetStatusBarMessage(int enumMessage)
+{
+    if(!app) return;
+    if(CurrentMainWindow)
+    {
+        SetGadgetAttrs(app->statusBarLabel,CurrentMainWindow,NULL,
+            GA_Text,(ULONG)LOC(enumMessage),
+            TAG_END
+        );
+    } else
+    {
+        SetAttrs(app->statusBarLabel,
+            GA_Text,(ULONG)LOC(enumMessage),
+            TAG_END
+        );
+    }
+}
+
 void setTool(ULONG newTool)
 {
+    int emess;
     if(newTool == app->toolState.currentTool) return;
 
     if(newTool>=TOOL_DRAW && newTool<=TOOL_CHARDRAW)
@@ -253,6 +295,10 @@ void setTool(ULONG newTool)
 
     PmToolbar_SetActiveTool(&app->toolbar, newTool,
                         CurrentMainWindow);
+
+    /* the localization enum follow the tool enum order: */
+    SetStatusBarMessage(MSG_STATUS_DRAW+newTool);
+
 }
 
 void updateCharSelectedLabel(ULONG ichar);
@@ -414,7 +460,22 @@ int main(int argc, char **argv)
         CPA_Style,         (ULONG)&app->style,
         CPA_SelectedColor, (ULONG)app->toolState.bdColor,
         TAG_END);
+    app->colorPickerPopUpLabel = (Object *)NewObject(BUTTON_GetClass(), NULL,
+        GA_ReadOnly, TRUE,
+        BUTTON_BevelStyle, BVS_NONE,
+        BUTTON_Transparent, FALSE,
+        BUTTON_Justification, BCJ_LEFT,
+       // GA_Text, (ULONG)"Label text here",
+        TAG_END);
 
+    app->colorPickerPopUpLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
+            LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
+            LAYOUT_InnerSpacing, 0,
+            LAYOUT_AddChild, (ULONG)app->colorPickerPopUpLabel,
+                CHILD_WeightedHeight, 0,
+            LAYOUT_AddChild, (ULONG)app->colorPickerPopUp,
+                CHILD_WeightedHeight, 1,
+            TAG_END);
 
     /* Phase 7: create toolbar and screen-tab bar */
     if (!PmToolbar_Create(&app->toolbar,&app->style))
@@ -522,66 +583,30 @@ int main(int argc, char **argv)
             LAYOUT_AddChild, (ULONG)app->colorPickerFgGadget,
                 CHILD_WeightedHeight, 4,
                 CHILD_MinHeight,      16,
-                // CHILD_MaxHeight,      64,
-/* old, now managed by popups like original app
-//            LAYOUT_AddChild, (ULONG)BGColorLabel,
-//                CHILD_WeightedHeight, 0,
 
-//            LAYOUT_AddChild, (ULONG)app->colorPickerBgGadget,
-//                CHILD_WeightedHeight, 4,
-//                CHILD_MinHeight,      16,
-                // CHILD_MaxHeight,      64,
-*/
             LAYOUT_AddChild, (ULONG)app->charSelectorGadget,
                 CHILD_WeightedHeight, 16,
-                // CHILD_MinHeight,      128,
-                // CHILD_MinWidth,       128,
-                // CHILD_MaxHeight,      256,
-                // CHILD_MaxWidth,       256,
 
              LAYOUT_AddChild, (ULONG)app->currentCharLabel,
                 CHILD_WeightedHeight, 0,
 
             LAYOUT_AddChild, (ULONG)charsetLayout,
                 CHILD_WeightedHeight, 0,
-                // CHILD_MinHeight,      20,
-                // CHILD_MaxHeight,      28,
+
             TAG_END);
 
         }
 
-    /* add that to toolbar */
-//    app->bgColorWatch = NewObject(ColorSwatchClass, NULL,
-//                    GA_ID,GAD_COLORWATCH_BG,
-//                    ICA_TARGET,TargetInstance,
-//                     CSW_Style,(ULONG)&app->style,
-//                     CSW_ColorIndex,4,
-//                    TAG_END);
-
-//    app->borderColorWatch = NewObject(ColorSwatchClass, NULL,
-//                    GA_ID,GAD_COLORWATCH_BD,
-//                    ICA_TARGET,TargetInstance,
-//                     CSW_Style,(ULONG)&app->style,
-//                     CSW_ColorIndex,5,
-//                    TAG_END);
-
-//   SetGadgetAttrs(app->toolbar.layout,CurrentMainWindow ,NULL,
-//                    LAYOUT_AddChild,(ULONG)app->bgColorWatch,
-//                    LAYOUT_AddChild,(ULONG)app->borderColorWatch,
-////                    CHILD_MinHeight,16,
-////                    CHILD_MinWidth,24,
-//                    TAG_END
-//                    );
-
         Object *canvhl = (Object *)NewObject(LAYOUT_GetClass(), NULL,
             LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
-            LAYOUT_InnerSpacing, 2,
+            LAYOUT_InnerSpacing, 4,
+            LAYOUT_TopSpacing,2,
             LAYOUT_AddChild, (ULONG)app->toolbar.layout,
-                CHILD_WeightedHeight, 0,
+                CHILD_WeightedHeight, 3,
             LAYOUT_AddChild, (ULONG)app->canvasGadget,
-                CHILD_WeightedHeight, 1, /* use width in char as weight */
+                CHILD_WeightedHeight, 25, /* use width in char as weight */
             LAYOUT_AddChild, (ULONG)app->toolbar.layoutUndoRedo,
-                CHILD_WeightedHeight, 0, /* use width in char as weight */
+                CHILD_WeightedHeight, 3, /* use width in char as weight */
 
             TAG_END);
 
@@ -590,16 +615,6 @@ int main(int argc, char **argv)
         workAreaLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
             LAYOUT_Orientation,  LAYOUT_ORIENT_HORIZ,
             LAYOUT_InnerSpacing, 2,
-/* moved
-            LAYOUT_AddChild, (ULONG)app->toolbar.layout,
-                CHILD_WeightedWidth, 0,
-*/
-              //  CHILD_MinWidth,      52,
-              //  CHILD_MaxWidth,      72,
-
-
-            // LAYOUT_AddChild, (ULONG)app->canvasGadget,
-            //     CHILD_WeightedWidth, 42, /* use width in char as weight */
 
             LAYOUT_AddChild, (ULONG)canvhl,
                 CHILD_WeightedWidth, 42, /* use width in char as weight */
@@ -607,10 +622,9 @@ int main(int argc, char **argv)
 
             LAYOUT_AddChild, (ULONG)rightPanelLayout,
                 CHILD_WeightedWidth, 16, /* use width of the char selector in char as weight */
-               // CHILD_MinWidth,      128,
-               // CHILD_MaxWidth,      256,
+
             TAG_END);
-// LayoutWithPopupClass LAYOUT_GetClass()
+
         /* Main vertical layout: screen tabs | work area | status bar */
         app->mainvlayout = (Object *)NewObject(LayoutWithPopupClass, NULL,
             LAYOUT_DeferLayout,   TRUE,
@@ -621,17 +635,17 @@ int main(int argc, char **argv)
             LAYOUT_RightSpacing,  0,
             LAYOUT_InnerSpacing,  2,
             LAYOUT_Orientation,   LAYOUT_ORIENT_VERT,
-            LAYOUT_AddChild,(ULONG)app->colorPickerPopUp,
+            LAYOUT_AddChild,(ULONG)app->colorPickerPopUpLayout,
                CHILD_MaxWidth,0,
+               CHILD_MinWidth,0,
                CHILD_MaxHeight,0,
+               CHILD_MinHeight,0,
+               CHILD_WeightedHeight,0,
 
             LAYOUT_AddChild, (ULONG)app->screenTabs.layout,
                 CHILD_WeightedHeight, 0,
                 CHILD_MinHeight,      20,
                 CHILD_MaxHeight,      28,
-        /* moved here */
-        // LAYOUT_AddChild, (ULONG)app->toolbar.layout,
-        //     CHILD_WeightedWidth, 0,
 
             LAYOUT_AddChild, (ULONG)workAreaLayout,
                 CHILD_WeightedHeight, 1000,
@@ -639,7 +653,7 @@ int main(int argc, char **argv)
             LAYOUT_AddChild, (ULONG)app->statusBarLayout,
                 CHILD_WeightedHeight, 0,
 
-            LAYOUTWP_POPUPGADGET,(ULONG)app->colorPickerPopUp,
+            LAYOUTWP_POPUPGADGET,(ULONG)app->colorPickerPopUpLayout,
             TAG_END);
     }
 
@@ -691,13 +705,11 @@ int main(int argc, char **argv)
 
      BMainWindow_SetTitle(&app->mainwindow,"PetMate v0.1 beta");
     /*  Open the window or screen. */
-    BMainWindow_SwitchToWB(&app->mainwindow,app->window_obj,&app->appSettings);
+  //  BMainWindow_SwitchToWB(&app->mainwindow,app->window_obj,&app->appSettings);
      //BMainWindow_Show(&app->mainwindow,app->window_obj,&app->appSettings);
-   //  BMainWindow_SwitchToFullScreen(&app->mainwindow,app->window_obj,&app->appSettings);
-
-
-    bdbprintf("Petmate started. Project has %d screen(s).\n",
-              (int)app->project->screenCount);
+  BMainWindow_SwitchToFullScreen(&app->mainwindow,app->window_obj,&app->appSettings);
+    // bdbprintf("PetMate started. Project has %d screen(s).\n",
+    //           (int)app->project->screenCount);
 
     /* - - - Input Event Loop - - - */
     {
@@ -729,9 +741,22 @@ int main(int argc, char **argv)
                 switch (result & WMHI_CLASSMASK)
                 {
                     case WMHI_RAWKEY:
-                        /* ESC key to quit */
-                        if ((result & WMHI_KEYMASK) == 0x45)
-                            ok = FALSE;
+                    {
+                        /* keys managed at mainwindow level */
+                        ULONG key = (result & WMHI_KEYMASK);
+                        if(key>=0x50 && key<=0x54)
+                        {
+                            setTool( TOOL_DRAW + key - 0x50);
+                        } else
+                        switch(key)
+                        {
+                            /* F10 */
+                            case 0x59: BMainWindow_Toggle(&app->mainwindow,app->window_obj,&app->appSettings); break;
+                            case 0x45:  ok = FALSE; break; /* ESC key to quit */
+                            default:
+                            break;
+                        }
+                    }
                         break;
 
                     case WMHI_CLOSEWINDOW:
@@ -848,17 +873,42 @@ int main(int argc, char **argv)
                     ptag = FindTagItem(GA_ID, msg);
                     if (ptag) sender_ID = ptag->ti_Data;
 
-                    /* Screen tab range */
-                    if (sender_ID >= GAD_SCREENTAB_FIRST &&
-                        sender_ID <= GAD_SCREENTAB_LAST) {
-                        UWORD tabIdx = (UWORD)(sender_ID - GAD_SCREENTAB_FIRST);
-                        if (tabIdx < app->project->screenCount) {
-                            /* at button up */
-                            if(((ptag = FindTagItem(WMHI_GADGETUP, msg))!=0) &&
-                                    (ptag->ti_Data != 0) )
-                            {
-
-                                PetsciiProject_SetCurrentScreen(app->project, tabIdx);
+                    /* Screen tab scroll: "<" */
+                    if (sender_ID == GAD_SCREENTAB_PREV) {
+                        if (((ptag = FindTagItem(WMHI_GADGETUP, msg)) != 0) &&
+                            (ptag->ti_Data != 0)) {
+                            if (app->screenTabs.tabOffset > 0) {
+                                app->screenTabs.tabOffset--;
+                                PmScreenTabs_Update(&app->screenTabs,
+                                    app->project->screenCount,
+                                    app->project->currentScreen,
+                                    CurrentMainWindow, 1);
+                            }
+                        }
+                    }
+                    /* Screen tab scroll: ">" */
+                    else if (sender_ID == GAD_SCREENTAB_NEXT) {
+                        if (((ptag = FindTagItem(WMHI_GADGETUP, msg)) != 0) &&
+                            (ptag->ti_Data != 0)) {
+                            if (app->screenTabs.tabOffset + SCREENTABS_VISIBLE <
+                                    app->project->screenCount) {
+                                app->screenTabs.tabOffset++;
+                                PmScreenTabs_Update(&app->screenTabs,
+                                    app->project->screenCount,
+                                    app->project->currentScreen,
+                                    CurrentMainWindow, 1);
+                            }
+                        }
+                    }
+                    /* Screen tab buttons: switch to screen tabOffset + slot */
+                    else if (sender_ID >= GAD_SCREENTAB_FIRST &&
+                             sender_ID <= GAD_SCREENTAB_LAST) {
+                        UWORD slot      = (UWORD)(sender_ID - GAD_SCREENTAB_FIRST);
+                        UWORD screenIdx = app->screenTabs.tabOffset + slot;
+                        if (screenIdx < app->project->screenCount) {
+                            if (((ptag = FindTagItem(WMHI_GADGETUP, msg)) != 0) &&
+                                (ptag->ti_Data != 0)) {
+                                PetsciiProject_SetCurrentScreen(app->project, screenIdx);
                                 refreshUI();
                             }
                         }
@@ -894,24 +944,36 @@ int main(int argc, char **argv)
                                 ptag = FindTagItem(CSW_Clicked, msg);
                                 if (ptag)
                                 {
-                                    LONG x,y;
+                                    LONG x,y, currentColor;
+                                    ULONG labelEnum =(sender_ID==GAD_COLORWATCH_BG)?
+                                         MSG_LABEL_BACKGROUNDCOLOR:MSG_LABEL_BORDERCOLOR;
                                     Object *sender = (sender_ID==GAD_COLORWATCH_BG)?
                                             app->toolbar.bgColorWatch:
                                             app->toolbar.borderColorWatch;
                                     GetAttr(GA_Left,sender,&x);
                                     GetAttr(GA_Top,sender,&y);
+                                    GetAttr(CSW_ColorIndex,sender,&currentColor);
 
                                     SetAttrs(app->colorPickerPopUp,
                                             CPA_ColorRole,sender_ID,
+                                            CPA_SelectedColor,currentColor,
+                                            TAG_END
                                             );
 
+                                    /* set popup label */
+                                    SetGadgetAttrs(app->colorPickerPopUpLabel,CurrentMainWindow,NULL,
+                                        GA_TEXT,(ULONG)LOC(labelEnum),
+                                        TAG_END);
                                     // open the popup
                                     SetGadgetAttrs(app->mainvlayout,CurrentMainWindow,NULL,
                                     LAYOUTWP_SENDERID,sender_ID,
                                     LAYOUTWP_POPUPX,x,
                                     LAYOUTWP_POPUPY,y-64,
-                                            LAYOUTWP_POPUPVISIBLE,TRUE
+                                    LAYOUTWP_POPUPVISIBLE,TRUE,
+                                    TAG_END
                                             );
+                                    /* to be sure inactivation of this close the popup*/
+                                    //noActivateGadget(app->colorPickerPopUp,CurrentMainWindow,NULL);
 
                                 }
 
@@ -937,20 +999,21 @@ int main(int argc, char **argv)
                                 /* Value comes from OM_NOTIFY (preferred) or WMHI_GADGETUP */
                                 ULONG newChar = 0;
                                 ptag = FindTagItem(CHSA_SelectedChar, msg);
-                                if (ptag) newChar = ptag->ti_Data;
-                                else GetAttr(CHSA_SelectedChar,
-                                             app->charSelectorGadget, &newChar);
-                                app->toolState.selectedChar = (UBYTE)newChar;
-                                SetAttrs(app->canvasGadget,
-                                    PCA_SelectedChar, newChar,
-                                    TAG_END);
-                                /* to be clear, set draw if was brush in tool */
-                                if(app->toolState.currentTool == TOOL_BRUSH ||
-                                   app->toolState.currentTool == TOOL_TEXT )
+                                if (ptag)
                                 {
-                                    setTool(app->toolState.lastDrawTool);
-                                }
+                                    newChar = ptag->ti_Data;
 
+                                    app->toolState.selectedChar = (UBYTE)newChar;
+                                    SetAttrs(app->canvasGadget,
+                                        PCA_SelectedChar, newChar,
+                                        TAG_END);
+                                    /* to be clear, set draw if was brush in tool */
+                                    if(app->toolState.currentTool == TOOL_LASSOBRUSH ||
+                                       app->toolState.currentTool == TOOL_TEXT )
+                                    {
+                                        setTool(app->toolState.lastDrawTool);
+                                    }
+                                }
                                 updateCharSelectedLabel(newChar);
                                 break;
                             }
@@ -982,8 +1045,8 @@ int main(int argc, char **argv)
 
                                     /* close the popup first */
                                     SetGadgetAttrs(app->mainvlayout,CurrentMainWindow,NULL,
-                                            LAYOUTWP_POPUPVISIBLE,FALSE
-                                            );
+                                            LAYOUTWP_POPUPVISIBLE,FALSE,
+                                            TAG_END);
 
                                      ptag = FindTagItem(CPA_ColorRole, msg);
                                      if(ptag)
@@ -1017,8 +1080,16 @@ int main(int argc, char **argv)
 
                                      }
 
+                                } // end if message is CPA_SelectedColor
+                                // ptag = FindTagItem(CPA_Deactivated, msg);
+                                // if (ptag)
+                                // {
+                                //     /* must close popup in that case */
+                                //     SetGadgetAttrs(app->mainvlayout,CurrentMainWindow,NULL,
+                                //             LAYOUTWP_POPUPVISIBLE,FALSE,
+                                //             TAG_END);
 
-                                }
+                                // }
                                 break;
                             }
                             break;
@@ -1210,6 +1281,12 @@ void exitclose(void)
 
         PmSettingsView_Dispose(&app->settingsView);
 
+        if(app->aboutRequester)
+        {
+            DisposeObject(app->aboutRequester);
+            app->aboutRequester = NULL;
+        }
+
         if(app->window_obj)
         {
             BMainWindow_Close(&app->mainwindow,app->window_obj,0);
@@ -1298,3 +1375,24 @@ void updateCharSelectedLabel(ULONG ichar)
 
 }
 
+void RefreshAllColorGadgets()
+{
+     if(!CurrentMainWindow) return;
+
+    SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
+        CHSA_Dirty,TRUE,TAG_END);
+
+    /* just those wouldn't refresh automatically at palette change */
+    RefreshGList((struct Gadget *)app->colorPickerFgGadget,
+                 CurrentMainWindow, NULL, 1);
+
+    RefreshGList((struct Gadget *)app->toolbar.bgColorWatch,
+                 CurrentMainWindow, NULL, 1);
+
+    RefreshGList((struct Gadget *)app->toolbar.borderColorWatch,
+                 CurrentMainWindow, NULL, 1);
+
+     RefreshGList((struct Gadget *)app->charSelectorGadget,
+                  CurrentMainWindow, NULL, 1);
+
+}

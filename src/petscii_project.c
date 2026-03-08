@@ -1,4 +1,5 @@
 #include "petscii_project.h"
+#include "pmstring.h"
 
 #include <proto/exec.h>
 #include <string.h>
@@ -21,7 +22,7 @@ PetsciiProject *PetsciiProject_Create(void)
     snprintf(proj->screens[0]->name, PETSCII_NAME_LEN, "Screen 1");
     proj->screenCount = 1;
     proj->currentScreen = 0;
-    proj->filepath[0] = '\0';
+    proj->filepath = NULL;
     proj->modified = 0;
     proj->currentPalette = 0;
 
@@ -39,6 +40,7 @@ void PetsciiProject_Destroy(PetsciiProject *proj)
             proj->screens[i] = NULL;
         }
     }
+    PmStr_Free(proj->filepath);
     FreeVec(proj);
 }
 
@@ -163,6 +165,7 @@ void PetsciiProject_Reset(PetsciiProject *proj)
 
     proj->screenCount = 1;
     proj->currentScreen = 0;
-    proj->filepath[0] = '\0';
+    PmStr_Free(proj->filepath);
+    proj->filepath = NULL;
     proj->modified = 0;
 }

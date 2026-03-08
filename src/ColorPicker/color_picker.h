@@ -27,6 +27,10 @@
 #define CPA_ColorsPerWidth (CPA_Dummy + 3)   /* 4 or 8   */
 #define CPA_ColorRole (CPA_Dummy + 4)   /*  currently managing that color */
 
+/* need for popup cancelation */
+#define CPA_Deactivated (CPA_Dummy + 5)
+
+
 extern Class *ColorPickerClass;
 
 int  ColorPicker_Init(void);

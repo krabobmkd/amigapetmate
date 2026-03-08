@@ -473,7 +473,7 @@ static void drawHoverOverlay(struct RastPort *rp,
 
     /* state where we clicked brush, and wait for a lasso: don't draw brush hover */
    // bdbprintf("currentTool: %d inst->brush:%08x\n",inst->currentTool,inst->brush);
-    if(inst->currentTool == TOOL_BRUSH &&
+    if(inst->currentTool == TOOL_LASSOBRUSH &&
             inst->brush == NULL
     )
     {
@@ -538,13 +538,58 @@ static void drawHoverOverlay(struct RastPort *rp,
                 }
                 ((PetsciiCanvasData *)inst)->nativeBrushBufSize = needed;
             }
-            PetsciiScreenBuf_RenderCells(inst->nativeBrushBuf, srcW,
-                                          inst->brush->cells,
-                                          (UWORD)inst->brushW,
-                                          (UWORD)inst->brushH,
-                                          inst->screen->backgroundColor,
-                                          inst->screen->charset,
-                                          inst->style);
+            /* Build preview cells adapted to the active tool:
+             *  TOOL_DRAW     -> brush cells as captured (char + color)
+             *  TOOL_CHARDRAW -> brush chars with current fgColor
+             *  TOOL_COLORIZE -> screen chars at hover pos with brush colors */
+            {
+                const PetsciiPixel *renderCells = inst->brush->cells;
+                PetsciiPixel       *tmpCells    = NULL;
+
+                if (inst->currentTool == TOOL_CHARDRAW ||
+                    inst->currentTool == TOOL_COLORIZE) {
+                    ULONG cellCount = (ULONG)inst->brushW * (ULONG)inst->brushH;
+                    tmpCells = (PetsciiPixel *)AllocVec(
+                                   cellCount * sizeof(PetsciiPixel), MEMF_ANY);
+                    if (tmpCells) {
+                        WORD br, bc;
+                        ULONG bi = 0;
+                        for (br = 0; br < (WORD)inst->brushH; br++) {
+                            for (bc = 0; bc < (WORD)inst->brushW; bc++, bi++) {
+                                if (inst->currentTool == TOOL_CHARDRAW) {
+                                    tmpCells[bi].code  = inst->brush->cells[bi].code;
+                                    tmpCells[bi].color = inst->fgColor;
+                                } else { /* TOOL_COLORIZE */
+                                    WORD sc = (WORD)(inst->cursorCol - inst->brushHotx + bc);
+                                    WORD sr = (WORD)(inst->cursorRow - inst->brushHoty + br);
+                                    if (sc >= 0 && sr >= 0 &&
+                                        (UWORD)sc < inst->screen->width &&
+                                        (UWORD)sr < inst->screen->height) {
+                                        tmpCells[bi] = PetsciiScreen_GetPixel(
+                                                         inst->screen,
+                                                         (UWORD)sc, (UWORD)sr);
+                                        tmpCells[bi].color = inst->brush->cells[bi].color;
+                                    } else {
+                                        tmpCells[bi].code  = 0x20;
+                                        tmpCells[bi].color = inst->brush->cells[bi].color;
+                                    }
+                                }
+                            }
+                        }
+                        renderCells = tmpCells;
+                    }
+                }
+
+                PetsciiScreenBuf_RenderCells(inst->nativeBrushBuf, srcW,
+                                              renderCells,
+                                              (UWORD)inst->brushW,
+                                              (UWORD)inst->brushH,
+                                              inst->screen->backgroundColor,
+                                              inst->screen->charset,
+                                              inst->style);
+                if (tmpCells)
+                    FreeVec(tmpCells);
+            }
             PetsciiChunky_Scale(inst->nativeBrushBuf, srcW, srcH,
                                  inst->overlayBuf, dstW, dstH);
         } else {
@@ -599,7 +644,6 @@ ULONG PetsciiCanvas_OnDomain(Class *cl, Object *o, struct gpDomain *msg)
     domain->Width = 42*8;  // Nominal width
     domain->Height = 27*8;  // Nominal height
 
- bdbprintf("CharSelector_OnDomain\n");
     // Adjust based on gpd_Which
     switch (msg->gpd_Which) {
         case GDOMAIN_MINIMUM:
@@ -679,8 +723,6 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
     WORD               cellH;
     BOOL               needFull;
 
-    (void)cl;
-
     inst = (PetsciiCanvasData *)INST_DATA(cl, o);
 
     if (!inst->screenbuf || !inst->screen || !inst->style)
@@ -707,7 +749,8 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
             (WORD)(inst->contentH / (WORD)inst->screen->height) : 0;
 
     /* Decide: full canvas blit, or hover-only partial update? */
-    needFull = !inst->screenbuf->valid   ||
+    needFull =  msg->gpr_Redraw ||
+                !inst->screenbuf->valid   ||
                inst->scaledBufDirty      ||
                inst->refreshExtraMarge   ||
                inst->scaledBuf  == NULL  ||

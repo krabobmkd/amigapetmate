@@ -53,6 +53,8 @@ enum {
     MSG_VIEW_CHARSET_UPPER,
     MSG_VIEW_CHARSET_LOWER,
 
+    MSG_TOGGLE_FULLSCREEN,
+
     /* Menu: Palette */
     MSG_MENU_PALETTE,
     MSG_PALETTE_PETMATE,
@@ -85,6 +87,17 @@ enum {
     MSG_ERROR_NOMEMORY,
     MSG_ERROR_INVALIDFILE,
 
+    /* follow enum of petscii_fileio.h */
+    MSG_PETSCII_FILEIO_OK,
+    MSG_PETSCII_FILEIO_EOPEN,
+    MSG_PETSCII_FILEIO_EREAD,
+    MSG_PETSCII_FILEIO_EPARSE,
+    MSG_PETSCII_FILEIO_EFORMAT,
+    MSG_PETSCII_FILEIO_EALLOC,
+    MSG_PETSCII_FILEIO_EWRITE,
+
+    MSG_PETSCII_FILEIO_WRITEOK,
+
     /* Toolbar tool button labels */
     MSG_TOOL_DRAW,
     MSG_TOOL_COLORIZE,
@@ -99,6 +112,20 @@ enum {
 
     /**/
     MSG_SETTINGS,
+
+    /* Export actions */
+    MSG_EXPORT_BAS,
+    MSG_EXPORT_ASM,
+    MSG_EXPORT_SEQ,
+
+
+    /* status bar messages */
+    MSG_STATUS_DRAW,
+    MSG_STATUS_COLORIZE,
+    MSG_STATUS_CHARDRAW,
+    MSG_STATUS_START_LASSO,
+    MSG_STATUS_TEXT,
+
 
     /* Must be last */
     MSG_COUNT

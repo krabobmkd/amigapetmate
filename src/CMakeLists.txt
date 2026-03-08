@@ -56,12 +56,16 @@ set(PETMATE_SOURCES
     petscii_chartransform.c
     bdbprintf.c
     bdbprintf.h
+
+    petmate_todo.txt
+
 )
 
 # Phase 2: Framework sources
 set(PETMATE_FRAMEWORK_SOURCES
     petscii_style.c
     pmlocale.c
+    pmstring.c
     pmaction.c
     pmmenu.c
     boopsimessage.c
@@ -83,6 +87,14 @@ set(PETMATE_SCREENBUF_SOURCES
 set(PETMATE_FILEIO_SOURCES
     cjson/cJSON.c
     petscii_fileio.c
+)
+
+# Phase 11: Export formats (BAS, ASM, SEQ)
+set(PETMATE_EXPORT_SOURCES
+    petscii_export_bas.c
+    petscii_export_asm.c
+    petscii_export_seq.c
+    petscii_export_datatype.c
 )
 
 # Phase 4+6: PetsciiCanvas BOOPSI gadget class
@@ -122,20 +134,6 @@ set(PETMATE_VIEW_SOURCES
     pmscreentabs.c
 )
 
-# Phase 8+: Undo, file I/O, export
-# set(PETMATE_EXTRA_SOURCES
-#     petscii_undo.c
-#     petscii_fileio.c
-#     json_parser.c
-#     petscii_brush.c
-#     petscii_export.c
-#     petscii_export_seq.c
-#     petscii_export_prg.c
-#     petscii_export_asm.c
-#     petscii_export_ilbm.c
-#     pmprefs.c
-# )
-
 if(AMIGA)
     add_executable(petmate
         ${PETMATE_SOURCES}
@@ -146,6 +144,7 @@ if(AMIGA)
         ${PETMATE_COLORPICKER_SOURCES}
         ${PETMATE_VIEW_SOURCES}
         ${PETMATE_FILEIO_SOURCES}
+        ${PETMATE_EXPORT_SOURCES}
         # ${PETMATE_EXTRA_SOURCES}
     )
 
@@ -167,9 +166,9 @@ if(AMIGA)
 
     # Development tool: generate petscii_chartransform.c/.h
     # Run on Amiga (or emulator), redirect output to project root.
-    # add_executable(findtables
-    #     findtables.c
-    #     petscii_charset.c
-    # )
-    # target_compile_options(findtables PRIVATE ${AMIGA_COMPILER_OPTIONS})
+    add_executable(findtables
+        findtables.c
+        petscii_charset.c
+    )
+    target_compile_options(findtables PRIVATE ${AMIGA_COMPILER_OPTIONS})
 endif()

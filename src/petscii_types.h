@@ -40,15 +40,12 @@ typedef struct PetsciiPixel {
 /* Maximum screen name length */
 #define PETSCII_NAME_LEN 64
 
-/* Maximum file path length */
-#define PETSCII_PATH_LEN 256
-
 /* Tool enumeration - matches Petmate tool order */
 enum PetsciiTool {
     TOOL_DRAW = 0,      /* Place selected char with selected color */
     TOOL_COLORIZE,      /* Change color of existing char */
     TOOL_CHARDRAW,      /* Place selected char, keep existing color */
-    TOOL_BRUSH,         /* Paint with captured brush selection */
+    TOOL_LASSOBRUSH,         /* Paint with captured brush selection */
     TOOL_TEXT,          /* Type text with keyboard */
     TOOL_COUNT
 };

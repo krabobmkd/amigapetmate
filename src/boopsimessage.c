@@ -50,6 +50,7 @@ static ULONG delayedAttribs[] = {
 
     CPA_SelectedColor,
     CPA_ColorRole,
+    CPA_Deactivated,
 
     CHSA_Charset,
     CHSA_SelectedChar,

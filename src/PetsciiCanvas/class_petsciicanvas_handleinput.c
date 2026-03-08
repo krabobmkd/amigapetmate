@@ -208,6 +208,78 @@ static void paintBrush(PetsciiCanvasData *inst, WORD col, WORD row)
     inst->scaledBufDirty = TRUE;
 }
 
+/* Stamp the brush applying only the color of each brush cell. */
+static void paintBrushColorize(PetsciiCanvasData *inst, WORD col, WORD row)
+{
+    WORD         bc;
+    WORD         br;
+    WORD         dc;
+    WORD         dr;
+    PetsciiPixel *cell;
+
+    if (!inst->brush || !inst->screen || !inst->screenbuf || !inst->style)
+        return;
+
+    for (br = 0; br < (WORD)inst->brush->h; br++) {
+        for (bc = 0; bc < (WORD)inst->brush->w; bc++) {
+            dc = (WORD)(col + (WORD)bc);
+            dr = (WORD)(row + (WORD)br);
+            if (dc < 0 || dr < 0) continue;
+            if ((UWORD)dc >= inst->screen->width ||
+                (UWORD)dr >= inst->screen->height) continue;
+
+            cell = &inst->brush->cells[(ULONG)br * inst->brush->w + bc];
+            PetsciiScreen_SetColor(inst->screen, (UWORD)dc, (UWORD)dr,
+                                   cell->color);
+            PetsciiScreenBuf_UpdateCell(inst->screenbuf, inst->screen,
+                                        inst->style,
+                                        (UWORD)dc, (UWORD)dr);
+        }
+    }
+    inst->scaledBufDirty = TRUE;
+}
+
+/* Stamp the brush applying only the char code of each brush cell. */
+static void paintBrushChardraw(PetsciiCanvasData *inst, WORD col, WORD row)
+{
+    WORD         bc;
+    WORD         br;
+    WORD         dc;
+    WORD         dr;
+    PetsciiPixel *cell;
+
+    if (!inst->brush || !inst->screen || !inst->screenbuf || !inst->style)
+        return;
+
+    for (br = 0; br < (WORD)inst->brush->h; br++) {
+        for (bc = 0; bc < (WORD)inst->brush->w; bc++) {
+            dc = (WORD)(col + (WORD)bc);
+            dr = (WORD)(row + (WORD)br);
+            if (dc < 0 || dr < 0) continue;
+            if ((UWORD)dc >= inst->screen->width ||
+                (UWORD)dr >= inst->screen->height) continue;
+
+            cell = &inst->brush->cells[(ULONG)br * inst->brush->w + bc];
+            PetsciiScreen_SetCode(inst->screen, (UWORD)dc, (UWORD)dr,
+                                  cell->code);
+            PetsciiScreenBuf_UpdateCell(inst->screenbuf, inst->screen,
+                                        inst->style,
+                                        (UWORD)dc, (UWORD)dr);
+        }
+    }
+    inst->scaledBufDirty = TRUE;
+}
+
+/* Dispatch to the right paintBrush variant based on the current tool. */
+static void paintBrushByTool(PetsciiCanvasData *inst, WORD col, WORD row)
+{
+    switch (inst->currentTool) {
+        case TOOL_COLORIZE: paintBrushColorize(inst, col, row); break;
+        case TOOL_CHARDRAW: paintBrushChardraw(inst, col, row); break;
+        default:            paintBrush(inst, col, row);         break;
+    }
+}
+
 /*
  * Bresenham rasterizer: paint every cell along the line from
  * (x0,y0) to (x1,y1) inclusive, skipping the first point.
@@ -311,7 +383,7 @@ ULONG PetsciiCanvas_OnGoActive(Class *cl, Object *o, struct gpInput *msg)
         return GMR_MEACTIVE;
     }
 
-    if (inst->currentTool == TOOL_BRUSH) {
+    if (inst->currentTool == TOOL_LASSOBRUSH) {
         /* ---- TOOL_BRUSH click ---------------------------------------- */
         if (isClick) {
             if (!inst->brush) {
@@ -322,21 +394,23 @@ ULONG PetsciiCanvas_OnGoActive(Class *cl, Object *o, struct gpInput *msg)
                 inst->lassoEndCol   = inst->lassoStartCol;
                 inst->lassoEndRow   = inst->lassoStartRow;
                 inst->isDrawing     = FALSE;
-            } else {
-                /* Sub-state C: stamp brush on click */
-                if (inst->undoBuf && inst->screen) {
-                    PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
-                }
-
-                if (col >= 0 && row >= 0)
-                {
-                  //  bdbprintf("stanmp case 1\n");
-                    paintBrush(inst, col-inst->brushHotx, row-inst->brushHoty);
-                }
-                inst->lastPaintCol = col-inst->brushHotx;
-                inst->lastPaintRow = row-inst->brushHoty;
-                inst->isDrawing    = TRUE;
             }
+            //to be moved
+            // else {
+            //     /* Sub-state C: stamp brush on click */
+            //     if (inst->undoBuf && inst->screen) {
+            //         PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+            //     }
+
+            //     if (col >= 0 && row >= 0)
+            //     {
+            //       //  bdbprintf("stanmp case 1\n");
+            //         paintBrush(inst, col-inst->brushHotx, row-inst->brushHoty);
+            //     }
+            //     inst->lastPaintCol = col-inst->brushHotx;
+            //     inst->lastPaintRow = row-inst->brushHoty;
+            //     inst->isDrawing    = TRUE;
+            // }
         } else {
             /* Hover entry: just show brush preview */
             inst->isDrawing    = FALSE;
@@ -351,13 +425,21 @@ ULONG PetsciiCanvas_OnGoActive(Class *cl, Object *o, struct gpInput *msg)
                 PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
             }
 
-            if (col >= 0 && row >= 0) {
-                paintCell(inst, col, row);
-                inst->lastPaintCol = col;
-                inst->lastPaintRow = row;
-            } else {
-                inst->lastPaintCol = -1;
-                inst->lastPaintRow = -1;
+            if(inst->brush && inst->brushW>0 && inst->brushH>0)
+            {
+                /* paint brush TODO */
+
+            } else
+            {
+                /* paint char */
+                if (col >= 0 && row >= 0) {
+                    paintCell(inst, col, row);
+                    inst->lastPaintCol = col;
+                    inst->lastPaintRow = row;
+                } else {
+                    inst->lastPaintCol = -1;
+                    inst->lastPaintRow = -1;
+                }
             }
             inst->isDrawing = TRUE;
         } else {
@@ -406,10 +488,10 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
         if (inst->currentTool == TOOL_TEXT &&
             !(ie->ie_Code & IECODE_UP_PREFIX)) {
             BOOL justRender=FALSE;
-           // bdbprintf("code:%02x\n",(int)(ie->ie_Code & 0x7f));
+           // / bdbprintf("code:%02x\n",(int)(ie->ie_Code & 0x7f));
             if((ie->ie_Code & 0x7f)==0x45) // esc key,ask to quit text mode
             {
-                bdbprintf("ESC KEY ->PCA_SignalStopTool\n");
+               // bdbprintf("ESC KEY ->PCA_SignalStopTool\n");
                 PetsciiCanvas_NotifyAttribChange(cl,o, msg->gpi_GInfo,
                                         PCA_SignalStopTool,TRUE);
                 return GMR_NOREUSE;
@@ -470,6 +552,51 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
                 inst->textCursorCol++;
                 if(inst->textCursorCol==(WORD)inst->screen->width) inst->textCursorCol = 0;
                 justRender = TRUE;
+            }else
+            if((ie->ie_Code & 0x7f)==0x41)
+            {
+                /* delete key (backspace): move cursor left, shift rest of line left */
+                inst->textCursorCol--;
+                if (inst->textCursorCol < 0) {
+                    inst->textCursorCol = (WORD)inst->screen->width - 1;
+                    inst->textCursorRow--;
+                    if (inst->textCursorRow < 0)
+                        inst->textCursorRow = (WORD)inst->screen->height - 1;
+                }
+                if (inst->screen && inst->screenbuf && inst->style) {
+                    WORD c;
+                    PetsciiPixel px;
+                    if (inst->undoBuf)
+                        PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+                    for (c = inst->textCursorCol; c < (WORD)inst->screen->width - 1; c++) {
+                        px = PetsciiScreen_GetPixel(inst->screen, (UWORD)(c+1), (UWORD)inst->textCursorRow);
+                        PetsciiScreen_SetPixel(inst->screen, (UWORD)c, (UWORD)inst->textCursorRow, px.code, px.color);
+                        PetsciiScreenBuf_UpdateCell(inst->screenbuf, inst->screen, inst->style, (UWORD)c, (UWORD)inst->textCursorRow);
+                    }
+                    PetsciiScreen_SetPixel(inst->screen, (UWORD)(inst->screen->width-1), (UWORD)inst->textCursorRow, 0x20, inst->fgColor);
+                    PetsciiScreenBuf_UpdateCell(inst->screenbuf, inst->screen, inst->style, (UWORD)(inst->screen->width-1), (UWORD)inst->textCursorRow);
+                    inst->scaledBufDirty = TRUE;
+                }
+                justRender = TRUE;
+            } else
+            if((ie->ie_Code & 0x7f)==0x46)
+            {
+                /* suppr key (forward delete): shift rest of line left, cursor stays */
+                if (inst->screen && inst->screenbuf && inst->style) {
+                    WORD c;
+                    PetsciiPixel px;
+                    if (inst->undoBuf)
+                        PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+                    for (c = inst->textCursorCol; c < (WORD)inst->screen->width - 1; c++) {
+                        px = PetsciiScreen_GetPixel(inst->screen, (UWORD)(c+1), (UWORD)inst->textCursorRow);
+                        PetsciiScreen_SetPixel(inst->screen, (UWORD)c, (UWORD)inst->textCursorRow, px.code, px.color);
+                        PetsciiScreenBuf_UpdateCell(inst->screenbuf, inst->screen, inst->style, (UWORD)c, (UWORD)inst->textCursorRow);
+                    }
+                    PetsciiScreen_SetPixel(inst->screen, (UWORD)(inst->screen->width-1), (UWORD)inst->textCursorRow, 0x20, inst->fgColor);
+                    PetsciiScreenBuf_UpdateCell(inst->screenbuf, inst->screen, inst->style, (UWORD)(inst->screen->width-1), (UWORD)inst->textCursorRow);
+                    inst->scaledBufDirty = TRUE;
+                }
+                justRender = TRUE;
             }
 
             if(justRender)
@@ -525,10 +652,9 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
                     }
                     renderSelf(cl, o, msg->gpi_GInfo);
                 } // end if char ok
-                else {
-                    // char not compatible with charset
-                    return GMR_REUSE;
-                }
+                /*else {
+                    // char not compatible with charset -> continue listening keys !!
+                }*/
             }
         } /* if not text mode */
        // else return GMR_REUSE;
@@ -541,6 +667,7 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
     if (ie->ie_Class != IECLASS_RAWMOUSE)
         return GMR_MEACTIVE;
 
+    /* let menu be possible with left mouse button */
     if ((ie->ie_Code &  0x7f) == (IECODE_RBUTTON))
     {
         return GMR_REUSE;
@@ -555,7 +682,7 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
         //NO if (inst->currentTool == TOOL_TEXT)
         //     return GMR_MEACTIVE;
 
-        if (inst->currentTool == TOOL_BRUSH && inst->isLassoing) {
+        if (inst->currentTool == TOOL_LASSOBRUSH && inst->isLassoing) {
             /* Finalize lasso: capture the selected rectangle into brush */
             WORD col1, row1, col2, row2;
             WORD bW, bH;
@@ -607,6 +734,10 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
 
             renderSelf(cl, o, msg->gpi_GInfo);
 
+            /* lasso end: signal we want ot get back to draw tool */
+            PetsciiCanvas_NotifyAttribChange(cl,o, msg->gpi_GInfo,
+                                        PCA_SignalStopTool,TRUE);
+
             isIn = isInsideRect(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y);
             return isIn ? GMR_MEACTIVE : GMR_NOREUSE;
         }
@@ -618,7 +749,7 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
 
         isIn = isInsideRect(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y);
         return isIn ? GMR_MEACTIVE : GMR_NOREUSE;
-    }
+    } // end bt up
 
     /* ---------------------------------------------------------------- */
     /* LBUTTON DOWN                                                      */
@@ -643,11 +774,10 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
             inst->cursorRow = row;
             renderSelf(cl, o, msg->gpi_GInfo);
             return GMR_MEACTIVE;
-        }
+        } else
+        if (inst->currentTool == TOOL_LASSOBRUSH) {
 
-        if (inst->currentTool == TOOL_BRUSH) {
-
-            if (!inst->brush && !inst->isLassoing) {
+            if (/*!inst->brush &&*/ !inst->isLassoing) {
                 /* Sub-state A → B: start new lasso */
                 inst->isLassoing    = TRUE;
                 inst->lassoStartCol = (col >= 0) ? col : 0;
@@ -655,14 +785,21 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
                 inst->lassoEndCol   = inst->lassoStartCol;
                 inst->lassoEndRow   = inst->lassoStartRow;
                 inst->isDrawing     = FALSE;
-            } else if (inst->brush && !inst->isLassoing) {
-                /* Sub-state C: stamp brush */
-                if (inst->undoBuf && inst->screen) {
-                    PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
-                }
+            }
+
+        } else {
+            /* Normal draw tools */
+            if (inst->undoBuf && inst->screen/* &&
+                inst->currentTool != TOOL_BRUSH &&
+                inst->currentTool != TOOL_TEXT*/) {
+                PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+            }
+
+            /* paint brush if brush is on */
+            if (inst->brush && inst->brushW>0 && inst->brushH>0) {
+                /* Sub-state: stamp brush */
                 if (col >= 0 && row >= 0) {
-                      //              bdbprintf("stanmp case 2\n");
-                    paintBrush(inst, col -inst->brushHotx, row -inst->brushHoty);
+                    paintBrushByTool(inst, col -inst->brushHotx, row -inst->brushHoty);
                     inst->lastPaintCol = col-inst->brushHotx;
                     inst->lastPaintRow = row-inst->brushHoty;
                     brushAlreadyStamped = 1;
@@ -671,24 +808,18 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
                     inst->lastPaintRow = -1;
                 }
                 inst->isDrawing = TRUE;
-            }
-            /* If isLassoing is already TRUE, ignore (shouldn't happen) */
+            } else
+            {
+                /* single char paint */
+                if (col >= 0 && row >= 0) {
+                    paintCell(inst, col, row);
+                    inst->lastPaintCol = col;
+                    inst->lastPaintRow = row;
+                } else {
+                    inst->lastPaintCol = -1;
+                    inst->lastPaintRow = -1;
+                }
 
-        } else {
-            /* Normal draw tools */
-            if (inst->undoBuf && inst->screen &&
-                inst->currentTool != TOOL_BRUSH /*&&
-                inst->currentTool != TOOL_TEXT*/) {
-                PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
-            }
-
-            if (col >= 0 && row >= 0) {
-                paintCell(inst, col, row);
-                inst->lastPaintCol = col;
-                inst->lastPaintRow = row;
-            } else {
-                inst->lastPaintCol = -1;
-                inst->lastPaintRow = -1;
             }
             inst->isDrawing = TRUE;
         }
@@ -697,7 +828,7 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
         inst->cursorRow = row;
         renderSelf(cl, o, msg->gpi_GInfo);
         return GMR_MEACTIVE;
-    }
+    } // end bt down
 
     /* ---------------------------------------------------------------- */
     /* MOUSE MOVE (NOBUTTON)                                             */
@@ -717,29 +848,23 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
             return GMR_NOREUSE;
 
         mouseToCell(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y, &col, &row);
+        /* optimisation: do not repeat same drawing if already ok */
+        if(col == inst->cursorCol &&
+            row == inst->cursorRow)
+            {
+                return GMR_MEACTIVE;
+            }
 
-        if (inst->currentTool == TOOL_BRUSH) {
+
+        if (inst->currentTool == TOOL_LASSOBRUSH) {
 
             if (inst->isLassoing) {
                 /* Update lasso end as mouse moves */
                 if (col >= 0) inst->lassoEndCol = col;
                 if (row >= 0) inst->lassoEndRow = row;
 
-            } else if (inst->isDrawing && inst->brush && isIn) {
-                /* Brush paste drag: stamp at each move event (no gap fill) */
-                if (col >= 0 && row >= 0) {
-                    if(brushAlreadyStamped==0)
-                    {
-                       // bdbprintf("stanmp case 3\n");
-                        paintBrush(inst, col-inst->brushHotx, row-inst->brushHoty);
-                        inst->lastPaintCol = col-inst->brushHotx;
-                        inst->lastPaintRow = row-inst->brushHoty;
-                    }
-                } else {
-                    inst->lastPaintCol = -1;
-                    inst->lastPaintRow = -1;
-                }
-            } else if (!isIn) {
+            }
+            else if (!isIn) {
                 inst->lastPaintCol = -1;
                 inst->lastPaintRow = -1;
             }
@@ -747,7 +872,24 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
         } else {
             /* Normal draw tools */
             if (inst->isDrawing) {
-                if (isIn && col >= 0 && row >= 0) {
+                /* if brush mode paint brush */
+                if (inst->isDrawing && inst->brush && inst->brushW>0 && inst->brushH>0 && isIn) {
+                    /* Brush paste drag: stamp at each move event (no gap fill) */
+                    if (col >= 0 && row >= 0) {
+                        if(brushAlreadyStamped==0)
+                        {
+                            paintBrushByTool(inst, col-inst->brushHotx, row-inst->brushHoty);
+                            inst->lastPaintCol = col-inst->brushHotx;
+                            inst->lastPaintRow = row-inst->brushHoty;
+                        }
+                    } else {
+                        inst->lastPaintCol = -1;
+                        inst->lastPaintRow = -1;
+                    }
+                } else
+                {
+                    /* if no brush paint currentChar */
+                    if (isIn && col >= 0 && row >= 0) {
                     /* Draw stroke: Bresenham gap-fill from last painted cell */
                     if (inst->lastPaintCol >= 0 && inst->lastPaintRow >= 0) {
                         paintLineFrom(inst,
@@ -762,6 +904,10 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
                     inst->lastPaintCol = -1;
                     inst->lastPaintRow = -1;
                 }
+
+                } // end if char
+
+
             }
         }
 

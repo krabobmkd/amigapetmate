@@ -50,6 +50,12 @@ enum {
     ACTION_PROJECT_QUIT,
 
     /* Edit */
+    ACTION_EDIT_DRAW1,
+    ACTION_EDIT_DRAW2,
+    ACTION_EDIT_DRAW3,
+    ACTION_EDIT_DRAW4,
+    ACTION_EDIT_DRAW5,
+
     ACTION_EDIT_UNDO,
     ACTION_EDIT_REDO,
     ACTION_EDIT_COPY_SCREEN,
@@ -72,6 +78,8 @@ enum {
     ACTION_VIEW_CHARSET_UPPER,
     ACTION_VIEW_CHARSET_LOWER,
 
+    ACTION_VIEW_TOGGLE_FULL_SCREEN,
+
     /* Palette */
     ACTION_PALETTE_PETMATE,
     ACTION_PALETTE_COLODORE,
@@ -84,6 +92,11 @@ enum {
     ACTION_BRUSH_ROT90CW,
     ACTION_BRUSH_ROT180,
     ACTION_BRUSH_ROT90CCW,
+
+    /* Export */
+    ACTION_EXPORT_BAS,
+    ACTION_EXPORT_ASM,
+    ACTION_EXPORT_SEQ,
 
     /* Must be last */
     ACTION_COUNT
@@ -136,5 +149,9 @@ BOOL Action_BrushFlipY(PmActionContext *ctx);
 BOOL Action_BrushRot90CW(PmActionContext *ctx);
 BOOL Action_BrushRot180(PmActionContext *ctx);
 BOOL Action_BrushRot90CCW(PmActionContext *ctx);
+
+BOOL Action_ExportBAS(PmActionContext *ctx);
+BOOL Action_ExportASM(PmActionContext *ctx);
+BOOL Action_ExportSEQ(PmActionContext *ctx);
 
 #endif /* PMACTION_H */

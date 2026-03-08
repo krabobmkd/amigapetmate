@@ -73,6 +73,8 @@ struct App {
     //old Object           *colorPickerBgGadget; /* ColorPicker (bg) BOOPSI instance */
 
     Object           *colorPickerPopUp;
+    Object           *colorPickerPopUpLabel;
+    Object           *colorPickerPopUpLayout;
 
     /* Phase 7 */
     PmToolbar         toolbar;             /* left-side tool button panel    */
@@ -80,6 +82,8 @@ struct App {
     Object           *charsetUpperBtn;     /* charset "Upper" toggle button  */
     Object           *charsetLowerBtn;     /* charset "Lower" toggle button  */
 
+
+    Object *aboutRequester; /* allocated once when asked first */
 
     /* Phase 8 */
     PetsciiUndoBuffer *undoBufs[PETSCII_MAX_SCREENS]; /* one per screen slot */
