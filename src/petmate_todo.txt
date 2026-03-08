@@ -4,15 +4,14 @@
  O ask when quitting
  O export png/gif/ilbm with dataypes
  O the "import image" function
- O finalize Menus and actions
 
  O icons on bt,
  O settings screen with modeid choice
+	O at least if no cgx use static 640x512 or 640x400 mode
 
- O messages on status bar for load/save/export return ...
+
  O save modeid and current w/fs state + current color mode to tooltypes
  O 4 recent files !
-
 
  O AmigaGuide documentation
  O catalog for 5 languages
@@ -22,6 +21,7 @@
 
 
  ------------------
+ X finalize Menus and actions
 
  X bug: click char selector let button char color, but has changed to draw color&char
 
@@ -29,7 +29,7 @@
  X bug: if popup open and click elsewhere -> mess -> but ko ?
 
 ---------
-
+ X messages on status bar for load/save/export return ...
  X about requester
  X better layout
  X brush draw with 3 modes, brush action with draw mode
