@@ -89,12 +89,12 @@ set(PETMATE_FILEIO_SOURCES
     petscii_fileio.c
 )
 
-# Phase 11: Export formats (BAS, ASM, SEQ)
+# Phase 11: Export formats (BAS, ASM, SEQ, IFF ILBM)
 set(PETMATE_EXPORT_SOURCES
     petscii_export_bas.c
     petscii_export_asm.c
     petscii_export_seq.c
-    petscii_export_datatype.c
+    petscii_export_ilbm.c
 )
 
 # Phase 4+6: PetsciiCanvas BOOPSI gadget class

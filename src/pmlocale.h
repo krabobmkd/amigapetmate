@@ -95,7 +95,7 @@ enum {
     MSG_PETSCII_FILEIO_EFORMAT,
     MSG_PETSCII_FILEIO_EALLOC,
     MSG_PETSCII_FILEIO_EWRITE,
-
+    MSG_PETSCII_FILEIO_NEED_DT,
     MSG_PETSCII_FILEIO_WRITEOK,
 
     /* Toolbar tool button labels */
@@ -118,6 +118,9 @@ enum {
     MSG_EXPORT_ASM,
     MSG_EXPORT_SEQ,
 
+    MSG_EXPORT_IFF,
+    MSG_EXPORT_GIF,
+    MSG_EXPORT_PNG,
 
     /* status bar messages */
     MSG_STATUS_DRAW,

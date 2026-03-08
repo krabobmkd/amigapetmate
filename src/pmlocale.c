@@ -135,7 +135,7 @@ static const char *defaultStrings[MSG_COUNT] = {
     "Unexpected json file format.",
     "Out of memory.",
     "File write error.",
-
+    "Image export need datatype library",
     "File written.",
 
     /* MSG_TOOL_DRAW */
@@ -165,6 +165,13 @@ static const char *defaultStrings[MSG_COUNT] = {
     "Export as ASM (.asm)...",
     /* MSG_EXPORT_SEQ */
     "Export as SEQ (.seq)...",
+
+    /*  */
+    "Export IFF image (.ilbm)...",
+    /*  */
+    "Export GIF image (.gif)...",
+    /*  */
+    "Export PNG image (.png)...",
 
     /* status bar message per tools - keep it same order as enum */
     "Draw char and Color.",

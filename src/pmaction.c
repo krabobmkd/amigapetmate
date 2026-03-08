@@ -5,6 +5,7 @@
 #include "petscii_undo.h"
 #include "petscii_fileio.h"
 #include "petscii_export.h"
+#include "petscii_export_ilbm.h"
 #include "pmlocale.h"
 #include "pmstring.h"
 #include "petmate.h"
@@ -30,7 +31,7 @@
 extern struct Library *AslBase;
 extern struct IntuitionBase *IntuitionBase;
 
-
+void SetStatusBarMessage(int enumMessage);
 /* Last directory used in a file requester (persists across open/save calls) */
 static char *s_lastDir = NULL;
 
@@ -694,6 +695,100 @@ BOOL Action_ExportSEQ(PmActionContext *ctx)
     SetStatusBarMessage(ok ? MSG_PETSCII_FILEIO_WRITEOK : MSG_PETSCII_FILEIO_EWRITE);
     return ok;
 }
+extern struct Library *DataTypesBase;
+int PetsciiExport_SaveDatatype(const PetsciiScreen *scr, const char *filename, int exportDTFenum);
+
+BOOL Action_ExportIFFILBM(PmActionContext *ctx)
+{
+    char              *rawpath;
+    char              *pathbuf;
+    PetsciiScreen     *scr;
+    const PetsciiStyle *style;
+    int                err;
+
+    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+    scr   = PetsciiProject_GetCurrentScreen(*ctx->pproject);
+    style = (const PetsciiStyle *)ctx->style;
+    if (!scr || !style) return FALSE;
+
+    rawpath = aslExportRequest("Export IFF image (.ilbm)", "#?.ilbm");
+    if (!rawpath) return FALSE;
+
+    pathbuf = PmStr_WithExt(rawpath, ".ilbm");
+    PmStr_Free(rawpath);
+    if (!pathbuf) return FALSE;
+
+    err = PetsciiExport_SaveILBM(scr, style, pathbuf, FALSE);
+    PmStr_Free(pathbuf);
+    SetStatusBarMessage(err == PETSCII_EXPORT_OK
+                        ? MSG_PETSCII_FILEIO_WRITEOK
+                        : MSG_PETSCII_FILEIO_EWRITE);
+    return (BOOL)(err == PETSCII_EXPORT_OK);
+}
+BOOL Action_ExportGif(PmActionContext *ctx)
+{
+/*
+   char          *rawpath;
+    char          *pathbuf;
+    PetsciiScreen *scr;
+    BOOL           ok;
+
+    if(!DataTypesBase)
+    {
+        SetStatusBarMessage(MSG_PETSCII_FILEIO_NEED_DT);
+        return FALSE;
+    }
+
+    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+    scr = PetsciiProject_GetCurrentScreen(*ctx->pproject);
+    if (!scr) return FALSE;
+
+    rawpath = aslExportRequest("Export as GIF ILBM (.gif)", "#?.gif");
+    if (!rawpath) return FALSE;
+
+    pathbuf = PmStr_WithExt(rawpath, ".gif");
+    PmStr_Free(rawpath);
+    if (!pathbuf) return FALSE;
+
+    ok = (BOOL)(PetsciiExport_SaveDatatype(scr, pathbuf,2) == PETSCII_EXPORT_OK);
+    PmStr_Free(pathbuf);
+    SetStatusBarMessage(ok ? MSG_PETSCII_FILEIO_WRITEOK : MSG_PETSCII_FILEIO_EWRITE);
+    return ok;
+    */
+        return FALSE;
+}
+BOOL Action_ExportPng(PmActionContext *ctx)
+{
+/*
+   char          *rawpath;
+    char          *pathbuf;
+    PetsciiScreen *scr;
+    BOOL           ok;
+
+    if(!DataTypesBase)
+    {
+        SetStatusBarMessage(MSG_PETSCII_FILEIO_NEED_DT);
+        return FALSE;
+    }
+
+    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+    scr = PetsciiProject_GetCurrentScreen(*ctx->pproject);
+    if (!scr) return FALSE;
+
+    rawpath = aslExportRequest("Export as PNG (.png)", "#?.png");
+    if (!rawpath) return FALSE;
+
+    pathbuf = PmStr_WithExt(rawpath, ".png");
+    PmStr_Free(rawpath);
+    if (!pathbuf) return FALSE;
+
+    ok = (BOOL)(PetsciiExport_SaveDatatype(scr, pathbuf,2) == PETSCII_EXPORT_OK);
+    PmStr_Free(pathbuf);
+    SetStatusBarMessage(ok ? MSG_PETSCII_FILEIO_WRITEOK : MSG_PETSCII_FILEIO_EWRITE);
+    return ok;*/
+    return FALSE;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Action table - C89 sequential initialization.
@@ -786,7 +881,15 @@ static PmAction actionTable[ACTION_COUNT] = {
     /* 33 ACTION_EXPORT_ASM */
     {Action_ExportASM, MSG_EXPORT_ASM, NULL, 0, 0},
     /* 34 ACTION_EXPORT_SEQ */
-    {Action_ExportSEQ, MSG_EXPORT_SEQ, NULL, 0, 0}
+    {Action_ExportSEQ, MSG_EXPORT_SEQ, NULL, 0, 0},
+
+    /* 32 ACTION_EXPORT_BAS */
+    {Action_ExportIFFILBM, MSG_EXPORT_IFF, NULL, 0, 0},
+    /* 33 ACTION_EXPORT_ASM */
+    {Action_ExportGif, MSG_EXPORT_GIF, NULL, 0, 0},
+    /* 34 ACTION_EXPORT_SEQ */
+    {Action_ExportPng, MSG_EXPORT_PNG, NULL, 0, 0}
+
 };
 
 void PmAction_Init(void)

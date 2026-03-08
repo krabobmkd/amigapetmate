@@ -98,6 +98,10 @@ enum {
     ACTION_EXPORT_ASM,
     ACTION_EXPORT_SEQ,
 
+    ACTION_EXPORT_IFF_ILBM,
+   ACTION_EXPORT_GIF,
+   ACTION_EXPORT_PNG,
+
     /* Must be last */
     ACTION_COUNT
 };
@@ -153,5 +157,9 @@ BOOL Action_BrushRot90CCW(PmActionContext *ctx);
 BOOL Action_ExportBAS(PmActionContext *ctx);
 BOOL Action_ExportASM(PmActionContext *ctx);
 BOOL Action_ExportSEQ(PmActionContext *ctx);
+
+BOOL Action_ExportIFFILBM(PmActionContext *ctx);
+BOOL Action_ExportGif(PmActionContext *ctx);
+BOOL Action_ExportPng(PmActionContext *ctx);
 
 #endif /* PMACTION_H */

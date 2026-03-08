@@ -94,7 +94,7 @@ struct Library         *IconBase      = NULL;
 struct Library         *AslBase       = NULL;
 struct Library         *GadToolsBase  = NULL;
 struct LocaleBase      *LocaleBase    = NULL; /* optional */
-
+struct Library         *DataTypesBase = NULL;
 /* BOOPSI class bases */
 struct Library *WindowBase = NULL;
 struct Library *LayoutBase = NULL;
@@ -336,6 +336,9 @@ int main(int argc, char **argv)
             }
         }
     }
+
+    /* optional, can return NULL */
+    DataTypesBase = OpenLibrary("datatypes.library",39);
 
     /* Open locale.library (optional - soft failure) */
     LocaleBase = (struct LocaleBase *)OpenLibrary("locale.library", 38);

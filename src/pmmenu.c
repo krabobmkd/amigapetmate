@@ -32,9 +32,16 @@ static struct NewMenu menuTemplate[] = {
         {NM_ITEM, NULL, "A", 0, 0, (APTR)ACTION_PROJECT_SAVEAS},
         {NM_ITEM, NM_BARLABEL, 0, 0, 0, NULL},
         {NM_ITEM, (STRPTR)"Export As", 0, 0, 0, 0},
+
+            {NM_SUB, NULL, 0, 0, 0, (APTR)ACTION_EXPORT_IFF_ILBM},
+            {NM_SUB, NULL, 0, 0, 0, (APTR)ACTION_EXPORT_GIF},
+            {NM_SUB, NULL, 0, 0, 0, (APTR)ACTION_EXPORT_PNG},
+            {NM_SUB, NM_BARLABEL, 0, 0, 0, NULL},
             {NM_SUB, NULL, 0, 0, 0, (APTR)ACTION_EXPORT_BAS},
             {NM_SUB, NULL, 0, 0, 0, (APTR)ACTION_EXPORT_ASM},
             {NM_SUB, NULL, 0, 0, 0, (APTR)ACTION_EXPORT_SEQ},
+
+
         {NM_ITEM, NM_BARLABEL, 0, 0, 0, NULL},
         {NM_ITEM, NULL, 0,   0, 0, (APTR)ACTION_PROJECT_ABOUT},
         {NM_ITEM, NM_BARLABEL, 0, 0, 0, NULL},
