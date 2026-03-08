@@ -57,10 +57,32 @@ static UBYTE reverseBits(UBYTE b)
     return r;
 }
 
-/* Get pixel at (row, col) in an 8×8 glyph. MSB of each byte = col 0. */
+/*
+ * GetPixel: return the pixel at column x (0=left), row y (0=top)
+ * in an 8x8 glyph stored MSB-first (bit 7 = col 0).
+ */
+static int GetPixel(const UBYTE *glyph, int x, int y)
+{
+    return (glyph[y] >> (7 - x)) & 1;
+}
+
+/* legacy alias used by the transform functions */
 static int getPixel(const UBYTE *glyph, int row, int col)
 {
-    return (glyph[row] >> (7 - col)) & 1;
+    return GetPixel(glyph, col, row);
+}
+
+/* Print an 8x8 glyph to stdout as rows of '0'/'1' characters. */
+static void printGlyph(const char *label, const UBYTE *glyph)
+{
+    int y, x;
+    printf("  %s:\n", label);
+    for (y = 0; y < CHAR_BYTES; y++) {
+        printf("    ");
+        for (x = 0; x < 8; x++)
+            printf("%c", GetPixel(glyph, x, y) ? '1' : '0');
+        printf("\n");
+    }
 }
 
 /* ------------------------------------------------------------------ */
@@ -152,7 +174,7 @@ static UBYTE findBestMatch(const UBYTE *transformed,
                             const UBYTE *charset,
                             int          selfIdx)
 {
-    int bestErr = TRANSFORM_MAX_ERR;  /* must beat this to qualify */
+    int bestErr = TRANSFORM_MAX_ERR + 1;  /* accept err <= TRANSFORM_MAX_ERR */
     int bestIdx = selfIdx;            /* default: identity */
     int i;
     int err;
@@ -184,6 +206,37 @@ static void computeTable(const UBYTE *charset,
         transform(charset + i * CHAR_BYTES, transformed);
         table[i] = findBestMatch(transformed, charset, i);
     }
+}
+
+/*
+ * Same as computeTable but prints each char that maps to itself
+ * (no match found): shows original and the transformed glyph we searched for.
+ */
+static void computeTableVerbose(const UBYTE *charset,
+                                 UBYTE       *table,
+                                 TransformFn  transform,
+                                 const char  *transformName,
+                                 const char  *charsetName)
+{
+    UBYTE transformed[CHAR_BYTES];
+    int   i;
+    int   missCount = 0;
+
+    for (i = 0; i < NUM_CHARS; i++) {
+        transform(charset + i * CHAR_BYTES, transformed);
+        table[i] = findBestMatch(transformed, charset, i);
+
+        if (table[i] == (UBYTE)i) {
+            /* No match found: print original and what we searched for */
+            printf("  [%s/%s] char %3d -> IDENTITY (no match below threshold)\n",
+                   charsetName, transformName, i);
+            printGlyph("original ", charset + i * CHAR_BYTES);
+            printGlyph("want match", transformed);
+            missCount++;
+        }
+    }
+    if (missCount == 0)
+        printf("  [%s/%s] all chars matched.\n", charsetName, transformName);
 }
 
 /* ------------------------------------------------------------------ */
@@ -304,9 +357,12 @@ int main(void)
 
     for (cs = 0; cs < 2; cs++) {
         for (t = 0; t < 5; t++) {
-            computeTable(charsets[cs], tables[cs][t], transformFns[t]);
+            printf("\n--- %s / %s ---\n", charsetName[cs], transformDesc[t]);
+            computeTableVerbose(charsets[cs], tables[cs][t],
+                                transformFns[t],
+                                transformDesc[t], charsetName[cs]);
 
-            /* Count how many chars got a real (non-identity) mapping */
+            /* Summary line */
             identityCount = 0;
             for (i = 0; i < NUM_CHARS; i++) {
                 if (tables[cs][t][i] == (UBYTE)i)
