@@ -42,11 +42,36 @@ static void drawBorder(struct RastPort *rp,
 }
 
 /* ------------------------------------------------------------------ */
+/* GM_LAYOUT                                                            */
+/* ------------------------------------------------------------------ */
+
+ULONG ScreenCarousel_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
+{
+   ScreenCarouselData *inst = (ScreenCarouselData *)INST_DATA(cl, o);
+
+
+    if (inst->clipRegion)
+    {
+        struct Rectangle framerect;
+        framerect.MinX = G(o)->LeftEdge ;
+        framerect.MinY = G(o)->TopEdge;
+        framerect.MaxX = G(o)->LeftEdge  + G(o)->Width -1;
+        framerect.MaxY = G(o)->TopEdge  + G(o)->Height -1;
+
+        ClearRegion(inst->clipRegion);
+        OrRectRegion(inst->clipRegion, &framerect);
+    }
+
+    return 1;
+}
+
+/* ------------------------------------------------------------------ */
 /* GM_RENDER                                                            */
 /* ------------------------------------------------------------------ */
 
 ULONG ScreenCarousel_OnRender(Class *cl, Object *o, struct gpRender *msg)
 {
+    struct Region *oldClipRegion=NULL;
     ScreenCarouselData *inst = (ScreenCarouselData *)INST_DATA(cl, o);
     struct Gadget      *g    = G(o);
     struct RastPort    *rp   = msg->gpr_RPort;
@@ -58,6 +83,9 @@ ULONG ScreenCarousel_OnRender(Class *cl, Object *o, struct gpRender *msg)
     WORD                slotLeft, thumbX, thumbY;
 
     if (!rp || !inst->project) return 0;
+
+    oldClipRegion = InstallClipRegion( rp->Layer, inst->clipRegion);
+
 
     /* Fill entire gadget background with pen 0 */
     SetAPen(rp, 0);
@@ -97,6 +125,7 @@ ULONG ScreenCarousel_OnRender(Class *cl, Object *o, struct gpRender *msg)
                        2);
         }
     }
-
+    /* important to pass NULL if oldClipRegion was NULL.*/
+    InstallClipRegion( rp->Layer,oldClipRegion);
     return 0;
 }

@@ -165,23 +165,25 @@ static void refreshUI(void)
     charset = scr->charset;
 
     /* Sync canvas to the current screen */
-    SetAttrs(app->canvasGadget,
+    SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
         PCA_Screen,   (ULONG)scr,
         PCA_ShowGrid, (ULONG)(BOOL)app->toolState.showGrid,
+        PCA_UndoBuffer,(ULONG)app->undoBufs[app->project->currentScreen],
         PCA_Dirty,    (ULONG)TRUE,
         TAG_END);
-    if (CurrentMainWindow)
-        RefreshGList((struct Gadget *)app->canvasGadget,
-                     CurrentMainWindow, NULL, 1);
+
+    // if (CurrentMainWindow)
+    //     RefreshGList((struct Gadget *)app->canvasGadget,
+    //                  CurrentMainWindow, NULL, 1);
 
     /* Sync CharSelector charset and background color */
-    SetAttrs(app->charSelectorGadget,
+    SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
         CHSA_Charset,  (ULONG)charset,
         CHSA_BgColor,  (ULONG)scr->backgroundColor,
         TAG_END);
-    if (CurrentMainWindow)
-        RefreshGList((struct Gadget *)app->charSelectorGadget,
-                     CurrentMainWindow, NULL, 1);
+    // if (CurrentMainWindow)
+    //     RefreshGList((struct Gadget *)app->charSelectorGadget,
+    //                  CurrentMainWindow, NULL, 1);
 
     /* Sync charset toggle buttons */
     if (CurrentMainWindow && app->charsetUpperBtn && app->charsetLowerBtn) {
@@ -224,11 +226,7 @@ static void refreshUI(void)
                             app->toolState.currentTool,
                             CurrentMainWindow);
 
-    /* Sync canvas undo buffer for the current screen */
-    SetAttrs(app->canvasGadget,
-        PCA_UndoBuffer,
-        (ULONG)app->undoBufs[app->project->currentScreen],
-        TAG_END);
+
 }
 
 /*
@@ -985,7 +983,7 @@ int main(int argc, char **argv)
                                     newChar = ptag->ti_Data;
 
                                     app->toolState.selectedChar = (UBYTE)newChar;
-                                    SetAttrs(app->canvasGadget,
+                                    SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
                                         PCA_SelectedChar, newChar,
                                         TAG_END);
                                     /* to be clear, set draw if was brush in tool */
@@ -1112,8 +1110,6 @@ int main(int argc, char **argv)
                                             SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
                                                 PCA_Dirty, (ULONG)TRUE,
                                                 TAG_END);
-                                            RefreshGList((struct Gadget *)app->canvasGadget,
-                                                         CurrentMainWindow, NULL, 1);
 
                                             SetGadgetAttrs(
                                                 (struct Gadget *)app->charsetLowerBtn,
@@ -1156,8 +1152,6 @@ int main(int argc, char **argv)
                                                 PCA_Dirty, (ULONG)TRUE,
                                                 TAG_END);
 
-                                            RefreshGList((struct Gadget *)app->canvasGadget,
-                                                         CurrentMainWindow, NULL, 1);
 
                                             SetGadgetAttrs(
                                                 (struct Gadget *)app->charsetUpperBtn,
@@ -1356,13 +1350,17 @@ void updateCharSelectedLabel(ULONG ichar)
 
 
 }
-
+/* when color index changed, because of window/fullscreen switch or else */
 void RefreshAllColorGadgets()
 {
      if(!CurrentMainWindow) return;
 
     SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
         CHSA_Dirty,TRUE,TAG_END);
+
+    SetGadgetAttrs(app->carouselGadget,CurrentMainWindow,NULL,
+        SCA_Style,(ULONG)&app->style,TAG_END);
+
 
     /* just those wouldn't refresh automatically at palette change */
     RefreshGList((struct Gadget *)app->colorPickerFgGadget,
@@ -1376,5 +1374,6 @@ void RefreshAllColorGadgets()
 
      RefreshGList((struct Gadget *)app->charSelectorGadget,
                   CurrentMainWindow, NULL, 1);
-
+     RefreshGList((struct Gadget *)app->carouselGadget,
+                  CurrentMainWindow, NULL, 1);
 }

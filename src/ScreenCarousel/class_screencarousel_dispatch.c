@@ -12,6 +12,7 @@ ULONG ASM SAVEDS ScreenCarousel_Dispatch(
     REG(a2, Object *o),
     REG(a1, Msg     msg))
 {
+
     switch (msg->MethodID)
     {
         case OM_NEW:
@@ -32,7 +33,8 @@ ULONG ASM SAVEDS ScreenCarousel_Dispatch(
 
         case GM_RENDER:
             return ScreenCarousel_OnRender(cl, o, (struct gpRender *)msg);
-
+        case GM_LAYOUT:
+            return ScreenCarousel_OnLayout(cl, o, (struct gpLayout *)msg);
         case GM_HITTEST:
             return ScreenCarousel_OnHitTest(cl, o, (struct gpHitTest *)msg);
 

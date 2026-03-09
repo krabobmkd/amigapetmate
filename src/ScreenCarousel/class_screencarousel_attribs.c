@@ -40,6 +40,7 @@ ULONG ScreenCarousel_OnNew(Class *cl, Object *o, struct opSet *msg)
     inst->signalScreen  = 0;
     inst->scrollOffset  = 0;
     inst->miniCount     = 0;
+   inst->clipRegion = NewRegion();
 
     for (i = 0; i < PETSCII_MAX_SCREENS; i++)
         inst->minis[i] = NULL;
@@ -67,6 +68,11 @@ ULONG ScreenCarousel_OnDispose(Class *cl, Object *o, Msg msg)
             inst->minis[i] = NULL;
         }
     }
+    if (inst->clipRegion) {
+        DisposeRegion( inst->clipRegion );
+        inst->clipRegion = NULL;
+    }
+
 
     return DoSuperMethodA(cl, o, (APTR)msg);
 }
@@ -96,6 +102,7 @@ ULONG ScreenCarousel_OnSet(Class *cl, Object *o, struct opSet *msg)
                 }
                 inst->miniCount = inst->project
                                   ? (ULONG)inst->project->screenCount : 0;
+
                 result = 1;
                 break;
 

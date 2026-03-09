@@ -33,6 +33,7 @@
 #include <proto/exec.h>
 #include <proto/graphics.h>
 #include <proto/intuition.h>
+#include <proto/layers.h>
 #include <intuition/gadgetclass.h>
 #include "petscii_canvas_private.h"
 #include "petscii_screenbuf.h"
@@ -134,6 +135,9 @@ static void eraseMargins(struct RastPort *rp,
                           WORD gadW, WORD gadH,
                           WORD cX, WORD cY, WORD cW, WORD cH)
 {
+
+//  bdbprintf("eraserect Layer:%08x\n",rp->Layer);
+// if(rp->Layer) bdbprintf("BackFill:%08x\n",rp->Layer->BackFill);
     /* Top strip */
     if (cY > 0)
         EraseRect(rp,
@@ -722,7 +726,6 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
     WORD               cellW;
     WORD               cellH;
     BOOL               needFull;
-
     inst = (PetsciiCanvasData *)INST_DATA(cl, o);
 
     if (!inst->screenbuf || !inst->screen || !inst->style)
@@ -736,6 +739,20 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
 
     if (width <= 0 || height <= 0)
         return 0;
+
+    /* BackFill hook, tghe function that paint "EraseRect" regions
+     *  SHOULD be there... sometimes it's not, but there's a GA for this
+        This looks needed on OS3 if you aveer use EraseRect under GM_RENDER.
+     */
+    if(rp->Layer && rp->Layer->BackFill == NULL)
+    {
+        struct  Hook *BackFill=NULL;
+        GetAttr(GA_BackFill,o,&BackFill);
+        if(BackFill)
+        {
+            InstallLayerHook( rp->Layer, BackFill );
+        }
+    }
 
     /* Always recompute content rect (cheap arithmetic) */
     updateContentRect(inst, width, height);
@@ -771,7 +788,8 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
             WORD outerH = (WORD)(inst->contentH + 2 * cellH);
 
             /* Erase letterbox/pillarbox strips outside the outer frame */
-            if (inst->refreshExtraMarge) {
+            //if (inst->refreshExtraMarge)
+            {
                 eraseMargins(rp, left, top, width, height,
                              outerX, outerY, outerW, outerH);
                 inst->refreshExtraMarge = 0;
@@ -916,7 +934,6 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
         /* important to pass NULL if oldClipRegion was NULL.*/
         InstallClipRegion( rp->Layer,oldClipRegion);
     }
-
 
     return 0;
 }

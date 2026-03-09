@@ -189,10 +189,10 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
     PetsciiCanvasData *inst;
     struct TagItem    *state;
     struct TagItem    *tag;
-    ULONG              result=0,redraw=0;
+    ULONG              result=0;
     ULONG              newPixW;
     ULONG              newPixH;
-
+    int redraw=0;
     inst = (PetsciiCanvasData *)INST_DATA(cl, o);
 
     /* Now process our PCA_* tags */
@@ -217,7 +217,10 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                     } else {
                         inst->screenbuf->valid = 0;
                     }
+                    inst->refreshExtraMarge = 1;
+                    redraw = 1;
                 }
+
                 inst->scaledBufDirty = TRUE;
                 result = 1;
                 break;
@@ -226,6 +229,7 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                 inst->style = (PetsciiStyle *)tag->ti_Data;
                 if (inst->screenbuf) inst->screenbuf->valid = 0;
                 inst->scaledBufDirty = TRUE;
+                redraw = 1;
                 result = 1;
                 break;
 
@@ -244,7 +248,9 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                     inst->screenbuf->valid = 0;
                     inst->scaledBufDirty   = TRUE;
                 }
+                //inst->refreshExtraMarge = 1;
                 result = 1;
+                redraw = 1;
                 break;
 
             case PCA_KeepRatio:
@@ -254,7 +260,9 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                 inst->contentH  = 0;
                 inst->scaledW   = 0;
                 inst->scaledH   = 0;
+                inst->refreshExtraMarge = 1;
                 result = 1;
+                redraw = 1;
                 break;
 
             case PCA_CurrentTool:
@@ -294,6 +302,7 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                         if(inst->screenbuf) inst->screenbuf->valid = 0;
                         inst->scaledBufDirty = TRUE;
                         redraw = 1; /* need a total redraw, background color affect all */
+
                     }
                 }
                 result = 1;
@@ -393,9 +402,9 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
      * Yet, sending redraw under Setttrs is the documented way,
      * Even if it's very clear that is generate bugs when done from HandleInput.
      * well let's go.... */
-    if(redraw && msg->ops_GInfo)
-    {
+    if(redraw && msg->ops_GInfo)    {
         struct RastPort *rp = ObtainGIRPort(msg->ops_GInfo);
+
         if (rp)
         {
             struct gpRender  renderMsg;

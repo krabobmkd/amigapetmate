@@ -43,8 +43,13 @@ typedef struct ScreenCarouselData {
     ULONG              currentScreen; /* index of highlighted screen */
     ULONG              signalScreen;  /* index of last clicked screen (OM_GET) */
     WORD               scrollOffset;  /* horizontal scroll in pixels (>= 0) */
+    WORD                d;
     PetsciiScreenMini *minis[PETSCII_MAX_SCREENS]; /* owned; NULL = not yet created */
     ULONG              miniCount;     /* mirrors project->screenCount */
+
+    /* allow cliping draw commands */
+    struct Region *clipRegion;
+
 } ScreenCarouselData;
 
 /* ------------------------------------------------------------------ */
@@ -56,6 +61,7 @@ ULONG ScreenCarousel_OnDispose  (Class *cl, Object *o, Msg                msg);
 ULONG ScreenCarousel_OnSet      (Class *cl, Object *o, struct opSet      *msg);
 ULONG ScreenCarousel_OnGet      (Class *cl, Object *o, struct opGet      *msg);
 ULONG ScreenCarousel_OnRender   (Class *cl, Object *o, struct gpRender   *msg);
+ULONG ScreenCarousel_OnLayout   (Class *cl, Object *o, struct gpLayout   *msg);
 ULONG ScreenCarousel_OnHitTest  (Class *cl, Object *o, struct gpHitTest  *msg);
 ULONG ScreenCarousel_OnGoActive (Class *cl, Object *o, struct gpInput    *msg);
 
