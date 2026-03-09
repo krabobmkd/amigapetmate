@@ -19,7 +19,7 @@
 #include "boopsimainwindow.h"
 #include "pmsettingsview.h"
 #include "pmtoolbar.h"
-#include "pmscreentabs.h"
+#include "screen_carousel.h"
 
 /* Current tool state */
 
@@ -78,7 +78,7 @@ struct App {
 
     /* Phase 7 */
     PmToolbar         toolbar;             /* left-side tool button panel    */
-    PmScreenTabs      screenTabs;          /* top screen-tab button bar      */
+    Object           *carouselGadget;      /* vertical screen thumbnail strip */
     Object           *charsetUpperBtn;     /* charset "Upper" toggle button  */
     Object           *charsetLowerBtn;     /* charset "Lower" toggle button  */
 

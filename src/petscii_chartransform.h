@@ -23,4 +23,8 @@ extern const UBYTE petsciiLowerRot90[256];
 extern const UBYTE petsciiLowerRotN90[256];
 extern const UBYTE petsciiLowerRot180[256];
 
+extern const UBYTE petsciiUpperMinify[256];
+extern const UBYTE petsciiLowerMinify[256];
+
+
 #endif /* PETSCII_CHARTRANSFORM_H */

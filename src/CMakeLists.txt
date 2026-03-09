@@ -38,6 +38,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/PetsciiCanvas
     ${CMAKE_CURRENT_SOURCE_DIR}/CharSelector
     ${CMAKE_CURRENT_SOURCE_DIR}/ColorPicker
+    ${CMAKE_CURRENT_SOURCE_DIR}/ScreenCarousel
 )
 
 # Phase 1: Core sources
@@ -78,9 +79,10 @@ set(PETMATE_FRAMEWORK_SOURCES
     class_layoutwithpopup.c
 )
 
-# Phase 3: Screen render buffer
+# Phase 3: Screen render buffer + miniature thumbnails
 set(PETMATE_SCREENBUF_SOURCES
     petscii_screenbuf.c
+    petscii_screenmini.c
 )
 
 # Phase 9: JSON parser (cJSON, Amiga fork) + .petmate file I/O
@@ -131,7 +133,15 @@ set(PETMATE_COLORPICKER_SOURCES
 # Phase 10: class_charlayout.c added
 set(PETMATE_VIEW_SOURCES
     pmtoolbar.c
-    pmscreentabs.c
+)
+
+# ScreenCarousel BOOPSI gadget class (replaces pmscreentabs)
+set(PETMATE_CAROUSEL_SOURCES
+    ScreenCarousel/class_screencarousel_lib.c
+    ScreenCarousel/class_screencarousel_dispatch.c
+    ScreenCarousel/class_screencarousel_attribs.c
+    ScreenCarousel/class_screencarousel_render.c
+    ScreenCarousel/class_screencarousel_input.c
 )
 
 if(AMIGA)
@@ -143,6 +153,7 @@ if(AMIGA)
         ${PETMATE_CHARSELECTOR_SOURCES}
         ${PETMATE_COLORPICKER_SOURCES}
         ${PETMATE_VIEW_SOURCES}
+        ${PETMATE_CAROUSEL_SOURCES}
         ${PETMATE_FILEIO_SOURCES}
         ${PETMATE_EXPORT_SOURCES}
         # ${PETMATE_EXTRA_SOURCES}
@@ -164,11 +175,11 @@ if(AMIGA)
         ${AMIGA_COMPILER_OPTIONS}
     )
 
-    # Development tool: generate petscii_chartransform.c/.h
-    # Run on Amiga (or emulator), redirect output to project root.
-    add_executable(findtables
-        findtables.c
-        petscii_charset.c
-    )
-    target_compile_options(findtables PRIVATE ${AMIGA_COMPILER_OPTIONS})
+#    # Development tool: generate petscii_chartransform.c/.h
+#    # Run on Amiga (or emulator), redirect output to project root.
+#    add_executable(findtables
+#        findtables.c
+#        petscii_charset.c
+#    )
+#    target_compile_options(findtables PRIVATE ${AMIGA_COMPILER_OPTIONS})
 endif()

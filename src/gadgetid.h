@@ -40,12 +40,8 @@
 #define GAD_CHARSET_UPPER       30
 #define GAD_CHARSET_LOWER       31
 
-/* Screen tab bar: SCREENTABS_VISIBLE numbered tabs + "<" and ">" scroll buttons */
-#define GAD_SCREENTAB_FIRST     40
-#define GAD_SCREENTAB_LAST      47   /* GAD_SCREENTAB_FIRST + SCREENTABS_VISIBLE - 1 */
-#define GAD_SCREENTAB_PREV      48   /* "<" scroll button */
-#define GAD_SCREENTAB_NEXT      49   /* ">" scroll button */
-#define GAD_SCREENTABS          GAD_SCREENTAB_FIRST  /* legacy alias */
+/* Screen carousel gadget (vertical thumbnail strip, replaces screen tab bar) */
+#define GAD_SCREENCAROUSEL      40
 
 /* Status bar */
 #define GAD_STATUSBAR           50

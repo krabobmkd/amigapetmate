@@ -70,7 +70,7 @@
 
 /* Phase 7 */
 #include "pmtoolbar.h"
-#include "pmscreentabs.h"
+#include "screen_carousel.h"
 
 /* Phase 8 */
 #include "petscii_undo.h"
@@ -207,19 +207,17 @@ static void refreshUI(void)
             TAG_END);
     }
 
-    /* Sync screen tabs: first scroll window to keep current screen visible */
-    {
-        UWORD cur = app->project->currentScreen;
-        UWORD off = app->screenTabs.tabOffset;
-        if (cur < off)
-            app->screenTabs.tabOffset = cur;
-        else if (cur >= off + SCREENTABS_VISIBLE)
-            app->screenTabs.tabOffset = (UWORD)(cur - SCREENTABS_VISIBLE + 1);
+    /* Sync screen carousel: update current highlight and all thumbnails */
+    if (app->carouselGadget) {
+        SetGadgetAttrs((struct Gadget *)app->carouselGadget,
+            CurrentMainWindow, NULL,
+            SCA_CurrentScreen, (ULONG)app->project->currentScreen,
+            SCA_AllModified,   TRUE,
+            TAG_END);
+        if (CurrentMainWindow)
+            RefreshGList((struct Gadget *)app->carouselGadget,
+                         CurrentMainWindow, NULL, 1);
     }
-    PmScreenTabs_Update(&app->screenTabs,
-                        app->project->screenCount,
-                        app->project->currentScreen,
-                        CurrentMainWindow, 1);
 
     /* Sync toolbar selected tool */
     PmToolbar_SetActiveTool(&app->toolbar,
@@ -484,8 +482,16 @@ int main(int argc, char **argv)
     if (!PmToolbar_Create(&app->toolbar,&app->style))
         cleanexit("Can't create toolbar");
 
-    if (!PmScreenTabs_Create(&app->screenTabs, app->project->screenCount))
-        cleanexit("Can't create screen tabs");
+    if (!ScreenCarousel_Init())
+        cleanexit("Can't create ScreenCarousel class");
+
+    app->carouselGadget = (Object *)NewObject(ScreenCarouselClass, NULL,
+        GA_ID,         (ULONG)GAD_SCREENCAROUSEL,
+        GA_RELVERIFY,  TRUE,
+        SCA_Project,   (ULONG)app->project,
+        SCA_Style,     (ULONG)&app->style,
+        TAG_END);
+    if (!app->carouselGadget) cleanexit("Can't create screen carousel");
 
     /* Charset toggle buttons (placed at bottom of right panel) */
     app->charsetUpperBtn = (Object *)NewObject(BUTTON_GetClass(), NULL,
@@ -614,7 +620,7 @@ int main(int argc, char **argv)
             TAG_END);
 
 
-        /* Work area: toolbar | canvas | right panel */
+        /* Work area: toolbar+canvas | right panel */
         workAreaLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
             LAYOUT_Orientation,  LAYOUT_ORIENT_HORIZ,
             LAYOUT_InnerSpacing, 2,
@@ -622,13 +628,12 @@ int main(int argc, char **argv)
             LAYOUT_AddChild, (ULONG)canvhl,
                 CHILD_WeightedWidth, 42, /* use width in char as weight */
 
-
             LAYOUT_AddChild, (ULONG)rightPanelLayout,
                 CHILD_WeightedWidth, 16, /* use width of the char selector in char as weight */
 
             TAG_END);
 
-        /* Main vertical layout: screen tabs | work area | status bar */
+        /* Main vertical layout: carousel | work area | status bar */
         app->mainvlayout = (Object *)NewObject(LayoutWithPopupClass, NULL,
             LAYOUT_DeferLayout,   TRUE,
             LAYOUT_SpaceOuter,    TRUE,
@@ -645,10 +650,10 @@ int main(int argc, char **argv)
                CHILD_MinHeight,0,
                CHILD_WeightedHeight,0,
 
-            LAYOUT_AddChild, (ULONG)app->screenTabs.layout,
+            LAYOUT_AddChild, (ULONG)app->carouselGadget,
                 CHILD_WeightedHeight, 0,
-                CHILD_MinHeight,      20,
-                CHILD_MaxHeight,      28,
+                CHILD_MinHeight,      33,  /* SCREENMINI_H(27)+ITEM_INDENT(3)*2+SEL_BORDER*2 */
+                CHILD_MaxHeight,      33,
 
             LAYOUT_AddChild, (ULONG)workAreaLayout,
                 CHILD_WeightedHeight, 1000,
@@ -876,42 +881,15 @@ int main(int argc, char **argv)
                     ptag = FindTagItem(GA_ID, msg);
                     if (ptag) sender_ID = ptag->ti_Data;
 
-                    /* Screen tab scroll: "<" */
-                    if (sender_ID == GAD_SCREENTAB_PREV) {
-                        if (((ptag = FindTagItem(WMHI_GADGETUP, msg)) != 0) &&
-                            (ptag->ti_Data != 0)) {
-                            if (app->screenTabs.tabOffset > 0) {
-                                app->screenTabs.tabOffset--;
-                                PmScreenTabs_Update(&app->screenTabs,
-                                    app->project->screenCount,
-                                    app->project->currentScreen,
-                                    CurrentMainWindow, 1);
-                            }
-                        }
-                    }
-                    /* Screen tab scroll: ">" */
-                    else if (sender_ID == GAD_SCREENTAB_NEXT) {
-                        if (((ptag = FindTagItem(WMHI_GADGETUP, msg)) != 0) &&
-                            (ptag->ti_Data != 0)) {
-                            if (app->screenTabs.tabOffset + SCREENTABS_VISIBLE <
-                                    app->project->screenCount) {
-                                app->screenTabs.tabOffset++;
-                                PmScreenTabs_Update(&app->screenTabs,
-                                    app->project->screenCount,
-                                    app->project->currentScreen,
-                                    CurrentMainWindow, 1);
-                            }
-                        }
-                    }
-                    /* Screen tab buttons: switch to screen tabOffset + slot */
-                    else if (sender_ID >= GAD_SCREENTAB_FIRST &&
-                             sender_ID <= GAD_SCREENTAB_LAST) {
-                        UWORD slot      = (UWORD)(sender_ID - GAD_SCREENTAB_FIRST);
-                        UWORD screenIdx = app->screenTabs.tabOffset + slot;
-                        if (screenIdx < app->project->screenCount) {
-                            if (((ptag = FindTagItem(WMHI_GADGETUP, msg)) != 0) &&
-                                (ptag->ti_Data != 0)) {
-                                PetsciiProject_SetCurrentScreen(app->project, screenIdx);
+                    /* Screen carousel click: switch to the clicked screen */
+                    if (sender_ID == GAD_SCREENCAROUSEL) {
+                        if ((ptag = FindTagItem(WMHI_GADGETUP, msg)) != NULL &&
+                            ptag->ti_Data != 0 && app->carouselGadget) {
+                            ULONG clickedIdx = 0;
+                            GetAttr(SCA_SignalScreen, app->carouselGadget, &clickedIdx);
+                            if (clickedIdx < app->project->screenCount) {
+                                PetsciiProject_SetCurrentScreen(app->project,
+                                                                (UWORD)clickedIdx);
                                 refreshUI();
                             }
                         }
@@ -1316,6 +1294,7 @@ void exitclose(void)
         PetsciiCanvas_Exit();
         CharSelector_Exit();
         ColorPicker_Exit();
+        ScreenCarousel_Exit();
 
         /* Close the BOOPSI message target */
         closeMessageTargetModel();

@@ -1,6 +1,6 @@
 ﻿
  O cybergraphics RTG blits
- O brush flip and rotate actions bugs
+
  O ask when quitting
  O export png/gif/ilbm with dataypes
  O the "import image" function
@@ -21,6 +21,7 @@
 
 
  ------------------
+ X brush flip and rotate actions bugs
  X finalize Menus and actions
 
  X bug: click char selector let button char color, but has changed to draw color&char
