@@ -35,6 +35,8 @@
 #define ITEM_PAD     2   /* pixels of padding left/right/top/bottom      */
 #define ITEM_W       (SCREENMINI_W + ITEM_PAD * 2)   /* 42 + 4 = 46     */
 #define ITEM_INDENT  (ITEM_PAD + SEL_BORDER)          /* top margin       */
+#define SCROLLER_H   4   /* height in pixels of the horizontal scroller  */
+#define SCROLLER_GAP 2   /* blank pixels between thumbnail area and scroller */
 
 /* Per-instance data stored inside the BOOPSI object */
 typedef struct ScreenCarouselData {
@@ -50,6 +52,11 @@ typedef struct ScreenCarouselData {
     /* allow cliping draw commands */
     struct Region *clipRegion;
 
+    /* Horizontal scroller drag state */
+    WORD  scrollDragActive;     /* 1 while user is dragging the scroller bar */
+    WORD  scrollDragStartX;     /* gadget-relative X at drag start           */
+    WORD  scrollDragStartOffset;/* scrollOffset value at drag start          */
+
 } ScreenCarouselData;
 
 /* ------------------------------------------------------------------ */
@@ -64,6 +71,7 @@ ULONG ScreenCarousel_OnRender   (Class *cl, Object *o, struct gpRender   *msg);
 ULONG ScreenCarousel_OnLayout   (Class *cl, Object *o, struct gpLayout   *msg);
 ULONG ScreenCarousel_OnHitTest  (Class *cl, Object *o, struct gpHitTest  *msg);
 ULONG ScreenCarousel_OnGoActive (Class *cl, Object *o, struct gpInput    *msg);
+ULONG ScreenCarousel_OnInput    (Class *cl, Object *o, struct gpInput    *msg);
 
 /* Main dispatcher */
 ULONG ASM SAVEDS ScreenCarousel_Dispatch(

@@ -79,6 +79,7 @@ struct App {
     /* Phase 7 */
     PmToolbar         toolbar;             /* left-side tool button panel    */
     Object           *carouselGadget;      /* vertical screen thumbnail strip */
+    //Object           *carouselScroller;      /*scroller for carouselGadget */
     Object           *charsetUpperBtn;     /* charset "Upper" toggle button  */
     Object           *charsetLowerBtn;     /* charset "Lower" toggle button  */
 

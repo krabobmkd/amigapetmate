@@ -42,6 +42,7 @@
 
 /* Screen carousel gadget (vertical thumbnail strip, replaces screen tab bar) */
 #define GAD_SCREENCAROUSEL      40
+#define GAD_CAROUSELSCROLLER    41
 
 /* Status bar */
 #define GAD_STATUSBAR           50

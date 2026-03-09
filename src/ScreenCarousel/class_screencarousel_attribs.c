@@ -34,13 +34,16 @@ ULONG ScreenCarousel_OnNew(Class *cl, Object *o, struct opSet *msg)
 
     inst = (ScreenCarouselData *)INST_DATA(cl, newObj);
 
-    inst->project       = project;
-    inst->style         = style;
-    inst->currentScreen = 0;
-    inst->signalScreen  = 0;
-    inst->scrollOffset  = 0;
-    inst->miniCount     = 0;
-   inst->clipRegion = NewRegion();
+    inst->project              = project;
+    inst->style                = style;
+    inst->currentScreen        = 0;
+    inst->signalScreen         = 0;
+    inst->scrollOffset         = 0;
+    inst->miniCount            = 0;
+    inst->scrollDragActive     = 0;
+    inst->scrollDragStartX     = 0;
+    inst->scrollDragStartOffset = 0;
+    inst->clipRegion = NewRegion();
 
     for (i = 0; i < PETSCII_MAX_SCREENS; i++)
         inst->minis[i] = NULL;

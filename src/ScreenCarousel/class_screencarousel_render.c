@@ -23,6 +23,7 @@
 #include <proto/exec.h>
 #include <proto/graphics.h>
 #include <proto/intuition.h>
+#include <proto/layers.h>
 #include "screen_carousel_private.h"
 
 /* ------------------------------------------------------------------ */
@@ -71,7 +72,7 @@ ULONG ScreenCarousel_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
 
 ULONG ScreenCarousel_OnRender(Class *cl, Object *o, struct gpRender *msg)
 {
-    struct Region *oldClipRegion=NULL;
+    struct Region      *oldClipRegion = NULL;
     ScreenCarouselData *inst = (ScreenCarouselData *)INST_DATA(cl, o);
     struct Gadget      *g    = G(o);
     struct RastPort    *rp   = msg->gpr_RPort;
@@ -79,24 +80,57 @@ ULONG ScreenCarousel_OnRender(Class *cl, Object *o, struct gpRender *msg)
     WORD                gy   = g->TopEdge;
     WORD                gw   = g->Width;
     WORD                gh   = g->Height;
+    WORD                thumbAreaH; /* gadget height minus scroller strip   */
     ULONG               i;
-    WORD                slotLeft, thumbX, thumbY;
+    WORD                slotLeft, slotRight, thumbX, thumbY;
+    WORD                midY1, midY2;
+    WORD                firstSlotLeft, lastSlotRight;
+    WORD                px0, px1;
+    WORD                totalW, maxOffset;
 
     if (!rp || !inst->project) return 0;
 
-    oldClipRegion = InstallClipRegion( rp->Layer, inst->clipRegion);
+    /* BackFill hook must be present for EraseRect to work correctly on OS3 */
+    if (rp->Layer && rp->Layer->BackFill == NULL)
+    {
+        struct Hook *BackFill = NULL;
+        GetAttr(GA_BackFill, o, &BackFill);
+        if (BackFill)
+            InstallLayerHook(rp->Layer, BackFill);
+    }
 
+    oldClipRegion = InstallClipRegion(rp->Layer, inst->clipRegion);
 
-    /* Fill entire gadget background with pen 0 */
-    SetAPen(rp, 0);
-    RectFill(rp, gx, gy, gx + gw - 1, gy + gh - 1);
+    /* Thumbnail area occupies the top part; below it a 2-px gap, then scroller */
+    thumbAreaH = gh - (WORD)SCROLLER_H - (WORD)SCROLLER_GAP;
 
-    /* Vertical position of thumbnails: centred with ITEM_INDENT top margin */
     thumbY = (WORD)ITEM_INDENT;
+    midY1  = gy + thumbY;
+    midY2  = gy + thumbY + (WORD)SCREENMINI_H - 1;
+
+    /* Clamp scrollOffset */
+    totalW    = (WORD)((ULONG)inst->miniCount * (ULONG)ITEM_W);
+    maxOffset = (totalW > gw) ? (WORD)(totalW - gw) : 0;
+    if (inst->scrollOffset < 0)         inst->scrollOffset = 0;
+    if (inst->scrollOffset > maxOffset) inst->scrollOffset = maxOffset;
+
+    /* Erase top strip (above thumbnails) */
+    if (thumbY > 0)
+        EraseRect(rp, (LONG)gx, (LONG)gy,
+                      (LONG)(gx + gw - 1), (LONG)(midY1 - 1));
+
+    /* Erase bottom strip of thumbnail area (below thumbnails, above scroller) */
+    if (thumbY + (WORD)SCREENMINI_H < thumbAreaH)
+        EraseRect(rp, (LONG)gx, (LONG)(midY2 + 1),
+                      (LONG)(gx + gw - 1), (LONG)(gy + thumbAreaH - 1));
+
+    firstSlotLeft = gw;   /* sentinel: no visible slot seen yet */
+    lastSlotRight = -1;
 
     /* Draw each thumbnail that is (partially) visible */
     for (i = 0; i < inst->miniCount; i++) {
-        slotLeft = ScreenCarousel_IndexToX(inst, i);  /* gadget-relative */
+        slotLeft  = ScreenCarousel_IndexToX(inst, i);  /* gadget-relative */
+        slotRight = slotLeft + (WORD)ITEM_W - 1;
 
         /* Skip slots entirely to the left of the visible area */
         if (slotLeft + (WORD)ITEM_W <= 0) continue;
@@ -107,9 +141,27 @@ ULONG ScreenCarousel_OnRender(Class *cl, Object *o, struct gpRender *msg)
         if (!inst->minis[i] || !inst->minis[i]->valid)
             ScreenCarousel_EnsureMini(inst, i);
 
-        if (!inst->minis[i] || !inst->minis[i]->valid) continue;
-
         thumbX = slotLeft + (WORD)ITEM_PAD;
+
+        /* Track visible slot extent for outer gap erasing */
+        if (slotLeft < firstSlotLeft) firstSlotLeft = slotLeft;
+        if (slotRight > lastSlotRight) lastSlotRight = slotRight;
+
+        /* Erase left pad strip of this slot (in the thumbnail row band) */
+        px0 = (slotLeft < 0) ? 0 : slotLeft;
+        px1 = thumbX - 1;
+        if (px0 <= px1)
+            EraseRect(rp, (LONG)(gx + px0), (LONG)midY1,
+                          (LONG)(gx + px1), (LONG)midY2);
+
+        /* Erase right pad strip of this slot (in the thumbnail row band) */
+        px0 = thumbX + (WORD)SCREENMINI_W;
+        px1 = (slotRight >= gw) ? gw - 1 : slotRight;
+        if (px0 < gw && px0 <= px1)
+            EraseRect(rp, (LONG)(gx + px0), (LONG)midY1,
+                          (LONG)(gx + px1), (LONG)midY2);
+
+        if (!inst->minis[i] || !inst->minis[i]->valid) continue;
 
         /* Blit the 42x27 miniature */
         PetsciiScreenMini_Blit(inst->minis[i], rp,
@@ -125,7 +177,69 @@ ULONG ScreenCarousel_OnRender(Class *cl, Object *o, struct gpRender *msg)
                        2);
         }
     }
+
+    /* Erase horizontal outer gaps in the thumbnail row band */
+    if (lastSlotRight < 0) {
+        /* No visible slots at all: erase entire middle band */
+        EraseRect(rp, (LONG)gx, (LONG)midY1,
+                      (LONG)(gx + gw - 1), (LONG)midY2);
+    } else {
+        /* Left outer gap: before first visible slot */
+        if (firstSlotLeft > 0)
+            EraseRect(rp, (LONG)gx, (LONG)midY1,
+                          (LONG)(gx + firstSlotLeft - 1), (LONG)midY2);
+        /* Right outer gap: after last visible slot */
+        if (lastSlotRight < gw - 1)
+            EraseRect(rp, (LONG)(gx + lastSlotRight + 1), (LONG)midY1,
+                          (LONG)(gx + gw - 1), (LONG)midY2);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Gap between thumbnail area and scroller bar                        */
+    /* ------------------------------------------------------------------ */
+    EraseRect(rp, (LONG)gx, (LONG)(gy + thumbAreaH),
+                  (LONG)(gx + gw - 1), (LONG)(gy + thumbAreaH + (WORD)SCROLLER_GAP - 1));
+
+    /* ------------------------------------------------------------------ */
+    /* Horizontal scroller bar                                              */
+    /* ------------------------------------------------------------------ */
+    {
+        WORD scrollY = gy + thumbAreaH + (WORD)SCROLLER_GAP;  /* top row of scroller strip */
+        WORD scrollY2 = gy + gh - 1;    /* bottom row of scroller strip */
+
+        if (maxOffset == 0) {
+            /* All slots fit: invisible bar */
+            EraseRect(rp, (LONG)gx, (LONG)scrollY,
+                          (LONG)(gx + gw - 1), (LONG)scrollY2);
+        } else {
+            /* Compute thumb width and position */
+            WORD barW = (WORD)((LONG)gw * (LONG)gw / (LONG)totalW);
+            WORD barX;
+            if (barW < 4)  barW = 4;
+            if (barW > gw) barW = gw;
+            barX = (WORD)((LONG)inst->scrollOffset * (LONG)(gw - barW)
+                          / (LONG)maxOffset);
+
+            /* Left empty area */
+            if (barX > 0) {
+                SetAPen(rp, 0);
+                RectFill(rp, (LONG)gx, (LONG)scrollY,
+                             (LONG)(gx + barX - 1), (LONG)scrollY2);
+            }
+            /* Thumb */
+            SetAPen(rp, 1);
+            RectFill(rp, (LONG)(gx + barX), (LONG)scrollY,
+                         (LONG)(gx + barX + barW - 1), (LONG)scrollY2);
+            /* Right empty area */
+            if (barX + barW < gw) {
+                SetAPen(rp, 0);
+                RectFill(rp, (LONG)(gx + barX + barW), (LONG)scrollY,
+                             (LONG)(gx + gw - 1), (LONG)scrollY2);
+            }
+        }
+    }
+
     /* important to pass NULL if oldClipRegion was NULL.*/
-    InstallClipRegion( rp->Layer,oldClipRegion);
+    InstallClipRegion(rp->Layer, oldClipRegion);
     return 0;
 }

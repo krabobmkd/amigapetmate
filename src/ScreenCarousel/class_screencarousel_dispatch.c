@@ -41,6 +41,9 @@ ULONG ASM SAVEDS ScreenCarousel_Dispatch(
         case GM_GOACTIVE:
             return ScreenCarousel_OnGoActive(cl, o, (struct gpInput *)msg);
 
+        case GM_HANDLEINPUT:
+            return ScreenCarousel_OnInput(cl, o, (struct gpInput *)msg);
+
         default:
             return DoSuperMethodA(cl, o, (APTR)msg);
     }

@@ -31,6 +31,9 @@
 #include <proto/button.h>
 #include <gadgets/button.h>
 
+#include <proto/scroller.h>
+#include <gadgets/scroller.h>
+
 #include <proto/label.h>
 #include <images/label.h>
 
@@ -100,6 +103,7 @@ struct Library *WindowBase = NULL;
 struct Library *LayoutBase = NULL;
 struct Library *ButtonBase = NULL;
 struct Library *LabelBase  = NULL;
+//struct Library *ScrollerBase=NULL;
 struct Library *GetFileBase=NULL;
 struct Library *RequesterBase=NULL;
 
@@ -124,6 +128,7 @@ static LibraryEntry libraryTable[] = {
     {"images/label.image",     45, &LabelBase},
     {"gadgets/layout.gadget",  45, &LayoutBase},
     {"gadgets/button.gadget",  45, &ButtonBase},
+//    {"gadgets/scroller.gadget", 45, &ScrollerBase},
     {"gadgets/getfile.gadget", 45, &GetFileBase},
     {"requester.class", 45, &RequesterBase},
     {NULL, 0, NULL} /* Terminator */
@@ -491,6 +496,20 @@ int main(int argc, char **argv)
         TAG_END);
     if (!app->carouselGadget) cleanexit("Can't create screen carousel");
 
+   // app->carouselScroller = (Object *)NewObject(SCROLLER_GetClass(), NULL,
+   //      GA_ID,         (ULONG)GAD_CAROUSELSCROLLER,
+   //      SCROLLER_Top, 0,
+   //      SCROLLER_Total, 1,
+   //      SCROLLER_Visible, 1, /* should be number of screens */
+   //      SCROLLER_Orientation, FREEHORIZ,
+   //      SCROLLER_Stretch,TRUE,
+   //      SCROLLER_ArrowDelta,1,
+   //      ICA_TARGET, TargetInstance,
+   //      /* TODO set initial attribs here */
+   //      TAG_END);
+   //  if (!app->carouselScroller) cleanexit("Can't create scroller");
+
+
     /* Charset toggle buttons (placed at bottom of right panel) */
     app->charsetUpperBtn = (Object *)NewObject(BUTTON_GetClass(), NULL,
         GA_ID,       (ULONG)GAD_CHARSET_UPPER,
@@ -639,7 +658,7 @@ int main(int argc, char **argv)
             LAYOUT_TopSpacing,    0,
             LAYOUT_LeftSpacing,   0,
             LAYOUT_RightSpacing,  0,
-            LAYOUT_InnerSpacing,  2,
+            LAYOUT_InnerSpacing,  0,
             LAYOUT_Orientation,   LAYOUT_ORIENT_VERT,
             LAYOUT_AddChild,(ULONG)app->colorPickerPopUpLayout,
                CHILD_MaxWidth,0,
@@ -650,9 +669,10 @@ int main(int argc, char **argv)
 
             LAYOUT_AddChild, (ULONG)app->carouselGadget,
                 CHILD_WeightedHeight, 0,
-                CHILD_MinHeight,      33,  /* SCREENMINI_H(27)+ITEM_INDENT(3)*2+SEL_BORDER*2 */
-                CHILD_MaxHeight,      33,
-
+                CHILD_MinHeight,      33+4,  /* SCREENMINI_H(27)+ITEM_INDENT(3)*2+SEL_BORDER*2 */
+                CHILD_MaxHeight,      33+4,
+            // LAYOUT_AddChild, (ULONG)app->carouselScroller,
+            //     CHILD_WeightedHeight, 0,
             LAYOUT_AddChild, (ULONG)workAreaLayout,
                 CHILD_WeightedHeight, 1000,
 
