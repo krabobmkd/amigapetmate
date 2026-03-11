@@ -21,12 +21,12 @@ configure_file(
 )
 
 set(GIFLIB_SOURCES
-    lib/dgif_lib.c
-    lib/egif_lib.c
-    lib/gif_err.c
-#    lib/gif_font.c
-    lib/gif_hash.c
-    lib/gifalloc.c
+    dgif_lib.c
+    egif_lib.c
+    gif_err.c
+#    gif_font.c
+    gif_hash.c
+    gifalloc.c
 )
 
 add_library(gif STATIC ${GIFLIB_SOURCES})

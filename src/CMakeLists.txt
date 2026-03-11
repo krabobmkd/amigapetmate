@@ -42,6 +42,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/CharSelector
     ${CMAKE_CURRENT_SOURCE_DIR}/ColorPicker
     ${CMAKE_CURRENT_SOURCE_DIR}/ScreenCarousel
+    ${CMAKE_CURRENT_SOURCE_DIR}/../giflib
 )
 
 # Phase 1: Core sources

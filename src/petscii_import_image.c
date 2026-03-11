@@ -254,7 +254,7 @@ int PetsciiImport_FromImage(const char        *path,
 
     pba.MethodID           = PDTM_READPIXELARRAY;
     pba.pbpa_PixelData     = (APTR)rgbBuf;
-    pba.pbpa_PixelFormat   = PBPAF_RGB;
+    pba.pbpa_PixelFormat   = PBPAFMT_RGB;
     pba.pbpa_PixelArrayMod = imgW * 3UL;
     pba.pbpa_Left          = 0;
     pba.pbpa_Top           = 0;
