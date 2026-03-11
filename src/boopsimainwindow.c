@@ -441,6 +441,9 @@ void BMainWindow_SwitchToWB(struct BoopsiMainWindow *mw,Object *window_obj,struc
     /* re-open */
     GenericOpenWindow( mw, window_obj, appSettings );
 
+    /* There may exists more screens than just WB when closing fs. make sure WB the visible screen. */
+    ScreenToFront(CurrentMainScreen);
+
     /* some may need reindexation and window must be opened */
     RefreshAllColorGadgets();
 }

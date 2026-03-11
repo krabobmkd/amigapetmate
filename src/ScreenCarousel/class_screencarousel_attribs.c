@@ -6,6 +6,7 @@
 #include <proto/exec.h>
 #include <proto/intuition.h>
 #include <proto/utility.h>
+#include <proto/alib.h>
 #include "screen_carousel_private.h"
 
 /* ------------------------------------------------------------------ */
@@ -84,6 +85,8 @@ ULONG ScreenCarousel_OnDispose(Class *cl, Object *o, Msg msg)
 /* OM_SET                                                               */
 /* ------------------------------------------------------------------ */
 
+void ScreenCarousel_RenderOne(ScreenCarouselData *inst, Object *o,struct RastPort    *rp , ULONG idx);
+
 ULONG ScreenCarousel_OnSet(Class *cl, Object *o, struct opSet *msg)
 {
     ScreenCarouselData *inst = (ScreenCarouselData *)INST_DATA(cl, o);
@@ -91,6 +94,8 @@ ULONG ScreenCarousel_OnSet(Class *cl, Object *o, struct opSet *msg)
     struct TagItem     *tag;
     ULONG               result = 0;
     ULONG               i;
+    LONG miniToRedraw=-1;
+    LONG redrawAll = 0;
 
     while ((tag = NextTagItem(&tstate)) != NULL)
     {
@@ -106,6 +111,7 @@ ULONG ScreenCarousel_OnSet(Class *cl, Object *o, struct opSet *msg)
                 inst->miniCount = inst->project
                                   ? (ULONG)inst->project->screenCount : 0;
 
+                redrawAll =1;
                 result = 1;
                 break;
 
@@ -117,12 +123,14 @@ ULONG ScreenCarousel_OnSet(Class *cl, Object *o, struct opSet *msg)
                         inst->minis[i]->valid = 0;
                 }
                 result = 1;
+                redrawAll = 1;
                 break;
 
             case SCA_CurrentScreen:
                 if (tag->ti_Data != inst->currentScreen) {
                     inst->currentScreen = (ULONG)tag->ti_Data;
                     result = 1;
+                    redrawAll = 1;
                 }
                 break;
 
@@ -136,6 +144,7 @@ ULONG ScreenCarousel_OnSet(Class *cl, Object *o, struct opSet *msg)
                         inst->miniCount = (ULONG)inst->project->screenCount;
                     ScreenCarousel_EnsureMini(inst, idx);
                     result = 1;
+                    miniToRedraw = (LONG)idx;
                 }
                 break;
             }
@@ -147,11 +156,32 @@ ULONG ScreenCarousel_OnSet(Class *cl, Object *o, struct opSet *msg)
                     for (i = 0; i < inst->miniCount; i++)
                         ScreenCarousel_EnsureMini(inst, i);
                     result = 1;
+                    redrawAll = 1;
                 }
                 break;
 
             default:
                 break;
+        }
+    }
+    if((miniToRedraw>=0 || redrawAll) && msg->ops_GInfo)
+    {
+        struct RastPort *rp = ObtainGIRPort(msg->ops_GInfo);
+        if (rp)
+        {
+            if(redrawAll)
+            {
+                struct gpRender  renderMsg;
+                renderMsg.MethodID   = GM_RENDER;
+                renderMsg.gpr_GInfo  = msg->ops_GInfo;
+                renderMsg.gpr_RPort  = rp;
+                renderMsg.gpr_Redraw = GREDRAW_UPDATE;
+                DoMethodA(o,&renderMsg);
+            } else
+            {
+                ScreenCarousel_RenderOne(inst,o,rp,miniToRedraw);
+            }
+            ReleaseGIRPort(rp);
         }
     }
 

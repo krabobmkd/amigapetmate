@@ -66,6 +66,41 @@ ULONG ScreenCarousel_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
     return 1;
 }
 
+void ScreenCarousel_RenderOne(ScreenCarouselData *inst, Object *o,struct RastPort    *rp , ULONG idx)
+{
+    WORD                slotLeft, slotRight, thumbX, thumbY;
+    struct Region      *oldClipRegion = NULL;
+    struct Gadget      *g    = G(o);
+    WORD                gw   = g->Width;
+    WORD                gx   = g->LeftEdge;
+    WORD                gy   = g->TopEdge;
+    oldClipRegion = InstallClipRegion(rp->Layer, inst->clipRegion);
+
+
+       slotLeft  = ScreenCarousel_IndexToX(inst, idx);  /* gadget-relative */
+        slotRight = slotLeft + (WORD)ITEM_W - 1;
+
+    thumbY = (WORD)ITEM_INDENT;
+        /* Skip slots entirely to the left of the visible area */
+        if (slotLeft + (WORD)ITEM_W <= 0) return;
+        /* Stop when we've gone past the right edge */
+        if (slotLeft >= gw) return;
+
+        /* Lazy render */
+        // if (!inst->minis[idx] || !inst->minis[idx]->valid)
+        //     ScreenCarousel_EnsureMini(inst, i);
+
+        thumbX = slotLeft + (WORD)ITEM_PAD;
+
+        if (!inst->minis[idx] || !inst->minis[idx]->valid) return;
+
+        /* Blit the 42x27 miniature */
+        PetsciiScreenMini_Blit(inst->minis[idx], rp,
+                                gx + thumbX, gy + thumbY);
+
+    /* important to pass NULL if oldClipRegion was NULL.*/
+    InstallClipRegion(rp->Layer, oldClipRegion);
+}
 /* ------------------------------------------------------------------ */
 /* GM_RENDER                                                            */
 /* ------------------------------------------------------------------ */

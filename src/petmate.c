@@ -183,18 +183,11 @@ static void refreshUI(void)
         PCA_Dirty,    (ULONG)TRUE,
         TAG_END);
 
-    // if (CurrentMainWindow)
-    //     RefreshGList((struct Gadget *)app->canvasGadget,
-    //                  CurrentMainWindow, NULL, 1);
-
     /* Sync CharSelector charset and background color */
     SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
         CHSA_Charset,  (ULONG)charset,
         CHSA_BgColor,  (ULONG)scr->backgroundColor,
         TAG_END);
-    // if (CurrentMainWindow)
-    //     RefreshGList((struct Gadget *)app->charSelectorGadget,
-    //                  CurrentMainWindow, NULL, 1);
 
     /* Sync charset toggle buttons */
     if (CurrentMainWindow && app->charsetUpperBtn && app->charsetLowerBtn) {
@@ -227,9 +220,7 @@ static void refreshUI(void)
             SCA_CurrentScreen, (ULONG)app->project->currentScreen,
             SCA_AllModified,   TRUE,
             TAG_END);
-        if (CurrentMainWindow)
-            RefreshGList((struct Gadget *)app->carouselGadget,
-                         CurrentMainWindow, NULL, 1);
+
     }
 
     /* Sync toolbar selected tool */
@@ -1053,6 +1044,7 @@ int main(int argc, char **argv)
                                 SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
                                     CHSA_FgColor, newColor,
                                     TAG_END);
+
                                 break;
                             }
                             case GAD_COLORPICKER_POPUP:
@@ -1097,6 +1089,7 @@ int main(int argc, char **argv)
                                                 TAG_END);
 
                                         }
+                                        UpdateCarouselThumbNail(app->project->currentScreen);
 
                                      }
 
@@ -1417,8 +1410,22 @@ void RefreshAllColorGadgets()
     RefreshGList((struct Gadget *)app->toolbar.borderColorWatch,
                  CurrentMainWindow, NULL, 1);
 
-     RefreshGList((struct Gadget *)app->charSelectorGadget,
-                  CurrentMainWindow, NULL, 1);
-     RefreshGList((struct Gadget *)app->carouselGadget,
-                  CurrentMainWindow, NULL, 1);
+}
+void UpdateCarouselThumbNail(PetsciiScreen *screen)
+{
+    // LONG idx = -1;
+    // UWORD i;
+    // for(i=0;i<app->project->screenCount;i++)
+    // {
+    //     if(screen == app->project->screens[i]) {
+    //     idx = (LONG)i;
+    //     break;
+    //     }
+    // }
+    // if(idx==-1) return;
+
+    if(!app->carouselGadget) return;
+        SetGadgetAttrs(app->carouselGadget,CurrentMainWindow,NULL,
+        SCA_ScreenModified,/*idx*/app->project->currentScreen,TAG_END);
+
 }

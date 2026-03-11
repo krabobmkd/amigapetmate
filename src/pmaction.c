@@ -27,6 +27,7 @@
 
 
 #include "boopsimainwindow.h"
+#include "pmsettingsview.h"
 #include "petscii_canvas.h"  /* PCA_TransformBrush, BRUSH_TRANSFORM_* */
 
 /* External globals from petmate.c */
@@ -555,6 +556,14 @@ BOOL Action_ViewToggleFullScreen(PmActionContext *ctx)
     return TRUE;
 }
 
+
+BOOL Action_OpenSettings(PmActionContext *ctx)
+{
+
+    PmSettingsView_Open(&app->settingsView);
+    return TRUE;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Palette actions
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -808,7 +817,7 @@ BOOL Action_ImportImage(PmActionContext *ctx)
     style = (const PetsciiStyle *)ctx->style;
     if (!scr || !style) return FALSE;
 
-    rawpath = aslExportRequest("Import image as PETSCII", "#?.(png|gif|bmp|iff|ilbm|jpg)");
+    rawpath = aslExportRequest("Import image as PETSCII", "#?.(png|gif|bmp|iff|ilbm|jpg|jpeg)");
     if (!rawpath) return FALSE;
 
     pathbuf = rawpath;  /* use path as-is (no forced extension for import) */
@@ -891,6 +900,8 @@ static PmAction actionTable[ACTION_COUNT] = {
 
     /* 22 ACTION_VIEW_CHARSET_LOWER */
     {Action_ViewToggleFullScreen,  MSG_TOGGLE_FULLSCREEN,  NULL, 0, 0},
+
+   {Action_OpenSettings,  MSG_SETTINGS,  NULL, 0, 0},
 
     /* 23 ACTION_PALETTE_PETMATE */
     {Action_PalettePetmate,  MSG_PALETTE_PETMATE,  NULL, 0, 0},
