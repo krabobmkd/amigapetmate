@@ -20,8 +20,10 @@ static char *StrDup(const char *s)
 }
 
 /* Tooltype key names */
-#define TT_TEMPDIR  "TEMPDIR"
-#define TT_RECENT   "RECENT"  /* RECENT0, RECENT1, ... RECENT7 */
+#define TT_TEMPDIR      "TEMPDIR"
+#define TT_RECENT       "RECENT"      /* RECENT0, RECENT1, ... RECENT7 */
+#define TT_USE_WORKBENCH "USEWB"      /* "1" or "0" */
+#define TT_SCREENMODEID  "SCREENMODEID" /* 8 hex digits, e.g. "00029000" */
 
 void AppSettings_Init(AppSettings *as)
 {
@@ -48,6 +50,18 @@ void AppSettings_Load(AppSettings *as, const char *exename)
         as->tempDir = StrDup(val);
     }
 
+    /* Load screen mode settings */
+    val = ToolTypePrefs_Get(TT_USE_WORKBENCH);
+    as->useWorkbench = (!val || val[0] != '0') ? TRUE : FALSE; /* default TRUE */
+
+    as->screenModeId = (ULONG)~0L; /* INVALID_ID default */
+    val = ToolTypePrefs_Get(TT_SCREENMODEID);
+    if (val && val[0] != '\0') {
+        unsigned long parsed = 0;
+        sscanf(val, "%lX", &parsed);
+        as->screenModeId = (ULONG)parsed;
+    }
+
     /* Load recent files */
     as->recentCount = 0;
     for(i = 0; i < APPSETTINGS_MAX_RECENT; i++) {
@@ -72,6 +86,14 @@ void AppSettings_Save(AppSettings *as)
     char key[16];
 
     if(!as) return;
+
+    /* Save screen mode settings */
+    ToolTypePrefs_Set(TT_USE_WORKBENCH, as->useWorkbench ? "1" : "0");
+    {
+        char hexbuf[16];
+        sprintf(hexbuf, "%08lX", (unsigned long)as->screenModeId);
+        ToolTypePrefs_Set(TT_SCREENMODEID, hexbuf);
+    }
 
     /* Save temp directory */
     if(as->tempDir) {
@@ -183,4 +205,28 @@ const char *AppSettings_GetRecentFile(AppSettings *as, int index)
 {
     if(!as || index < 0 || index >= as->recentCount) return NULL;
     return as->recentFiles[index];
+}
+
+BOOL AppSettings_GetUseWorkbench(AppSettings *as)
+{
+    if(!as) return TRUE;
+    return as->useWorkbench;
+}
+
+void AppSettings_SetUseWorkbench(AppSettings *as, BOOL val)
+{
+    if(!as) return;
+    as->useWorkbench = val;
+}
+
+ULONG AppSettings_GetScreenModeId(AppSettings *as)
+{
+    if(!as) return (ULONG)~0L;
+    return as->screenModeId;
+}
+
+void AppSettings_SetScreenModeId(AppSettings *as, ULONG modeId)
+{
+    if(!as) return;
+    as->screenModeId = modeId;
 }

@@ -6,6 +6,8 @@
 #include "petscii_fileio.h"
 #include "petscii_export.h"
 #include "petscii_export_ilbm.h"
+#include "petscii_export_gif.h"
+#include "petscii_import_image.h"
 #include "pmlocale.h"
 #include "pmstring.h"
 #include "petmate.h"
@@ -256,7 +258,15 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
     }
     if(!app->aboutRequester) return FALSE;
 
+// WA_IDCMP
+    SetAttrs(app->window_obj,WA_IDCMP,0,TAG_END);
+
     OpenRequester(app->aboutRequester,CurrentMainWindow);
+
+        SetAttrs(app->window_obj,WA_IDCMP,
+            IDCMP_CLOSEWINDOW | IDCMP_MENUPICK | IDCMP_RAWKEY |
+                IDCMP_GADGETDOWN | IDCMP_GADGETUP | IDCMP_MOUSEMOVE
+            ,TAG_END);
 
     return TRUE;
 }
@@ -727,35 +737,30 @@ BOOL Action_ExportIFFILBM(PmActionContext *ctx)
 }
 BOOL Action_ExportGif(PmActionContext *ctx)
 {
-/*
-   char          *rawpath;
-    char          *pathbuf;
-    PetsciiScreen *scr;
-    BOOL           ok;
-
-    if(!DataTypesBase)
-    {
-        SetStatusBarMessage(MSG_PETSCII_FILEIO_NEED_DT);
-        return FALSE;
-    }
+    char               *rawpath;
+    char               *pathbuf;
+    PetsciiScreen      *scr;
+    const PetsciiStyle *style;
+    int                 err;
 
     if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
-    scr = PetsciiProject_GetCurrentScreen(*ctx->pproject);
-    if (!scr) return FALSE;
+    scr   = PetsciiProject_GetCurrentScreen(*ctx->pproject);
+    style = (const PetsciiStyle *)ctx->style;
+    if (!scr || !style) return FALSE;
 
-    rawpath = aslExportRequest("Export as GIF ILBM (.gif)", "#?.gif");
+    rawpath = aslExportRequest("Export as GIF (.gif)", "#?.gif");
     if (!rawpath) return FALSE;
 
     pathbuf = PmStr_WithExt(rawpath, ".gif");
     PmStr_Free(rawpath);
     if (!pathbuf) return FALSE;
 
-    ok = (BOOL)(PetsciiExport_SaveDatatype(scr, pathbuf,2) == PETSCII_EXPORT_OK);
+    err = PetsciiExport_SaveGIF(scr, style, pathbuf, FALSE);
     PmStr_Free(pathbuf);
-    SetStatusBarMessage(ok ? MSG_PETSCII_FILEIO_WRITEOK : MSG_PETSCII_FILEIO_EWRITE);
-    return ok;
-    */
-        return FALSE;
+    SetStatusBarMessage(err == PETSCII_EXPORT_OK
+                        ? MSG_PETSCII_FILEIO_WRITEOK
+                        : MSG_PETSCII_FILEIO_EWRITE);
+    return (BOOL)(err == PETSCII_EXPORT_OK);
 }
 BOOL Action_ExportPng(PmActionContext *ctx)
 {
@@ -789,6 +794,37 @@ BOOL Action_ExportPng(PmActionContext *ctx)
     return FALSE;
 }
 
+
+BOOL Action_ImportImage(PmActionContext *ctx)
+{
+    char               *rawpath;
+    char               *pathbuf;
+    PetsciiScreen      *scr;
+    const PetsciiStyle *style;
+    int                 err;
+
+    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+    scr   = PetsciiProject_GetCurrentScreen(*ctx->pproject);
+    style = (const PetsciiStyle *)ctx->style;
+    if (!scr || !style) return FALSE;
+
+    rawpath = aslExportRequest("Import image as PETSCII", "#?.(png|gif|bmp|iff|ilbm|jpg)");
+    if (!rawpath) return FALSE;
+
+    pathbuf = rawpath;  /* use path as-is (no forced extension for import) */
+
+    err = PetsciiImport_FromImage(pathbuf, scr, style);
+    PmStr_Free(rawpath);
+
+    if (err == PETSCII_IMPORT_ENOMATCH || err == PETSCII_IMPORT_ESIZE) {
+        SetStatusBarMessage(MSG_IMPORT_NOMATCH);
+        return FALSE;
+    }
+    SetStatusBarMessage(err == PETSCII_IMPORT_OK
+                        ? MSG_PETSCII_FILEIO_WRITEOK
+                        : MSG_PETSCII_FILEIO_EWRITE);
+    return (BOOL)(err == PETSCII_IMPORT_OK);
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Action table - C89 sequential initialization.
@@ -888,7 +924,10 @@ static PmAction actionTable[ACTION_COUNT] = {
     /* 33 ACTION_EXPORT_ASM */
     {Action_ExportGif, MSG_EXPORT_GIF, NULL, 0, 0},
     /* 34 ACTION_EXPORT_SEQ */
-    {Action_ExportPng, MSG_EXPORT_PNG, NULL, 0, 0}
+    {Action_ExportPng, MSG_EXPORT_PNG, NULL, 0, 0},
+
+    /* ACTION_IMPORT_IMAGE */
+    {Action_ImportImage, MSG_IMPORT_IMAGE, NULL, 0, 0}
 
 };
 

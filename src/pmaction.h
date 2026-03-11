@@ -99,8 +99,11 @@ enum {
     ACTION_EXPORT_SEQ,
 
     ACTION_EXPORT_IFF_ILBM,
-   ACTION_EXPORT_GIF,
-   ACTION_EXPORT_PNG,
+    ACTION_EXPORT_GIF,
+    ACTION_EXPORT_PNG,
+
+    /* Import */
+    ACTION_IMPORT_IMAGE,
 
     /* Must be last */
     ACTION_COUNT
@@ -161,5 +164,7 @@ BOOL Action_ExportSEQ(PmActionContext *ctx);
 BOOL Action_ExportIFFILBM(PmActionContext *ctx);
 BOOL Action_ExportGif(PmActionContext *ctx);
 BOOL Action_ExportPng(PmActionContext *ctx);
+
+BOOL Action_ImportImage(PmActionContext *ctx);
 
 #endif /* PMACTION_H */

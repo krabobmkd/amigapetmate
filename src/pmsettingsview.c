@@ -1,3 +1,17 @@
+/*
+ * pmsettingsview.c - Settings window for Petmate Amiga.
+ *
+ * Screen mode group:
+ *   [ ] Use Workbench screen mode          <- checkbox
+ *   Screen Mode: [ 0xXXXXXXXX ] [Choose..]  <- display + ASL requester button
+ *   Description: [ PAL: 320x256 High Res ] <- read-only mode name display
+ *
+ * "Choose..." opens an ASL_ScreenModeRequest requester.
+ * Mode description is obtained via GetDisplayInfoData(DTAG_NAME).
+ * When "Use Workbench mode" is checked, the mode controls are disabled.
+ *
+ * C89 compatible.
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -6,10 +20,14 @@
 
 #include <intuition/screens.h>
 #include <intuition/icclass.h>
+#include <graphics/displayinfo.h>
 
 #include <proto/exec.h>
 #include <proto/intuition.h>
+#include <proto/graphics.h>
 #include <proto/utility.h>
+#include <proto/asl.h>
+#include <libraries/asl.h>
 
 #include <proto/window.h>
 #include <classes/window.h>
@@ -20,146 +38,230 @@
 #include <proto/button.h>
 #include <gadgets/button.h>
 
+#include <proto/checkbox.h>
+#include <gadgets/checkbox.h>
+
 #include <proto/label.h>
 #include <images/label.h>
-
-#include <proto/getfile.h>
-#include <gadgets/getfile.h>
 
 #include "compilers.h"
 #include "pmsettingsview.h"
 
 extern struct Screen *CurrentMainScreen;
+extern struct Library *AslBase;
 
-BOOL PmSettingsView_Init(PmSettingsView *psv,
-                              const char *title)
+/* ------------------------------------------------------------------ */
+/* Internal helpers                                                    */
+/* ------------------------------------------------------------------ */
+
+/* Fill modeIdHexStr and modeDescStr from currentModeId (no gadget update). */
+static void fillModeStrings(PmSettingsView *psv)
 {
-    Object *projPlaceholder;
+    struct NameInfo ni;
 
-    if(!psv) return FALSE;
+    sprintf(psv->modeIdHexStr, "0x%08lX", (unsigned long)psv->currentModeId);
+
+    if (psv->currentModeId == INVALID_ID) {
+        strcpy(psv->modeDescStr, "Invalid mode ID");
+    } else {
+        memset(&ni, 0, sizeof(ni));
+        if (GetDisplayInfoData(NULL, (UBYTE *)&ni, sizeof(ni),
+                               DTAG_NAME, psv->currentModeId)) {
+            strncpy(psv->modeDescStr, ni.Name, sizeof(psv->modeDescStr) - 1);
+            psv->modeDescStr[sizeof(psv->modeDescStr) - 1] = '\0';
+        } else {
+            strcpy(psv->modeDescStr, "Unknown display mode");
+        }
+    }
+}
+
+/* Push current strings and disabled state to gadgets (window must be open). */
+static void syncGadgetsToState(PmSettingsView *psv)
+{
+    ULONG disabled;
+
+    if (!psv->window) return;
+
+    disabled = psv->useWorkbench ? (ULONG)TRUE : (ULONG)FALSE;
+
+    SetGadgetAttrs((struct Gadget *)psv->modeIdDisplay,
+                   psv->window, NULL,
+                   GA_Text,     (ULONG)psv->modeIdHexStr,
+                   GA_Disabled, disabled,
+                   TAG_END);
+    SetGadgetAttrs((struct Gadget *)psv->chooseModeBtn,
+                   psv->window, NULL,
+                   GA_Disabled, disabled,
+                   TAG_END);
+    SetGadgetAttrs((struct Gadget *)psv->modeDescDisplay,
+                   psv->window, NULL,
+                   GA_Text,     (ULONG)psv->modeDescStr,
+                   GA_Disabled, disabled,
+                   TAG_END);
+    RefreshGList((struct Gadget *)psv->mainLayout, psv->window, NULL, -1);
+}
+
+/* Open ASL screen mode requester and update state if user confirms. */
+static void openScreenModeRequester(PmSettingsView *psv)
+{
+    struct ScreenModeRequester *smr;
+    BOOL ok;
+
+    smr = (struct ScreenModeRequester *)AllocAslRequestTags(
+              ASL_ScreenModeRequest, TAG_END);
+    if (!smr) return;
+
+    ok = (BOOL)AslRequestTags(smr,
+              ASLSM_Window,           (ULONG)psv->window,
+              ASLSM_InitialDisplayID, (ULONG)psv->currentModeId,
+              TAG_END);
+    if (ok) {
+        psv->currentModeId = smr->sm_DisplayID;
+        fillModeStrings(psv);
+        syncGadgetsToState(psv);
+    }
+
+    FreeAslRequest(smr);
+}
+
+/* ------------------------------------------------------------------ */
+/* Public API                                                          */
+/* ------------------------------------------------------------------ */
+
+BOOL PmSettingsView_Init(PmSettingsView *psv, const char *title)
+{
+    Object *useWbLabel;
+    Object *modeIdLabel;
+    Object *modeDescLabel;
+    Object *modeIdRow;
+
+    if (!psv) return FALSE;
 
     memset(psv, 0, sizeof(PmSettingsView));
 
-    //psv->drawInfo = drawInfo;
+    /* Defaults: Use Workbench mode, no specific mode ID */
+    psv->useWorkbench  = TRUE;
+    psv->currentModeId = INVALID_ID;
+    fillModeStrings(psv);
 
-    /* Create the GetFile gadget for temp directory selection */
-    psv->tempDirGetFile = NewObject(GETFILE_GetClass(), NULL,
-                            GA_ID, GAD_PROJSETTINGS_TEMPDIR,
-                            GA_RelVerify, TRUE,
-                            GETFILE_TitleText, (ULONG)"Select Temporary Directory",
-                            GETFILE_ReadOnly, FALSE,
-                            GETFILE_DrawersOnly, TRUE,
-                            GETFILE_Drawer, (ULONG)"T:",  /* Default Amiga temp */
+    /* --- Checkbox: Use Workbench screen mode --- */
+    psv->useWbCheck = NewObject(CHECKBOX_GetClass(), NULL,
+                          GA_ID,        GAD_SETTINGS_USEWB,
+                          GA_RelVerify, TRUE,
+                          GA_Selected,  (ULONG)TRUE,
+                          TAG_END);
+    if (!psv->useWbCheck) return FALSE;
+
+    useWbLabel = NewObject(LABEL_GetClass(), NULL,
+                     LABEL_Text, (ULONG)"Use Workbench screen mode",
+                     TAG_END);
+
+    /* --- Mode ID read-only display (starts disabled when useWb=TRUE) --- */
+    psv->modeIdDisplay = NewObject(BUTTON_GetClass(), NULL,
+                             GA_ReadOnly, TRUE,
+                             GA_Text,     (ULONG)psv->modeIdHexStr,
+                             GA_Disabled, (ULONG)TRUE,
+                             TAG_END);
+    if (!psv->modeIdDisplay) { return FALSE; }
+
+    /* --- Choose... button (starts disabled) --- */
+    psv->chooseModeBtn = NewObject(BUTTON_GetClass(), NULL,
+                             GA_ID,        GAD_SETTINGS_CHOOSEMODE,
+                             GA_RelVerify, TRUE,
+                             GA_Text,      (ULONG)"Choose...",
+                             GA_Disabled,  (ULONG)TRUE,
+                             TAG_END);
+    if (!psv->chooseModeBtn) { return FALSE; }
+
+    /* --- Mode description read-only display (starts disabled) --- */
+    psv->modeDescDisplay = NewObject(BUTTON_GetClass(), NULL,
+                               GA_ReadOnly, TRUE,
+                               GA_Text,     (ULONG)psv->modeDescStr,
+                               GA_Disabled, (ULONG)TRUE,
+                               TAG_END);
+    if (!psv->modeDescDisplay) { return FALSE; }
+
+    /* Labels for the mode ID row and description row */
+    modeIdLabel = NewObject(LABEL_GetClass(), NULL,
+                      LABEL_Text, (ULONG)"Screen Mode:",
+                      TAG_END);
+
+    modeDescLabel = NewObject(LABEL_GetClass(), NULL,
+                        LABEL_Text, (ULONG)"Description:",
+                        TAG_END);
+
+    /* --- Horizontal sub-layout: [modeIdDisplay | Choose...] --- */
+    modeIdRow = NewObject(LAYOUT_GetClass(), NULL,
+                    LAYOUT_Orientation, LAYOUT_ORIENT_HORIZ,
+                    LAYOUT_BevelStyle,  BVS_NONE,
+                    LAYOUT_SpaceInner,  TRUE,
+
+                    LAYOUT_AddChild,    (ULONG)psv->modeIdDisplay,
+
+                    LAYOUT_AddChild,    (ULONG)psv->chooseModeBtn,
+                    CHILD_WeightedWidth, 0,
+
+                    TAG_END);
+    if (!modeIdRow) return FALSE;
+
+    /* --- Screen settings group --- */
+    psv->screenLayout = NewObject(LAYOUT_GetClass(), NULL,
+                            LAYOUT_Orientation, LAYOUT_ORIENT_VERT,
+                            LAYOUT_BevelStyle,  BVS_GROUP,
+                            LAYOUT_Label,       (ULONG)"Fullscreen Display Mode",
+                            LAYOUT_SpaceOuter,  TRUE,
+                            LAYOUT_SpaceInner,  TRUE,
+
+                            LAYOUT_AddChild,     (ULONG)psv->useWbCheck,
+                            CHILD_WeightedHeight, 0,
+                            CHILD_Label,          (ULONG)useWbLabel,
+
+                            LAYOUT_AddChild,     (ULONG)modeIdRow,
+                            CHILD_WeightedHeight, 0,
+                            CHILD_Label,          (ULONG)modeIdLabel,
+
+                            LAYOUT_AddChild,     (ULONG)psv->modeDescDisplay,
+                            CHILD_WeightedHeight, 0,
+                            CHILD_Label,          (ULONG)modeDescLabel,
+
                             TAG_END);
+    if (!psv->screenLayout) return FALSE;
 
-    if(!psv->tempDirGetFile) return FALSE;
-
-    /* Create label for the temp dir gadget */
-    psv->tempDirLabel = NewObject(LABEL_GetClass(), NULL,
-                            LABEL_Text, (ULONG)"Temp Directory:",
-                            TAG_END);
-
-    /* App Settings group layout */
-    psv->appSettingsLayout = NewObject(LAYOUT_GetClass(), NULL,
-                       // GA_DrawInfo, (ULONG)drawInfo,
-                        LAYOUT_Orientation, LAYOUT_ORIENT_VERT,
-                        LAYOUT_BevelStyle, BVS_GROUP,
-                        LAYOUT_Label, (ULONG)"App Settings",
-                        LAYOUT_SpaceOuter, TRUE,
-                        LAYOUT_SpaceInner, TRUE,
-
-                        LAYOUT_AddChild, (ULONG)psv->tempDirGetFile,
-                        CHILD_WeightedHeight, 0,
-                        CHILD_Label, (ULONG)psv->tempDirLabel,
-
-                        TAG_END);
-
-    if(!psv->appSettingsLayout) {
-        DisposeObject(psv->tempDirGetFile);
-        if(psv->tempDirLabel) DisposeObject(psv->tempDirLabel);
-        return FALSE;
-    }
-
-    /* Project Settings group layout (placeholder for now) */
-    projPlaceholder = NewObject(BUTTON_GetClass(), NULL,
-                //        GA_DrawInfo, (ULONG)drawInfo,
-                        GA_ReadOnly, TRUE,
-                        BUTTON_BevelStyle, BVS_NONE,
-                        BUTTON_Transparent, TRUE,
-                        GA_Text, (ULONG)"(no project settings yet)",
-                        TAG_END);
-
-    psv->projSettingsLayout = NewObject(LAYOUT_GetClass(), NULL,
-                       // GA_DrawInfo, (ULONG)drawInfo,
-                        LAYOUT_Orientation, LAYOUT_ORIENT_VERT,
-                        LAYOUT_BevelStyle, BVS_GROUP,
-                        LAYOUT_Label, (ULONG)"Project Settings",
-                        LAYOUT_SpaceOuter, TRUE,
-                        LAYOUT_SpaceInner, TRUE,
-
-                        LAYOUT_AddChild, (ULONG)projPlaceholder,
-                        CHILD_WeightedHeight, 0,
-
-                        TAG_END);
-
-    if(!psv->projSettingsLayout) {
-        DisposeObject(psv->appSettingsLayout);
-        psv->appSettingsLayout = NULL;
-        psv->tempDirGetFile = NULL;
-        psv->tempDirLabel = NULL;
-        if(projPlaceholder) DisposeObject(projPlaceholder);
-        return FALSE;
-    }
-
-    /* Main vertical layout containing both groups */
+    /* --- Main top-level layout --- */
     psv->mainLayout = NewObject(LAYOUT_GetClass(), NULL,
-                      //  GA_DrawInfo, (ULONG)drawInfo,
-                        LAYOUT_DeferLayout, TRUE,
-                        LAYOUT_Orientation, LAYOUT_ORIENT_VERT,
-                        LAYOUT_BevelStyle, BVS_NONE,
-                        LAYOUT_SpaceOuter, TRUE,
-                        LAYOUT_SpaceInner, TRUE,
+                          LAYOUT_DeferLayout,   TRUE,
+                          LAYOUT_Orientation,   LAYOUT_ORIENT_VERT,
+                          LAYOUT_BevelStyle,    BVS_NONE,
+                          LAYOUT_SpaceOuter,    TRUE,
+                          LAYOUT_SpaceInner,    TRUE,
 
-                        LAYOUT_AddChild, (ULONG)psv->appSettingsLayout,
-                        CHILD_WeightedHeight, 0,
+                          LAYOUT_AddChild,      (ULONG)psv->screenLayout,
+                          CHILD_WeightedHeight, 0,
 
-                        LAYOUT_AddChild, (ULONG)psv->projSettingsLayout,
-                        CHILD_WeightedHeight, 0,
-
-                        TAG_END);
-
-    if(!psv->mainLayout) {
-        DisposeObject(psv->projSettingsLayout);
-        DisposeObject(psv->appSettingsLayout);
-        psv->appSettingsLayout = NULL;
-        psv->projSettingsLayout = NULL;
-        psv->tempDirGetFile = NULL;
-        psv->tempDirLabel = NULL;
+                          TAG_END);
+    if (!psv->mainLayout) {
+        DisposeObject(psv->screenLayout);
+        psv->screenLayout = NULL;
         return FALSE;
     }
 
-    /* Create the window object */
+    /* --- BOOPSI window object --- */
     psv->windowObj = NewObject(WINDOW_GetClass(), NULL,
-                        WA_Left, 140,
-                        WA_Top, 80,
-                        WA_Width, 340,
-                        WA_Height, 200,
-                      //later
-                     // WA_CustomScreen, (ULONG)CurrentMainScreen,
-                        WA_IDCMP, IDCMP_CLOSEWINDOW | IDCMP_GADGETUP | IDCMP_RAWKEY,
-                        WA_Flags, WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET |
-                                  WFLG_SIZEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH,
-                        WA_Title, (ULONG)title,
-                        WINDOW_ParentGroup, (ULONG)psv->mainLayout,
-                        TAG_END);
-
-    if(!psv->windowObj) {
+                         WA_Left,   100,
+                         WA_Top,    60,
+                         WA_Width,  420,
+                         WA_Height, 170,
+                         WA_IDCMP,  IDCMP_CLOSEWINDOW | IDCMP_GADGETUP | IDCMP_RAWKEY,
+                         WA_Flags,  WFLG_DRAGBAR | WFLG_DEPTHGADGET |
+                                    WFLG_CLOSEGADGET | WFLG_ACTIVATE |
+                                    WFLG_SMART_REFRESH,
+                         WA_Title,  (ULONG)title,
+                         WINDOW_ParentGroup, (ULONG)psv->mainLayout,
+                         TAG_END);
+    if (!psv->windowObj) {
         DisposeObject(psv->mainLayout);
-        psv->mainLayout = NULL;
-        psv->appSettingsLayout = NULL;
-        psv->projSettingsLayout = NULL;
-        psv->tempDirGetFile = NULL;
-        psv->tempDirLabel = NULL;
+        psv->mainLayout    = NULL;
+        psv->screenLayout  = NULL;
         return FALSE;
     }
 
@@ -168,21 +270,21 @@ BOOL PmSettingsView_Init(PmSettingsView *psv,
 
 void PmSettingsView_Open(PmSettingsView *psv)
 {
-    if(!psv || !psv->windowObj) return;
-    if(psv->window) return;  /* Already open */
+    if (!psv || !psv->windowObj) return;
+    if (psv->window) return; /* already open */
 
-    if(CurrentMainScreen)
-    {
-        SetAttrs(psv->windowObj,WA_CustomScreen, (ULONG)CurrentMainScreen,TAG_END);
+    if (CurrentMainScreen) {
+        SetAttrs(psv->windowObj,
+                 WA_CustomScreen, (ULONG)CurrentMainScreen,
+                 TAG_END);
     }
 
-    psv->window =  (struct Window *)DoMethod(psv->windowObj, WM_OPEN, NULL);
-
+    psv->window = (struct Window *)DoMethod(psv->windowObj, WM_OPEN, NULL);
 }
 
 void PmSettingsView_Close(PmSettingsView *psv)
 {
-    if(!psv || !psv->windowObj || !psv->window) return;
+    if (!psv || !psv->windowObj || !psv->window) return;
 
     DoMethod(psv->windowObj, WM_CLOSE, NULL);
     psv->window = NULL;
@@ -192,30 +294,31 @@ BOOL PmSettingsView_HandleInput(PmSettingsView *psv)
 {
     ULONG result;
 
-    if(!psv || !psv->windowObj) return FALSE;
-    if(!psv->window) return TRUE;  /* Window closed, but that's ok */
+    if (!psv || !psv->windowObj) return FALSE;
+    if (!psv->window) return TRUE; /* window closed, that's fine */
 
-    while((result = DoMethod(psv->windowObj, WM_HANDLEINPUT, NULL)) != WMHI_LASTMSG)
+    while ((result = DoMethod(psv->windowObj, WM_HANDLEINPUT, NULL))
+           != WMHI_LASTMSG)
     {
-        switch(result & WMHI_CLASSMASK)
+        switch (result & WMHI_CLASSMASK)
         {
             case WMHI_CLOSEWINDOW:
                 PmSettingsView_Close(psv);
-                return TRUE;  /* Window just hidden, not destroyed */
+                return TRUE;
 
             case WMHI_GADGETUP:
             {
                 ULONG gadId = result & WMHI_GADGETMASK;
-                if(gadId == GAD_PROJSETTINGS_TEMPDIR)
-                {
-                    /* User clicked the getfile button - open file requester */
-                    DoMethod(psv->tempDirGetFile, GFILE_REQUEST, (ULONG)psv->window);
+                if (gadId == GAD_SETTINGS_USEWB) {
+                    ULONG checked = 0;
+                    GetAttr(GA_Selected, psv->useWbCheck, &checked);
+                    psv->useWorkbench = checked ? TRUE : FALSE;
+                    syncGadgetsToState(psv);
+                } else if (gadId == GAD_SETTINGS_CHOOSEMODE) {
+                    openScreenModeRequester(psv);
                 }
                 break;
             }
-
-            case WMHI_RAWKEY:
-                break;
 
             default:
                 break;
@@ -227,49 +330,63 @@ BOOL PmSettingsView_HandleInput(PmSettingsView *psv)
 
 ULONG PmSettingsView_GetSignalMask(PmSettingsView *psv)
 {
-    if(!psv || !psv->window) return 0;
+    if (!psv || !psv->window) return 0;
     return (1L << psv->window->UserPort->mp_SigBit);
 }
 
-const char *PmSettingsView_GetTempDir(PmSettingsView *psv)
+BOOL PmSettingsView_GetUseWorkbench(PmSettingsView *psv)
 {
-    const char *path = NULL;
-
-    if(!psv || !psv->tempDirGetFile) return NULL;
-
-    GetAttr(GETFILE_Drawer, psv->tempDirGetFile, (ULONG *)&path);
-    return path;
+    if (!psv) return TRUE;
+    return psv->useWorkbench;
 }
 
-void PmSettingsView_SetTempDir(PmSettingsView *psv, const char *path)
+void PmSettingsView_SetUseWorkbench(PmSettingsView *psv, BOOL useWb)
 {
-    if(!psv || !psv->tempDirGetFile || !path) return;
+    if (!psv) return;
+    psv->useWorkbench = useWb;
 
-    SetGadgetAttrs((struct Gadget *)psv->tempDirGetFile, psv->window, NULL,
-                   GETFILE_Drawer, (ULONG)path,
-                   TAG_END);
+    if (psv->window && psv->useWbCheck) {
+        SetGadgetAttrs((struct Gadget *)psv->useWbCheck,
+                       psv->window, NULL,
+                       GA_Selected, (ULONG)(useWb ? TRUE : FALSE),
+                       TAG_END);
+        RefreshGList((struct Gadget *)psv->useWbCheck, psv->window, NULL, 1);
+    }
+
+    syncGadgetsToState(psv);
+}
+
+ULONG PmSettingsView_GetModeId(PmSettingsView *psv)
+{
+    if (!psv) return INVALID_ID;
+    return psv->currentModeId;
+}
+
+void PmSettingsView_SetModeId(PmSettingsView *psv, ULONG modeId)
+{
+    if (!psv) return;
+    psv->currentModeId = modeId;
+    fillModeStrings(psv);
+    syncGadgetsToState(psv);
 }
 
 void PmSettingsView_Dispose(PmSettingsView *psv)
 {
-    if(!psv) return;
+    if (!psv) return;
 
-    /* Close window if open */
-    if(psv->window) {
+    if (psv->window) {
         DoMethod(psv->windowObj, WM_CLOSE, NULL);
         psv->window = NULL;
     }
 
-    /* Dispose window object - this cascades to child gadgets */
-    if(psv->windowObj) {
+    if (psv->windowObj) {
         DisposeObject(psv->windowObj);
-        psv->windowObj = NULL;
+        psv->windowObj    = NULL;
+        psv->mainLayout   = NULL;
+        psv->screenLayout = NULL;
+        psv->useWbCheck      = NULL;
+        psv->modeIdDisplay   = NULL;
+        psv->chooseModeBtn   = NULL;
+        psv->modeDescDisplay = NULL;
     }
-
-    psv->mainLayout = NULL;
-    psv->appSettingsLayout = NULL;
-    psv->projSettingsLayout = NULL;
-    psv->tempDirGetFile = NULL;
-    psv->tempDirLabel = NULL;
 }
-

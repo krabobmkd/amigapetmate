@@ -6,6 +6,7 @@
 
 #include <intuition/intuition.h>
 #include <intuition/gadgetclass.h>
+#include <graphics/displayinfo.h>   /* INVALID_ID */
 
 #include <proto/window.h>
 #include <classes/window.h>
@@ -43,13 +44,12 @@ void OpenSettingsWindow()
 void CloseSettingsWindow()
 {
     if(!app) return;
-    /* Sync temp dir from settings view back to AppSettings */
-    {
-        const char *tempDir = PmSettingsView_GetTempDir(&app->settingsView);
-        if (tempDir) {
-            AppSettings_SetTempDir(&app->appSettings, tempDir);
-        }
-    }
+    /* Sync screen mode settings back to AppSettings and save */
+    AppSettings_SetUseWorkbench(&app->appSettings,
+        PmSettingsView_GetUseWorkbench(&app->settingsView));
+    AppSettings_SetScreenModeId(&app->appSettings,
+        PmSettingsView_GetModeId(&app->settingsView));
+    AppSettings_Save(&app->appSettings);
     PmSettingsView_Close(&app->settingsView);
 
     /* would close requester, but ther'es nio method for this
@@ -250,13 +250,27 @@ void BMainWindow_SwitchToFullScreen(struct BoopsiMainWindow *mw,Object *window_o
 
     CloseSettingsWindow();
 
-    myScreen = OpenScreenTags(NULL,
-        SA_Type,       PUBLICSCREEN,
-        SA_PubName,   (ULONG) "PetMate",  // Optional: custom name
-        SA_LikeWorkbench, TRUE,             // Inherit Workbench settings
-        SA_Title,     (ULONG) &mw->title[0],
-        SA_Colors,(ULONG)&colspec[0], /*really need a palette at opening or intuition will manage colors */
-        TAG_DONE);
+    /* Use the user-configured mode ID when available, otherwise inherit WB. */
+    if (appSettings &&
+        !appSettings->useWorkbench &&
+        appSettings->screenModeId != INVALID_ID)
+    {
+        myScreen = OpenScreenTags(NULL,
+            SA_Type,      PUBLICSCREEN,
+            SA_PubName,   (ULONG)"PetMate",
+            SA_DisplayID, (ULONG)appSettings->screenModeId,
+            SA_Title,     (ULONG)&mw->title[0],
+            SA_Colors,    (ULONG)&colspec[0],
+            TAG_DONE);
+    } else {
+        myScreen = OpenScreenTags(NULL,
+            SA_Type,          PUBLICSCREEN,
+            SA_PubName,       (ULONG)"PetMate",
+            SA_LikeWorkbench, TRUE,
+            SA_Title,         (ULONG)&mw->title[0],
+            SA_Colors,        (ULONG)&colspec[0],
+            TAG_DONE);
+    }
     if(!myScreen) return;
 
     mw->fullPubScreen = myScreen;

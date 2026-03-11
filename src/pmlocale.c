@@ -173,6 +173,11 @@ static const char *defaultStrings[MSG_COUNT] = {
     /*  */
     "Export PNG image (.png)...",
 
+    /* MSG_IMPORT_IMAGE */
+    "Import Image...",
+    /* MSG_IMPORT_NOMATCH */
+    "No PETSCII match found (check size and palette).",
+
     /* status bar message per tools - keep it same order as enum */
     "Draw char and Color.",
     "Colorize mode.",

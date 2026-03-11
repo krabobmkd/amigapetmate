@@ -122,6 +122,10 @@ enum {
     MSG_EXPORT_GIF,
     MSG_EXPORT_PNG,
 
+    /* Import actions */
+    MSG_IMPORT_IMAGE,
+    MSG_IMPORT_NOMATCH,
+
     /* status bar messages */
     MSG_STATUS_DRAW,
     MSG_STATUS_COLORIZE,

@@ -15,6 +15,10 @@ typedef struct AppSettings {
     char *tempDir;                              /* AllocVec-managed path */
     char *recentFiles[APPSETTINGS_MAX_RECENT];  /* [0] = most recent */
     int   recentCount;
+
+    /* Screen mode for fullscreen: */
+    BOOL  useWorkbench;   /* TRUE = use WB screen mode (SA_LikeWorkbench)     */
+    ULONG screenModeId;   /* display ID for SA_DisplayID; 0xFFFFFFFF=invalid  */
 } AppSettings;
 
 /* Initialize (zeroes struct). Call before Load. */
@@ -43,5 +47,13 @@ int AppSettings_GetRecentCount(AppSettings *as);
 
 /* Get recent file path by index (0 = most recent). Returns NULL if out of range. */
 const char *AppSettings_GetRecentFile(AppSettings *as, int index);
+
+/* Get/set "Use Workbench screen mode" flag (default TRUE). */
+BOOL AppSettings_GetUseWorkbench(AppSettings *as);
+void AppSettings_SetUseWorkbench(AppSettings *as, BOOL val);
+
+/* Get/set screen mode ID for fullscreen (0xFFFFFFFF = INVALID_ID = not set). */
+ULONG AppSettings_GetScreenModeId(AppSettings *as);
+void  AppSettings_SetScreenModeId(AppSettings *as, ULONG modeId);
 
 #endif /* APPSETTINGS_H */

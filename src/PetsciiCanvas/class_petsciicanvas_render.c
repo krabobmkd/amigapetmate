@@ -48,6 +48,15 @@
 #define CELL_PX(n, cDim, pDim) \
     ((WORD)(((LONG)(n) * 8 * (LONG)(cDim)) / (WORD)(pDim)))
 
+/*
+    Note in 68000, division operators are divu.w or divs.w that does ULONG/UWORD and LONG/WORD.
+    C compilers are usually stupids and will consider each math operation have same params types,
+    so it will compile a "LONG/LONG" that the 68k can't do, even when types are LONG/WORD.
+    So a Math lib will be called in 68000 mode, when starting with 68020 it will use divs.l
+
+
+*/
+
 /* ------------------------------------------------------------------ */
 /* Static: ensure inst->scaledBuf is (w x h) bytes.                   */
 /* ------------------------------------------------------------------ */

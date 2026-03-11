@@ -34,6 +34,9 @@
 #include <proto/scroller.h>
 #include <gadgets/scroller.h>
 
+#include <proto/checkbox.h>
+#include <gadgets/checkbox.h>
+
 #include <proto/label.h>
 #include <images/label.h>
 
@@ -104,6 +107,7 @@ struct Library *LayoutBase = NULL;
 struct Library *ButtonBase = NULL;
 struct Library *LabelBase  = NULL;
 //struct Library *ScrollerBase=NULL;
+struct Library *CheckBoxBase=NULL;
 struct Library *GetFileBase=NULL;
 struct Library *RequesterBase=NULL;
 
@@ -128,6 +132,8 @@ static LibraryEntry libraryTable[] = {
     {"images/label.image",     45, &LabelBase},
     {"gadgets/layout.gadget",  45, &LayoutBase},
     {"gadgets/button.gadget",  45, &ButtonBase},
+    {"gadgets/checkbox.gadget",  45, &CheckBoxBase},
+
 //    {"gadgets/scroller.gadget", 45, &ScrollerBase},
     {"gadgets/getfile.gadget", 45, &GetFileBase},
     {"requester.class", 45, &RequesterBase},
@@ -726,6 +732,13 @@ int main(int argc, char **argv)
         printf("Warning: Could not create Project Settings window\n");
     }
 
+    /* Load application settings from icon tooltypes and sync to settings view */
+    AppSettings_Init(&app->appSettings);
+    AppSettings_Load(&app->appSettings, "petmate");
+    PmSettingsView_SetUseWorkbench(&app->settingsView,
+        AppSettings_GetUseWorkbench(&app->appSettings));
+    PmSettingsView_SetModeId(&app->settingsView,
+        AppSettings_GetScreenModeId(&app->appSettings));
 
     /* Open the window */
 
@@ -746,16 +759,24 @@ int main(int argc, char **argv)
 
         while (ok)
         {
-            ULONG result, waitedSignals,currentSignals;
+            ULONG result, waitedSignals, currentSignals, settingsSig;
 
             flushbdbprint();
 
+            settingsSig = PmSettingsView_GetSignalMask(&app->settingsView);
+
             waitedSignals = winsignal |
+                settingsSig |
                 (1L << app->app_port->mp_SigBit) |
                 SIGBREAKF_CTRL_C |
                 SIGBREAKF_CTRL_F;
 
             currentSignals = Wait(waitedSignals);
+
+            /* Handle settings window input when its signal fires */
+            if (settingsSig && (currentSignals & settingsSig)) {
+                PmSettingsView_HandleInput(&app->settingsView);
+            }
 
             /* exit app at any moment from Ctrl-C signal, atexit() magic does anything needed. */
             if(currentSignals & SIGBREAKF_CTRL_C) exit(0);
@@ -1274,6 +1295,8 @@ void exitclose(void)
             app->project = NULL;
         }
 
+        AppSettings_Save(&app->appSettings);
+        AppSettings_Close(&app->appSettings);
         PmSettingsView_Dispose(&app->settingsView);
 
         if(app->aboutRequester)
@@ -1341,6 +1364,8 @@ void exitclose(void)
     bdbprintf_report_leaks();
     bdbprintf_report_classes();
     flushbdbprint();
+
+    if(DataTypesBase) CloseLibrary(DataTypesBase);
 
     /* Close all other libraries in reverse order */
     {

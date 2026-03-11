@@ -41,6 +41,9 @@ static struct NewMenu menuTemplate[] = {
             {NM_SUB, NULL, 0, 0, 0, (APTR)ACTION_EXPORT_ASM},
             {NM_SUB, NULL, 0, 0, 0, (APTR)ACTION_EXPORT_SEQ},
 
+        {NM_ITEM, (STRPTR)"Import", 0, 0, 0, 0},
+
+            {NM_SUB, NULL, 0, 0, 0, (APTR)ACTION_IMPORT_IMAGE},
 
         {NM_ITEM, NM_BARLABEL, 0, 0, 0, NULL},
         {NM_ITEM, NULL, 0,   0, 0, (APTR)ACTION_PROJECT_ABOUT},

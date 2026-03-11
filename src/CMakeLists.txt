@@ -7,14 +7,17 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 option(AMIGA_USE_FLOAT "use any float or double" OFF)
 option(AMIGA_USE_HARDFLOAT "compile using direct 68882 FPU" OFF)
-option(AMIGA_USE_68030 "use 68030" ON)
+option(AMIGA_USE_68000 "use 68000" ON)
+option(AMIGA_USE_68030 "use 68030" OFF)
 option(AMIGA_USE_68040 "use 68040" OFF)
 option(AMIGA_USE_68060 "use 68060" OFF)
 
 # Assembler output for debug
 list(APPEND AMIGA_COMPILER_OPTIONS -save-temps)
 
-if(AMIGA_USE_68030)
+if(AMIGA_USE_68000)
+    list(APPEND AMIGA_COMPILER_OPTIONS -m68000)
+elseif(AMIGA_USE_68030)
     list(APPEND AMIGA_COMPILER_OPTIONS -m68030)
 elseif(AMIGA_USE_68040)
     list(APPEND AMIGA_COMPILER_OPTIONS -m68040)
@@ -91,12 +94,19 @@ set(PETMATE_FILEIO_SOURCES
     petscii_fileio.c
 )
 
-# Phase 11: Export formats (BAS, ASM, SEQ, IFF ILBM)
+# Phase 11: Export formats (BAS, ASM, SEQ, IFF ILBM, GIF)
 set(PETMATE_EXPORT_SOURCES
     petscii_export_bas.c
     petscii_export_asm.c
     petscii_export_seq.c
     petscii_export_ilbm.c
+    petscii_export_gif.c
+#does not work    petscii_export_datatype.c
+)
+
+# Phase 12: Import formats (image -> PETSCII via picture.datatype)
+set(PETMATE_IMPORT_SOURCES
+    petscii_import_image.c
 )
 
 # Phase 4+6: PetsciiCanvas BOOPSI gadget class
@@ -144,6 +154,9 @@ set(PETMATE_CAROUSEL_SOURCES
     ScreenCarousel/class_screencarousel_input.c
 )
 
+# giflib: static GIF encoder/decoder (sources live one level up in ../giflib)
+add_subdirectory(../giflib ${CMAKE_CURRENT_BINARY_DIR}/giflib)
+
 if(AMIGA)
     add_executable(petmate
         ${PETMATE_SOURCES}
@@ -156,6 +169,7 @@ if(AMIGA)
         ${PETMATE_CAROUSEL_SOURCES}
         ${PETMATE_FILEIO_SOURCES}
         ${PETMATE_EXPORT_SOURCES}
+        ${PETMATE_IMPORT_SOURCES}
         # ${PETMATE_EXTRA_SOURCES}
     )
 
@@ -174,6 +188,8 @@ if(AMIGA)
         $<$<CONFIG:RELEASE>:-O2 -Wno-narrowing -DNDEBUG>
         ${AMIGA_COMPILER_OPTIONS}
     )
+
+    target_link_libraries(petmate gif)
 
 #    # Development tool: generate petscii_chartransform.c/.h
 #    # Run on Amiga (or emulator), redirect output to project root.

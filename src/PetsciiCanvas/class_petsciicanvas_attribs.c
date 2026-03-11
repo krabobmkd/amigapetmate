@@ -6,6 +6,7 @@
 #include <proto/exec.h>
 #include <proto/intuition.h>
 #include <proto/graphics.h>
+#include <proto/alib.h>
 #include <proto/utility.h>
 #include "petscii_canvas_private.h"
 #include "petscii_chartransform.h"

@@ -1,0 +1,55 @@
+/* config.h for m68k-amigaos (Motorola 68000, AmigaOS 3.x)
+ * Hand-crafted replacement for the autoconf-generated config.h.
+ * This file is copied to the build directory as config.h by CMakeLists.txt.
+ *
+ * Target: m68k-amigaos  (big-endian, ILP32)
+ *   sizeof(int)    = 4
+ *   sizeof(long)   = 4
+ *   sizeof(size_t) = 4
+ *   byte order     = big-endian (MSB first)
+ */
+
+#ifndef CONFIG_H
+#define CONFIG_H
+
+/* ---- Byte order --------------------------------------------------------- */
+/* Motorola 68000 is big-endian (most-significant byte at lower address). */
+#define WORDS_BIGENDIAN 1
+
+/* ---- Standard C headers present in m68k-amigaos-gcc toolchain ----------- */
+#define HAVE_STDLIB_H   1
+#define HAVE_STRING_H   1
+#define HAVE_STRINGS_H  1
+#define HAVE_STDARG_H   1
+#define HAVE_STDINT_H   1
+#define HAVE_INTTYPES_H 1
+#define HAVE_LIMITS_H   1
+#define HAVE_MEMORY_H   1
+#define HAVE_SYS_TYPES_H 1
+#define HAVE_SYS_STAT_H  1
+#define HAVE_UNISTD_H   1
+#define HAVE_FCNTL_H    1
+#define STDC_HEADERS    1
+
+/* ---- Features not available on AmigaOS 3.x ------------------------------ */
+/* No X11 display subsystem */
+#define X_DISPLAY_MISSING 1
+#undef HAVE_LIBX11
+#undef HAVE_X11_XLIB_H
+#undef HAVE_X11_XUTIL_H
+/* No dynamic loading */
+#undef HAVE_DLFCN_H
+
+/* ---- Package info -------------------------------------------------------- */
+#define PACKAGE         "giflib"
+#define PACKAGE_NAME    "GIFLIB"
+#define PACKAGE_VERSION "4.2.3"
+#define PACKAGE_STRING  "GIFLIB 4.2.3"
+#define PACKAGE_TARNAME "giflib"
+#define PACKAGE_BUGREPORT ""
+#define PACKAGE_URL     ""
+#define VERSION         "4.2.3"
+
+#define LT_OBJDIR ".libs/"
+
+#endif /* CONFIG_H */
