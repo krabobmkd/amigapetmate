@@ -107,6 +107,10 @@ enum {
     /* Import */
     ACTION_IMPORT_IMAGE,
 
+    /* Generate */
+    ACTION_GENERATE_RANDOM_BRUSH,
+    ACTION_GENERATE_MAGIC_LINE,
+
     /* Must be last */
     ACTION_COUNT
 };
@@ -168,5 +172,8 @@ BOOL Action_ExportGif(PmActionContext *ctx);
 BOOL Action_ExportPng(PmActionContext *ctx);
 
 BOOL Action_ImportImage(PmActionContext *ctx);
+
+BOOL Action_GenerateRandomFromBrush(PmActionContext *ctx);
+BOOL Action_GenerateMagicLine(PmActionContext *ctx);
 
 #endif /* PMACTION_H */

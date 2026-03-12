@@ -37,25 +37,8 @@
 #include <intuition/gadgetclass.h>
 #include "petscii_canvas_private.h"
 #include "petscii_screenbuf.h"
+#include "../petscii_cellpx.h"
 #include <bdbprintf.h>
-
-/*
- * CELL_PX(n, contentDim, pixDim)
- * Project char edge index n (0..screenW or 0..screenH) to a content-relative
- * pixel coordinate.  Same formula used by drawGrid() and the cursor highlight,
- * guaranteed to align with BlitScaled's 16:16 mapping.
- */
-#define CELL_PX(n, cDim, pDim) \
-    ((WORD)(((LONG)(n) * 8 * (LONG)(cDim)) / (WORD)(pDim)))
-
-/*
-    Note in 68000, division operators are divu.w or divs.w that does ULONG/UWORD and LONG/WORD.
-    C compilers are usually stupids and will consider each math operation have same params types,
-    so it will compile a "LONG/LONG" that the 68k can't do, even when types are LONG/WORD.
-    So a Math lib will be called in 68000 mode, when starting with 68020 it will use divs.l
-
-
-*/
 
 /* ------------------------------------------------------------------ */
 /* Static: ensure inst->scaledBuf is (w x h) bytes.                   */
@@ -116,7 +99,7 @@ static void computeContentRect(
     }
 
     /* Try fitting content to full width */
-    fitH = (ULONG)gadW * idealH / idealW;
+    fitH = (ULONG)DivW(gadW * idealH ,idealW);
     if (fitH <= (ULONG)gadH) {
         *outW = gadW;
         *outH = (WORD)fitH;
@@ -126,7 +109,7 @@ static void computeContentRect(
     }
 
     /* Otherwise fit to full height */
-    fitW = (ULONG)gadH * idealW / idealH;
+    fitW = (ULONG)DivW(gadH * idealW , idealH);
     if (fitW > (ULONG)gadW) fitW = (ULONG)gadW; /* safety clamp */
     *outW = (WORD)fitW;
     *outH = gadH;
@@ -221,8 +204,8 @@ static void updateContentRect(PetsciiCanvasData *inst, WORD gadW, WORD gadH)
     }
 
     /* Per-cell pixel size derived from the outer frame */
-    cellW = (scrW + 2 > 0) ? (WORD)(outerW / (WORD)(scrW + 2)) : 0;
-    cellH = (scrH + 2 > 0) ? (WORD)(outerH / (WORD)(scrH + 2)) : 0;
+    cellW = (scrW + 2 > 0) ? (WORD)(DivW(outerW , (WORD)(scrW + 2))) : 0;
+    cellH = (scrH + 2 > 0) ? (WORD)(DivW(outerH , (WORD)(scrH + 2))) : 0;
 
     /* Inner character rect = outer frame minus 1-cell border on each side */
     inst->contentX = (WORD)(outerX + cellW);
@@ -250,7 +233,7 @@ static void drawGrid(struct RastPort *rp,
     SetAPen(rp, 1);
 
     while(1) {
-        WORD  xx  = (WORD)(left + ((x*8*width)/inst->screenbuf->pixW) );
+        WORD  xx  = (WORD)(left + DivW((x*8*width),inst->screenbuf->pixW) );
         if(xx>=(left+width)) break;
 
         Move(rp, (LONG)xx, (LONG)top);
@@ -260,7 +243,7 @@ static void drawGrid(struct RastPort *rp,
     }
 
    while(1) {
-        WORD  yy  = (WORD)(top + ((y*8*height)/inst->screenbuf->pixH) );
+        WORD  yy  = (WORD)(top + DivW((y*8*height),inst->screenbuf->pixH) );
         if(yy>=(top+height)) break;
 
         Move(rp, (LONG)left, (LONG)yy);

@@ -178,6 +178,13 @@ static const char *defaultStrings[MSG_COUNT] = {
     /* MSG_IMPORT_NOMATCH */
     "No PETSCII match found (check size and palette).",
 
+    /* MSG_MENU_GENERATE */
+    "Generate",
+    /* MSG_GENERATE_RANDOM_BRUSH */
+    "Random From Brush",
+    /* MSG_GENERATE_MAGIC_LINE */
+    "Magic Line",
+
     /* status bar message per tools - keep it same order as enum */
     "Draw char and Color.",
     "Colorize mode.",

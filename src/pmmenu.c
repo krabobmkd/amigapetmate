@@ -92,6 +92,11 @@ static struct NewMenu menuTemplate[] = {
         {NM_ITEM,NULL, "F10", NM_COMMANDSTRING, 0, (APTR)ACTION_VIEW_TOGGLE_FULL_SCREEN},
        {NM_ITEM, NULL, "P", 0, 0, (APTR)ACTION_VIEW_OPEN_SETTINGS},
 
+    /* - - - Generate - - - */
+    {NM_TITLE, NULL, 0, 0, 0, (APTR)MSG_MENU_GENERATE},
+        {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_GENERATE_RANDOM_BRUSH},
+        {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_GENERATE_MAGIC_LINE},
+
     /* - - - Brush - - - */
     {NM_TITLE, NULL, 0, 0, 0, (APTR)MSG_MENU_BRUSH},
         {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_BRUSH_FLIP_X},

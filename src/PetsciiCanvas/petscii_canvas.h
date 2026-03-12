@@ -54,6 +54,9 @@
 */
 #define PCA_SignalStopTool   (PCA_Dummy +15)
 
+/* Read-only: returns the current brush pointer (PetsciiBrush *), or 0 if none. */
+#define PCA_Brush        (PCA_Dummy +17) /* (PetsciiBrush *) get only           */
+
 /* Apply a geometric transformation to the current brush (TOOL_BRUSH).
  * Value is one of the BRUSH_TRANSFORM_* constants below.
  * No-op if there is no brush (inst->brush == NULL).              */

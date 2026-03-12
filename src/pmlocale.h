@@ -126,6 +126,11 @@ enum {
     MSG_IMPORT_IMAGE,
     MSG_IMPORT_NOMATCH,
 
+    /* Menu: Generate */
+    MSG_MENU_GENERATE,
+    MSG_GENERATE_RANDOM_BRUSH,
+    MSG_GENERATE_MAGIC_LINE,
+
     /* status bar messages */
     MSG_STATUS_DRAW,
     MSG_STATUS_COLORIZE,
