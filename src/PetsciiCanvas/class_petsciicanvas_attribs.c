@@ -496,6 +496,10 @@ ULONG PetsciiCanvas_OnGet(Class *cl, Object *o, struct opGet *msg)
             *msg->opg_Storage = (ULONG)(LONG)inst->cursorRow;
             return TRUE;
 
+        case PCA_Brush:
+            *msg->opg_Storage = (ULONG)inst->brush;  /* NULL = no brush */
+            return TRUE;
+
         default:
             return DoSuperMethodA(cl, o, (APTR)msg);
     }

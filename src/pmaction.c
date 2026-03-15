@@ -28,8 +28,10 @@
 
 #include "boopsimainwindow.h"
 #include "pmsettingsview.h"
-#include "petscii_canvas.h"  /* PCA_TransformBrush, BRUSH_TRANSFORM_* */
 #include "pmmenu.h"
+#include "petscii_canvas.h"  /* PCA_TransformBrush, PCA_Brush, BRUSH_TRANSFORM_* */
+#include "petscii_brush.h"   /* PetsciiBrush */
+
 
 /* External globals from petmate.c */
 extern struct Library *AslBase;
@@ -39,6 +41,36 @@ extern void refreshUI();
 void SetStatusBarMessage(int enumMessage);
 /* Last directory used in a file requester (persists across open/save calls) */
 static char *s_lastDir = NULL;
+
+
+/* -----------------------------------------------------------------------
+ * Minimal LCG random number generator (Knuth / Numerical Recipes).
+ *
+ * state = state * 1664525 + 1013904223   (mod 2^32, natural ULONG overflow)
+ *
+ * The full 32-bit output has good uniformity across all bit positions.
+ * No low-bit aliasing like stdlib rand() on many platforms.
+ *
+ * pmRandSeed() re-mixes the state from dos.library DateStamp (50 Hz ticks)
+ * so consecutive calls within the same second still produce different
+ * sequences.  Call once before a generation loop.
+ *
+ * pmRand(n) returns a value in [0, n-1].  Uses the upper 16 bits to get
+ * the best-quality range for small n.
+ * ----------------------------------------------------------------------- */
+/* s_pmRandState persists across calls: each generation run continues where
+ * the previous one left off, so the starting seed is never the same twice. */
+static ULONG s_pmRandState = 0xA3C5F7B1UL;
+
+static ULONG pmRand(ULONG n)
+{
+    /* LCG: multiply + add, natural 32-bit overflow is the modulus.
+     * Constants from Knuth / Numerical Recipes Vol.2.
+     * Upper 16 bits used for range reduction (lower bits have shorter
+     * period in LCG generators when n is small). */
+    s_pmRandState = s_pmRandState * 1664525UL + 1013904223UL;
+    return (s_pmRandState >> 16) % n;
+}
 
 // const char *PetsciiFileIO_ErrorString(int strnum)
 // {
@@ -194,6 +226,7 @@ BOOL Action_ProjectOpen(PmActionContext *ctx)
     if (!pathbuf) return FALSE; /* user cancelled */
 
     err = PetsciiFileIO_Load(*ctx->pproject, pathbuf);
+    PmStr_Free(pathbuf);
     SetStatusBarMessage(MSG_PETSCII_FILEIO_OK+err);
 
     if (err == PETSCII_FILEIO_OK && app) {
@@ -238,6 +271,7 @@ BOOL Action_ProjectSaveAs(PmActionContext *ctx)
     if (!pathbuf) return FALSE; /* user cancelled */
 
     err = PetsciiFileIO_Save(*ctx->pproject, pathbuf);
+    PmStr_Free(pathbuf);
     SetStatusBarMessage(
         (err == MSG_PETSCII_FILEIO_OK)?MSG_PETSCII_FILEIO_WRITEOK:
         (MSG_PETSCII_FILEIO_OK+err)
@@ -290,6 +324,9 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
             TAG_END);
     }
     if(!app->aboutRequester) return FALSE;
+
+// WA_IDCMP
+    SetAttrs(app->window_obj,WA_IDCMP,0,TAG_END);
 
     OpenRequester(app->aboutRequester,CurrentMainWindow);
 
@@ -907,6 +944,104 @@ BOOL Action_OpenRecent1(PmActionContext *ctx) { return openRecentFile(ctx, 1); }
 BOOL Action_OpenRecent2(PmActionContext *ctx) { return openRecentFile(ctx, 2); }
 BOOL Action_OpenRecent3(PmActionContext *ctx) { return openRecentFile(ctx, 3); }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Generate actions
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/*
+ * Action_GenerateRandomFromBrush
+ *
+ * Fills every cell of the current screen with a randomly chosen cell from the
+ * current brush.  The draw tool controls what is applied to each cell:
+ *   TOOL_DRAW      - char AND color from the brush (default)
+ *   TOOL_COLORIZE  - color only from the brush
+ *   TOOL_CHARDRAW  - char only from the brush (existing color kept)
+ *
+ * If no brush is active (brush == NULL or empty), a random character is chosen
+ * between code 77 and 78 (the two diagonal half-block glyphs); the color is
+ * left unchanged regardless of the current tool.
+ */
+BOOL Action_GenerateRandomFromBrush(PmActionContext *ctx)
+{
+    PetsciiProject *proj;
+    PetsciiScreen  *scr;
+    ToolState      *ts;
+    PetsciiBrush   *brush;
+    ULONG           brushVal;
+    ULONG           cellCount;
+    ULONG           i;
+    UBYTE           currentTool;
+    int             brushCells;
+
+    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+
+    proj = *ctx->pproject;
+    scr  = PetsciiProject_GetCurrentScreen(proj);
+    if (!scr) return FALSE;
+
+    ts = (ToolState *)ctx->toolState;
+    currentTool = ts ? ts->currentTool : TOOL_DRAW;
+
+    /* Retrieve the brush from the canvas gadget */
+    brush    = NULL;
+    brushVal = 0;
+    if (app && app->canvasGadget)
+        GetAttr(PCA_Brush, app->canvasGadget, &brushVal);
+    brush = (PetsciiBrush *)brushVal;
+
+    /* Validate brush: must have cells and non-zero dimensions */
+    if (brush && (!brush->cells || brush->w == 0 || brush->h == 0))
+        brush = NULL;
+
+    brushCells = brush ? (int)brush->w * (int)brush->h : 0;
+    cellCount  = (ULONG)scr->width * (ULONG)scr->height;
+
+    for (i = 0; i < cellCount; i++) {
+        PetsciiPixel *px = &scr->framebuf[i];
+
+        if (brush) {
+            int           srcIdx = (int)pmRand((ULONG)brushCells);
+            PetsciiPixel *src    = &brush->cells[srcIdx];
+
+            switch (currentTool) {
+                case TOOL_COLORIZE:
+                    px->color = src->color;
+                    break;
+                case TOOL_CHARDRAW:
+                    px->code = src->code;
+                    break;
+                default:    /* TOOL_DRAW: char and color */
+                    px->code  = src->code;
+                    px->color = src->color;
+                    break;
+            }
+        } else {
+            /* No brush: randomly pick char 77 or 78 */
+            if (currentTool != TOOL_COLORIZE)
+                px->code = (UBYTE)(77 + (int)pmRand(2));
+        }
+    }
+
+    proj->modified = 1;
+
+    /* Refresh canvas */
+    if (app && app->canvasGadget) {
+        SetAttrs(app->canvasGadget, PCA_Dirty, TRUE, TAG_END);
+        RefreshGList((struct Gadget *)app->canvasGadget,
+                     CurrentMainWindow, NULL, 1);
+    }
+    return TRUE;
+}
+
+BOOL Action_GenerateMagicLine(PmActionContext *ctx)
+{
+    (void)ctx;
+    /* TODO: implement magic line generation */
+    return FALSE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Action table - C89 sequential initialization.
    Order MUST match the ACTION_* enum exactly.
@@ -1014,6 +1149,11 @@ static PmAction actionTable[ACTION_COUNT] = {
 
     /* ACTION_IMPORT_IMAGE */
     {Action_ImportImage, MSG_IMPORT_IMAGE, NULL, 0, 0},
+
+    /* ACTION_GENERATE_RANDOM_BRUSH */
+    {Action_GenerateRandomFromBrush, MSG_GENERATE_RANDOM_BRUSH, NULL, 0, 0},
+    /* ACTION_GENERATE_MAGIC_LINE */
+    {Action_GenerateMagicLine, MSG_GENERATE_MAGIC_LINE, NULL, 0, 0},
 
     /* ACTION_OPEN_RECENT_0..3 */
     {Action_OpenRecent0, MSG_MENU_OPEN_RECENT, NULL, 0, 0},

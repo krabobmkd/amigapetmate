@@ -109,6 +109,10 @@ enum {
     /* Import */
     ACTION_IMPORT_IMAGE,
 
+    /* Generate */
+    ACTION_GENERATE_RANDOM_BRUSH,
+    ACTION_GENERATE_MAGIC_LINE,
+
     /* Recent files (slots 0..APPSETTINGS_MAX_RECENT-1) */
     ACTION_OPEN_RECENT_0,
     ACTION_OPEN_RECENT_1,

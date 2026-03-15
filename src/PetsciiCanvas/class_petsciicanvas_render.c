@@ -37,6 +37,7 @@
 #include <intuition/gadgetclass.h>
 #include "petscii_canvas_private.h"
 #include "petscii_screenbuf.h"
+#include "../petscii_cellpx.h"
 #include <bdbprintf.h>
 
 #include <proto/cybergraphics.h>
@@ -121,7 +122,7 @@ static void computeContentRect(
     }
 
     /* Try fitting content to full width */
-    fitH = (ULONG)gadW * idealH / idealW;
+    fitH = (ULONG)DivW(gadW * idealH ,idealW);
     if (fitH <= (ULONG)gadH) {
         *outW = gadW;
         *outH = (WORD)fitH;
@@ -131,7 +132,7 @@ static void computeContentRect(
     }
 
     /* Otherwise fit to full height */
-    fitW = (ULONG)gadH * idealW / idealH;
+    fitW = (ULONG)DivW(gadH * idealW , idealH);
     if (fitW > (ULONG)gadW) fitW = (ULONG)gadW; /* safety clamp */
     *outW = (WORD)fitW;
     *outH = gadH;
@@ -226,8 +227,8 @@ static void updateContentRect(PetsciiCanvasData *inst, WORD gadW, WORD gadH)
     }
 
     /* Per-cell pixel size derived from the outer frame */
-    cellW = (scrW + 2 > 0) ? (WORD)(outerW / (WORD)(scrW + 2)) : 0;
-    cellH = (scrH + 2 > 0) ? (WORD)(outerH / (WORD)(scrH + 2)) : 0;
+    cellW = (scrW + 2 > 0) ? (WORD)(DivW(outerW , (WORD)(scrW + 2))) : 0;
+    cellH = (scrH + 2 > 0) ? (WORD)(DivW(outerH , (WORD)(scrH + 2))) : 0;
 
     /* Inner character rect = outer frame minus 1-cell border on each side */
     inst->contentX = (WORD)(outerX + cellW);
@@ -255,7 +256,7 @@ static void drawGrid(struct RastPort *rp,
     SetAPen(rp, 1);
 
     while(1) {
-        WORD  xx  = (WORD)(left + ((x*8*width)/inst->screenbuf->pixW) );
+        WORD  xx  = (WORD)(left + DivW((x*8*width),inst->screenbuf->pixW) );
         if(xx>=(left+width)) break;
 
         Move(rp, (LONG)xx, (LONG)top);
@@ -265,7 +266,7 @@ static void drawGrid(struct RastPort *rp,
     }
 
    while(1) {
-        WORD  yy  = (WORD)(top + ((y*8*height)/inst->screenbuf->pixH) );
+        WORD  yy  = (WORD)(top + DivW((y*8*height),inst->screenbuf->pixH) );
         if(yy>=(top+height)) break;
 
         Move(rp, (LONG)left, (LONG)yy);
@@ -608,7 +609,6 @@ static void drawHoverOverlay(struct RastPort *rp,
                 if (tmpCells)
                     FreeVec(tmpCells);
             }
-
             PetsciiChunky_Scale(inst->nativeBrushBuf, srcW, srcH,
                                  inst->overlayBuf, dstW, dstH);
         } else {
@@ -728,9 +728,6 @@ ULONG PetsciiCanvas_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
     }
     inst->refreshExtraMarge = 1;
 
-
-
-
     /* when a rastport is given or created rto draw on gadget,
         It is most often delivered with no clipping at layer level.
         Optionally during draw we can force installation of a clipping rect,
@@ -848,8 +845,8 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
             if (cellW >= 1 && cellH >= 1) {
                 WORD absOX = (WORD)(left + outerX);
                 WORD absOY = (WORD)(top  + outerY);
-
-                if(inst->renderType ==RENDT_CGXRGBCLUT)
+       
+	         if(inst->renderType ==RENDT_CGXRGBCLUT)
                 {
                     ULONG argb = inst->style->paletteARGB[inst->screen->borderColor];
 
