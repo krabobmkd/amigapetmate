@@ -25,6 +25,12 @@
 #define G(o) ((struct Gadget *)(o))
 #endif
 
+
+#define RENDT_WRITECHUNKYPIXEL8 0
+#define RENDT_CGXRGBCLUT 1
+#define RENDT_OCS 2
+
+
 /*
  * Layout constants (horizontal strip, left to right)
  * Each thumbnail slot is SCREENMINI_W pixels wide + ITEM_PAD on each side,
@@ -57,6 +63,7 @@ typedef struct ScreenCarouselData {
     WORD  scrollDragStartX;     /* gadget-relative X at drag start           */
     WORD  scrollDragStartOffset;/* scrollOffset value at drag start          */
 
+    WORD renderType;
 } ScreenCarouselData;
 
 /* ------------------------------------------------------------------ */

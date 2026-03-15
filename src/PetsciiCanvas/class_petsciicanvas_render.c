@@ -39,6 +39,11 @@
 #include "petscii_screenbuf.h"
 #include <bdbprintf.h>
 
+#include <proto/cybergraphics.h>
+#include <cybergraphics/cybergraphics.h>
+
+extern struct Library *CyberGfxBase;
+
 /*
  * CELL_PX(n, contentDim, pixDim)
  * Project char edge index n (0..screenW or 0..screenH) to a content-relative
@@ -527,7 +532,7 @@ static void drawHoverOverlay(struct RastPort *rp,
       //   bdbprintf("hover px1 %d px2 %d\n",(int)px1,(int)px2);
         if (dstW <= 0 || dstH <= 0)
         {
-         bdbprintf("hover no good %d %d\n",(int)dstW,(int)dstH);
+        // bdbprintf("hover no good %d %d\n",(int)dstW,(int)dstH);
          return;
          }
 
@@ -603,6 +608,7 @@ static void drawHoverOverlay(struct RastPort *rp,
                 if (tmpCells)
                     FreeVec(tmpCells);
             }
+
             PetsciiChunky_Scale(inst->nativeBrushBuf, srcW, srcH,
                                  inst->overlayBuf, dstW, dstH);
         } else {
@@ -621,13 +627,27 @@ static void drawHoverOverlay(struct RastPort *rp,
         }
 
         /* Blit scaled brush preview to screen */
-        WriteChunkyPixels(rp,
+        if(inst->renderType == RENDT_WRITECHUNKYPIXEL8)
+        {
+            WriteChunkyPixels(rp,
                           (ULONG)(absX + px1),
                           (ULONG)(absY + py1),
                           (ULONG)(absX + px2 - 1),
                           (ULONG)(absY + py2 - 1),
                           inst->overlayBuf,
                           (LONG)dstW);
+        } else if(inst->renderType == RENDT_CGXRGBCLUT)
+        {
+            WriteLUTPixelArray(inst->overlayBuf,0,0, // srcxy
+                        dstW, // buf->pixW, // bytes per row
+                        rp,
+                        (APTR)&inst->style->paletteARGB[0],
+                          (ULONG)(absX + px1),
+                          (ULONG)(absY + py1),
+                        px2-px1,py2-py1,
+                        CTABFMT_XRGB8
+                        );
+        }
 
         /* Selection rectangle: 1px outside brush bounds, COMPLEMENT */
         sx1 = (WORD)(absX + px1 - 1);
@@ -685,11 +705,31 @@ ULONG PetsciiCanvas_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
     WORD w = G(o)->Width;
     WORD h = G(o)->Height;
 
+      /* analyse target bitmap to get drawing */
+
+    /* the more compatible but slow on unexpanded classic amiga */
+    inst->renderType = RENDT_WRITECHUNKYPIXEL8;
+
+    if(CyberGfxBase &&
+        msg->gpl_GInfo->gi_Screen &&
+       msg->gpl_GInfo->gi_Screen->RastPort.BitMap &&
+       (GetCyberMapAttr(msg->gpl_GInfo->gi_Screen->RastPort.BitMap, CYBRMATTR_ISCYBERGFX) != 0) &&
+       (GetCyberMapAttr(msg->gpl_GInfo->gi_Screen->RastPort.BitMap, CYBRMATTR_DEPTH) > 8)
+        )
+    {
+        /* will be ok drawing 16bit with Cybergraphics */
+        inst->renderType = RENDT_CGXRGBCLUT;
+    }
+
+
     if (w > 0 && h > 0) {
         updateContentRect(inst, w, h);
         ensureScaledBuf(inst, (UWORD)inst->contentW, (UWORD)inst->contentH);
     }
     inst->refreshExtraMarge = 1;
+
+
+
 
     /* when a rastport is given or created rto draw on gadget,
         It is most often delivered with no clipping at layer level.
@@ -808,52 +848,90 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
             if (cellW >= 1 && cellH >= 1) {
                 WORD absOX = (WORD)(left + outerX);
                 WORD absOY = (WORD)(top  + outerY);
-                WORD pen   = PetsciiStyle_Pen(inst->style,
-                                              inst->screen->borderColor);
-                SetAPen(rp, (LONG)pen);
 
-                /* Top border strip */
-                RectFill(rp,
-                         (LONG)absOX,
-                         (LONG)absOY,
-                         (LONG)(absOX + outerW - 1),
-                         (LONG)(absY - 1));
-                /* Bottom border strip */
-                RectFill(rp,
-                         (LONG)absOX,
-                         (LONG)(absY + inst->contentH),
-                         (LONG)(absOX + outerW - 1),
-                         (LONG)(absOY + outerH - 1));
-                /* Left border strip */
-                RectFill(rp,
-                         (LONG)absOX,
-                         (LONG)absY,
-                         (LONG)(absX - 1),
-                         (LONG)(absY + inst->contentH - 1));
-                /* Right border strip */
-                RectFill(rp,
-                         (LONG)(absX + inst->contentW),
-                         (LONG)absY,
-                         (LONG)(absOX + outerW - 1),
-                         (LONG)(absY + inst->contentH - 1));
+                if(inst->renderType ==RENDT_CGXRGBCLUT)
+                {
+                    ULONG argb = inst->style->paletteARGB[inst->screen->borderColor];
+
+                    FillPixelArray(rp,(UWORD)absOX,(UWORD)absOY,
+                                        (UWORD)outerW,(UWORD)(absY-top),argb);
+
+                    FillPixelArray(rp,(UWORD)absOX,(UWORD)absY + inst->contentH,
+                                        (UWORD)outerW,(UWORD)(absOY + outerH-(absY + inst->contentH)),argb);
+
+                    FillPixelArray(rp,(UWORD)absOX,(UWORD)absY,
+                                        (UWORD)(absX-absOX),(UWORD)inst->contentH,argb);
+
+                    FillPixelArray(rp,(UWORD)absX + inst->contentW,(UWORD)absY,
+                                        (UWORD)(absOX + outerW - (absX + inst->contentW) ),(UWORD)inst->contentH,argb);
+
+                } else
+                {
+                    WORD pen   = PetsciiStyle_Pen(inst->style,
+                                                  inst->screen->borderColor);
+
+                    SetAPen(rp, (LONG)pen);
+
+                    /* Top border strip */
+                    RectFill(rp,
+                             (LONG)absOX,
+                             (LONG)absOY,
+                             (LONG)(absOX + outerW - 1),
+                             (LONG)(absY - 1));
+                    /* Bottom border strip */
+                    RectFill(rp,
+                             (LONG)absOX,
+                             (LONG)(absY + inst->contentH),
+                             (LONG)(absOX + outerW - 1),
+                             (LONG)(absOY + outerH - 1));
+                    /* Left border strip */
+                    RectFill(rp,
+                             (LONG)absOX,
+                             (LONG)absY,
+                             (LONG)(absX - 1),
+                             (LONG)(absY + inst->contentH - 1));
+                    /* Right border strip */
+                    RectFill(rp,
+                             (LONG)(absX + inst->contentW),
+                             (LONG)absY,
+                             (LONG)(absOX + outerW - 1),
+                             (LONG)(absY + inst->contentH - 1));
+                }
+
+
+
             }
         }
 
         /* Rebuild screenbuf chunky if stale */
         if (!inst->screenbuf->valid)
+        {
+            bdbprintf("PetsciiScreenBuf_RebuildFull from iirender\n");
             PetsciiScreenBuf_RebuildFull(inst->screenbuf, inst->screen, inst->style);
 
+        }
         oldClipRegion = InstallClipRegion( rp->Layer, inst->clipRegion);
 
         /* Full blit — always via BlitScaled so scaledBuf stays current.
          * At 1:1 the step is exactly 1.0 (identity copy), so correctness
          * and the repair source are both guaranteed.                      */
         if (ensureScaledBuf(inst, (UWORD)inst->contentW, (UWORD)inst->contentH)) {
-            PetsciiScreenBuf_BlitScaled(inst->screenbuf, rp,
+            if(inst->renderType == RENDT_WRITECHUNKYPIXEL8)
+            {
+                PetsciiScreenBuf_BlitScaled(inst->screenbuf, rp,
                                          absX, absY,
                                          (UWORD)inst->contentW,
                                          (UWORD)inst->contentH,
                                          inst->scaledBuf);
+            } else if(inst->renderType == RENDT_CGXRGBCLUT)
+            {
+                PetsciiScreenBuf_BlitScaledRGB16(inst->screenbuf, rp,
+                             absX, absY,
+                             (UWORD)inst->contentW,
+                             (UWORD)inst->contentH,
+                             inst->scaledBuf);
+
+            }
         }
         inst->scaledBufDirty = FALSE;
 

@@ -26,6 +26,14 @@
 #define G(o) ((struct Gadget *)(o))
 #endif
 
+/*
+enum for render type,  renderType
+*/
+#define RENDT_WRITECHUNKYPIXEL8 0
+#define RENDT_CGXRGBCLUT 1
+#define RENDT_OCS 2
+
+
 /* Per-instance data stored inside the BOOPSI object */
 typedef struct PetsciiCanvasData {
     PetsciiScreen    *screen;     /* screen being displayed (not owned) */
@@ -129,6 +137,8 @@ typedef struct PetsciiCanvasData {
     WORD  textCursorCol;
     WORD  textCursorRow;
 
+    /* wheck if */
+    WORD renderType;
 } PetsciiCanvasData;
 
 /* keymap.library base defined in class_petsciicanvas_lib.c */

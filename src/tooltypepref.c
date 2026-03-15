@@ -5,9 +5,11 @@
 #include <workbench/workbench.h>
 #include <string.h>
 
+#include <stdio.h>
+
 //only use exec AllocVec() and FreeVec() for allocations, the Amiga way, in C99 !
 
-static struct DiskObject *AppDiskObject = NULL;
+struct DiskObject *AppDiskObject = NULL;
 
 // this is the table of string
 // managed to have same shape as DiskObject.do_ToolTypes
@@ -85,8 +87,6 @@ int ToolTypePrefs_Init(const char *exename)
     }
     CToolType[count] = NULL;
 
-
-
     return 1;
 }
 const char *ToolTypePrefs_Get(const char *prefid)
@@ -150,14 +150,17 @@ void ToolTypePrefs_Set(const char *prefid,const char *value)
     }
 
     // Create new entry "NAME=VALUE"
-    new_entry_len = prefid_len + 1 + strlen(value) + 1; // NAME + = + VALUE + \0
+    new_entry_len = prefid_len + 1 ; // NAME + = + VALUE + \0
+    if(value) new_entry_len +=  strlen(value)+1;
     new_entry = (char *)AllocVec(new_entry_len, MEMF_CLEAR);
     if(!new_entry) return;
 
     strcpy(new_entry, prefid);
-    strcat(new_entry, "=");
-    strcat(new_entry, value);
-
+    if(value)
+    {
+        strcat(new_entry, "=");
+        strcat(new_entry, value);
+    }
     if(found_index != -1)
     {
         // Replace existing entry

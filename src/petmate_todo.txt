@@ -1,23 +1,32 @@
 ﻿
+ O test on CDTV
+ O test on AmigaGuide
+ X do icon
+ O test OS3.9
+
  O cybergraphics RTG blits
-
  O ask when quitting
- X export gif/ilbm with -> lib
- O export png ->
- X the "import image" function
-
  O icons on bt,
- O settings screen with modeid choice
-	O at least if no cgx use static 640x512 or 640x400 mode
- O save modeid and current w/fs state + current color mode to tooltypes
- O 4 recent files !
+  X 4 recent files !
+ X background prefs
 
-
- O AmigaGuide documentation
- O catalog for 5 languages
  O installer ?
  O have example files
+X iconified icon use app icon
+ O packaging:
+	O catalog for 5 languages
+    O AmigaGuide documentation
+    O amigaguide on help key and menu.
 
+ X export gif/ilbm with -> lib
+ X the "import image" function
+
+ X settings screen with modeid choice
+ X save modeid and current w/fs state + current color mode to tooltypes
+
+
+
+ X Checkmark on palette munu entries
 
 
  ------------------

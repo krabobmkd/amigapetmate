@@ -50,4 +50,9 @@ void PetsciiScreenMini_Blit(const PetsciiScreenMini *mini,
                              WORD                     destX,
                              WORD                     destY);
 
+void PetsciiScreenMini_BlitRGB(const PetsciiScreenMini *mini,
+                             struct RastPort         *rp,
+                             WORD                     destX,
+                             WORD                     destY);
+
 #endif /* PETSCII_SCREENMINI_H */

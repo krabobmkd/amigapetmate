@@ -5,6 +5,8 @@
 #include <string.h>
 #include <stdio.h>
 
+extern void refreshUI(void);
+
 PetsciiProject *PetsciiProject_Create(void)
 {
     PetsciiProject *proj;
@@ -62,6 +64,7 @@ int PetsciiProject_AddScreen(PetsciiProject *proj)
     proj->screenCount++;
     proj->modified = 1;
 
+
     return (int)idx;
 }
 
@@ -83,6 +86,8 @@ int PetsciiProject_CloneCurrentScreen(PetsciiProject *proj)
     proj->screens[idx] = clone;
     proj->screenCount++;
     proj->modified = 1;
+
+   // refreshUI();
 
     return (int)idx;
 }
@@ -110,6 +115,9 @@ int PetsciiProject_RemoveScreen(PetsciiProject *proj, UWORD index)
     }
 
     proj->modified = 1;
+
+    refreshUI();
+
     return 1;
 }
 
@@ -124,6 +132,9 @@ void PetsciiProject_SetCurrentScreen(PetsciiProject *proj, UWORD index)
     if (!proj) return;
     if (index >= proj->screenCount) index = proj->screenCount - 1;
     proj->currentScreen = index;
+
+    refreshUI();
+
 }
 
 void PetsciiProject_NavigateScreen(PetsciiProject *proj, int delta)
@@ -136,6 +147,9 @@ void PetsciiProject_NavigateScreen(PetsciiProject *proj, int delta)
     if (newIdx >= (int)proj->screenCount) newIdx = 0;
 
     proj->currentScreen = (UWORD)newIdx;
+
+    refreshUI();
+
 }
 
 void PetsciiProject_Reset(PetsciiProject *proj)
@@ -168,4 +182,7 @@ void PetsciiProject_Reset(PetsciiProject *proj)
     PmStr_Free(proj->filepath);
     proj->filepath = NULL;
     proj->modified = 0;
+
+    refreshUI();
+
 }

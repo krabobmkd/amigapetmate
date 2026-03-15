@@ -308,12 +308,6 @@ const UBYTE c64CharOrderReverse[PETSCII_CHAR_COUNT] = {
     176, 184, 185, 201, 215, 217, 219, 213, 212, 210, 199, 179, 194, 193, 195, 244
 };
 
-const UBYTE *PetsciiCharset_GetGlyph(UBYTE charset, UBYTE code)
-{
-    if (charset == PETSCII_CHARSET_LOWER)
-        return &c64CharsetLower[(UWORD)code * 8];
-    return &c64CharsetUpper[(UWORD)code * 8];
-}
 
 // Convert ASCII char to PETSCII index (uppercase mode)
 UBYTE ascii_to_petscii_upper(UBYTE c) {

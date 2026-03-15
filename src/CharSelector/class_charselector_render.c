@@ -24,6 +24,13 @@
 #include "char_selector_private.h"
 #include <graphics/gfx.h>
 #include <bdbprintf.h>
+
+#include <proto/cybergraphics.h>
+#include <cybergraphics/cybergraphics.h>
+
+extern struct Library *CyberGfxBase;
+
+
 /* ------------------------------------------------------------------ */
 /* Static: rebuild the 128x128 native buffer from charset + style      */
 /* ------------------------------------------------------------------ */
@@ -44,8 +51,8 @@ static void rebuildCbuf(CharSelectorData *inst)
     const int   *order;
     int          sc;
 
-    fgPen = (UBYTE)PetsciiStyle_Pen(inst->style, inst->fgColor);
-    bgPen = (UBYTE)PetsciiStyle_Pen(inst->style, inst->bgColor);
+    fgPen = (UBYTE)PetsciiStyle_BmPen(inst->style, inst->fgColor);
+    bgPen = (UBYTE)PetsciiStyle_BmPen(inst->style, inst->bgColor);
     cbuf  = inst->cbuf;
 
     /* Select ordering table: grid position -> screencode */
@@ -285,6 +292,19 @@ ULONG CharSelector_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
         OrRectRegion(inst->clipRegion, &framerect);
     }
 
+   inst->renderType = RENDT_WRITECHUNKYPIXEL8;
+
+    if(CyberGfxBase &&
+        msg->gpl_GInfo->gi_Screen &&
+       msg->gpl_GInfo->gi_Screen->RastPort.BitMap &&
+       (GetCyberMapAttr(msg->gpl_GInfo->gi_Screen->RastPort.BitMap, CYBRMATTR_ISCYBERGFX) != 0) &&
+       (GetCyberMapAttr(msg->gpl_GInfo->gi_Screen->RastPort.BitMap, CYBRMATTR_DEPTH) > 8)
+        )
+    {
+        /* will be ok drawing 16bit with Cybergraphics */
+        inst->renderType = RENDT_CGXRGBCLUT;
+    }
+
     inst->refreshExtraMarge = 1;
 
     return DoSuperMethodA(cl, o, (APTR)msg);
@@ -353,7 +373,10 @@ ULONG CharSelector_OnRender(Class *cl, Object *o, struct gpRender *msg)
 
     /* Rebuild native buffer if invalidated */
     if (!inst->valid)
+    {
+    bdbprintf("CharSelector_OnRender ->rebuildCbuf\n");
         rebuildCbuf(inst);
+    }
 
     /* Erase letterbox/pillarbox margins (no-op when keepRatio=FALSE) */
     if(inst->refreshExtraMarge)
@@ -376,14 +399,35 @@ ULONG CharSelector_OnRender(Class *cl, Object *o, struct gpRender *msg)
 
     if ((ULONG)inst->contentW == CHARSELECTOR_NATIVE_W &&
         (ULONG)inst->contentH == CHARSELECTOR_NATIVE_H) {
-        PetsciiScreenBuf_BlitNative(&fakeBuf, rp, absX, absY);
+
+        if(inst->renderType == RENDT_WRITECHUNKYPIXEL8)
+        {
+           PetsciiScreenBuf_BlitNative(&fakeBuf, rp, absX, absY);
+        } else if(inst->renderType == RENDT_CGXRGBCLUT)
+        {
+            PetsciiScreenBuf_BlitNativeRGB(&fakeBuf, rp, absX, absY);
+        }
     } else {
+
         if (ensureScaledBuf(inst, (UWORD)inst->contentW, (UWORD)inst->contentH)) {
+
+            if(inst->renderType == RENDT_WRITECHUNKYPIXEL8)
+            {
             PetsciiScreenBuf_BlitScaled(&fakeBuf, rp,
                                         absX, absY,
                                         (UWORD)inst->contentW,
                                         (UWORD)inst->contentH,
                                         inst->scaledBuf);
+            } else if(inst->renderType == RENDT_CGXRGBCLUT)
+            {
+
+            PetsciiScreenBuf_BlitScaledRGB16(&fakeBuf, rp,
+                                        absX, absY,
+                                        (UWORD)inst->contentW,
+                                        (UWORD)inst->contentH,
+                                        inst->scaledBuf);
+
+            }
         }
     }
 

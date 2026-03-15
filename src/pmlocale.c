@@ -27,6 +27,8 @@ static const char *defaultStrings[MSG_COUNT] = {
     "Save As...",
     /* MSG_FILE_SAVE */
     "Save",
+    /**/
+    "Iconify",
     /* MSG_MENU_ABOUT */
     "About",
     /* MSG_MENU_QUIT */
@@ -183,7 +185,32 @@ static const char *defaultStrings[MSG_COUNT] = {
     "Colorize mode.",
     "Draw char mode.",
     "Use the lasso to detour a brush.",
-    "Set cursor position and type text."
+    "Set cursor position and type text.",
+
+    /* MSG_SETTINGS_UI_BG_GROUP */
+    "UI Background (need close/Open or F10)",
+    /* MSG_SETTINGS_USEONECLORBG */
+    "Use one color for background",
+    /* MSG_SETTINGS_BGIMAGE_LABEL */
+    "Background Image:",
+    /* MSG_SETTINGS_CHOOSE_BGIMAGE */
+    "Choose...",
+    /* MSG_SETTINGS_BGIMAGE_TITLE */
+    "Choose background image",
+    /* MSG_SETTINGS_BGIMAGE_NONE */
+    "(none)",
+    /* MSG_SETTINGS_REMOVEBGIMAGE */
+    "Remove",
+
+    /* MSG_MENU_OPEN_RECENT */
+    "Open Recent",
+
+    "Full Screen clone WB Mode",
+    "Choose...",
+    "Screen Mode:",
+    "Description:",
+    "Full Screen display mode:"
+
 };
 
 /* LocaleBase declared in petmate.c */

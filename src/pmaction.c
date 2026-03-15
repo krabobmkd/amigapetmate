@@ -29,11 +29,13 @@
 #include "boopsimainwindow.h"
 #include "pmsettingsview.h"
 #include "petscii_canvas.h"  /* PCA_TransformBrush, BRUSH_TRANSFORM_* */
+#include "pmmenu.h"
 
 /* External globals from petmate.c */
 extern struct Library *AslBase;
 extern struct IntuitionBase *IntuitionBase;
 
+extern void refreshUI();
 void SetStatusBarMessage(int enumMessage);
 /* Last directory used in a file requester (persists across open/save calls) */
 static char *s_lastDir = NULL;
@@ -43,8 +45,11 @@ static char *s_lastDir = NULL;
 //     return LOC(MSG_PETSCII_FILEIO_OK+strnum);
 // }
 
-/* - - - Helper: apply a new palette to the style and re-obtain pens - - - */
-static void applyPalette(PmActionContext *ctx, UBYTE paletteID)
+extern void RefreshAllColorGadgets();
+static void rebuildMenuIfPossible(PmActionContext *ctx);
+/* - - - Apply a new palette to the style and update the menu checkmark - - - */
+
+void PmAction_ApplyPalette(PmActionContext *ctx, UBYTE paletteID)
 {
     PetsciiProject *proj;
     PetsciiStyle   *sty;
@@ -60,7 +65,14 @@ static void applyPalette(PmActionContext *ctx, UBYTE paletteID)
     if (sty) {
         PetsciiStyle_Init(sty, paletteID);
         PetsciiStyle_Apply(sty, CurrentMainScreen);
+        RefreshAllColorGadgets();
     }
+
+    if (ctx->pmenu && CurrentMainWindow) {
+        PmMenu_UpdatePaletteCheck((PmMenu *)ctx->pmenu,
+                                  CurrentMainWindow, paletteID);
+    }
+
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -182,9 +194,14 @@ BOOL Action_ProjectOpen(PmActionContext *ctx)
     if (!pathbuf) return FALSE; /* user cancelled */
 
     err = PetsciiFileIO_Load(*ctx->pproject, pathbuf);
-    PmStr_Free(pathbuf);
     SetStatusBarMessage(MSG_PETSCII_FILEIO_OK+err);
 
+    if (err == PETSCII_FILEIO_OK && app) {
+        AppSettings_AddRecentFile(&app->appSettings, pathbuf);
+        rebuildMenuIfPossible(ctx);
+    }
+    PmStr_Free(pathbuf);
+    refreshUI();
     return TRUE;
 }
 
@@ -221,14 +238,27 @@ BOOL Action_ProjectSaveAs(PmActionContext *ctx)
     if (!pathbuf) return FALSE; /* user cancelled */
 
     err = PetsciiFileIO_Save(*ctx->pproject, pathbuf);
-    PmStr_Free(pathbuf);
     SetStatusBarMessage(
         (err == MSG_PETSCII_FILEIO_OK)?MSG_PETSCII_FILEIO_WRITEOK:
         (MSG_PETSCII_FILEIO_OK+err)
         );
+
+    if (err == PETSCII_FILEIO_OK && app) {
+        AppSettings_AddRecentFile(&app->appSettings, pathbuf);
+        rebuildMenuIfPossible(ctx);
+    }
+    PmStr_Free(pathbuf);
     return TRUE;
 }
 
+BOOL Action_ProjectIconify(PmActionContext *ctx)
+{
+    if(!app || !CurrentMainWindow) return;
+
+    #define DO_ICONIFY 1
+    BMainWindow_Close(&app->mainwindow,app->window_obj,DO_ICONIFY);
+    return TRUE;
+}
 BOOL Action_ProjectAbout(PmActionContext *ctx)
 {
     Object *req;
@@ -243,9 +273,11 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
 "integrated with old Commodore 8 Bit machines, the first of\n"
 "which was the \"PET\", hence the name PETSCII in regard to ASCII.\n\n"
 "Forked and ported to C by Krb from the original TypeScript source.\33n\n\n"
-"     \33c\33b (c)2026 License is MIT, read file LICENSE.\33n\n\n"
-"\33cSources for Amiga PetMate are hosted at:\n"
-"https://github.com/krabobmkd/amigapetmate\33n\n\n"
+"\33c\33b (c)2026 License is MIT, read file LICENSE.\33n\n\n"
+"Sources for Amiga PetMate are hosted at:\n"
+"https://github.com/krabobmkd/amigapetmate\n"
+"Report bugs and ask functionalities at:\n"
+"https://github.com/krabobmkd/amigapetmate/issues\n\n"
 " \33bOriginal PetMate projects are hosted at:\33n\n"
 "\33c\33bnurpax https://github.com/nurpax/petmate\33n\n"
 "\33c\33bwbochar https://github.com/wbochar/petmate9\33n\n\n"
@@ -259,15 +291,9 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
     }
     if(!app->aboutRequester) return FALSE;
 
-// WA_IDCMP
-    SetAttrs(app->window_obj,WA_IDCMP,0,TAG_END);
-
     OpenRequester(app->aboutRequester,CurrentMainWindow);
 
-        SetAttrs(app->window_obj,WA_IDCMP,
-            IDCMP_CLOSEWINDOW | IDCMP_MENUPICK | IDCMP_RAWKEY |
-                IDCMP_GADGETDOWN | IDCMP_GADGETUP | IDCMP_MOUSEMOVE
-            ,TAG_END);
+
 
     return TRUE;
 }
@@ -323,8 +349,11 @@ BOOL Action_EditUndo(PmActionContext *ctx)
 
     if (PetsciiUndoBuffer_Undo(bufs[proj->currentScreen], scr)) {
         proj->modified = 1;
+        refreshUI();
         return TRUE;
     }
+    refreshUI();
+
     return FALSE;
 }
 
@@ -345,8 +374,11 @@ BOOL Action_EditRedo(PmActionContext *ctx)
 
     if (PetsciiUndoBuffer_Redo(bufs[proj->currentScreen], scr)) {
         proj->modified = 1;
+        refreshUI();
         return TRUE;
     }
+    refreshUI();
+
     return FALSE;
 }
 
@@ -568,10 +600,10 @@ BOOL Action_OpenSettings(PmActionContext *ctx)
    Palette actions
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-BOOL Action_PalettePetmate(PmActionContext *ctx)  { applyPalette(ctx, PALETTE_PETMATE);  return TRUE; }
-BOOL Action_PaletteColodore(PmActionContext *ctx) { applyPalette(ctx, PALETTE_COLODORE); return TRUE; }
-BOOL Action_PalettePepto(PmActionContext *ctx)    { applyPalette(ctx, PALETTE_PEPTO);    return TRUE; }
-BOOL Action_PaletteVice(PmActionContext *ctx)     { applyPalette(ctx, PALETTE_VICE);     return TRUE; }
+BOOL Action_PalettePetmate(PmActionContext *ctx)  { PmAction_ApplyPalette(ctx, PALETTE_PETMATE);  return TRUE; }
+BOOL Action_PaletteColodore(PmActionContext *ctx) { PmAction_ApplyPalette(ctx, PALETTE_COLODORE); return TRUE; }
+BOOL Action_PalettePepto(PmActionContext *ctx)    { PmAction_ApplyPalette(ctx, PALETTE_PEPTO);    return TRUE; }
+BOOL Action_PaletteVice(PmActionContext *ctx)     { PmAction_ApplyPalette(ctx, PALETTE_VICE);     return TRUE; }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Brush transform actions
@@ -836,6 +868,46 @@ BOOL Action_ImportImage(PmActionContext *ctx)
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Recent files helper
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void rebuildMenuIfPossible(PmActionContext *ctx)
+{
+    if (ctx->pmenu && CurrentMainWindow && CurrentMainScreen) {
+        PmMenu_Rebuild((PmMenu *)ctx->pmenu,
+                       CurrentMainScreen, CurrentMainWindow,
+                       &app->appSettings);
+    }
+}
+
+static BOOL openRecentFile(PmActionContext *ctx, int slot)
+{
+    const char *path;
+    int err;
+
+    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+    if (!app) return FALSE;
+
+    path = AppSettings_GetRecentFile(&app->appSettings, slot);
+    if (!path) return FALSE;
+
+    err = PetsciiFileIO_Load(*ctx->pproject, path);
+    SetStatusBarMessage(MSG_PETSCII_FILEIO_OK + err);
+
+    if (err == PETSCII_FILEIO_OK) {
+        AppSettings_AddRecentFile(&app->appSettings, path);
+        rebuildMenuIfPossible(ctx);
+    }
+    refreshUI();
+    return (BOOL)(err == PETSCII_FILEIO_OK);
+}
+
+BOOL Action_OpenRecent0(PmActionContext *ctx) { return openRecentFile(ctx, 0); }
+BOOL Action_OpenRecent1(PmActionContext *ctx) { return openRecentFile(ctx, 1); }
+BOOL Action_OpenRecent2(PmActionContext *ctx) { return openRecentFile(ctx, 2); }
+BOOL Action_OpenRecent3(PmActionContext *ctx) { return openRecentFile(ctx, 3); }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Action table - C89 sequential initialization.
    Order MUST match the ACTION_* enum exactly.
    Fields: { func, nameStringID, name (NULL until Init), shortcutKey, shortcutQual }
@@ -849,6 +921,9 @@ static PmAction actionTable[ACTION_COUNT] = {
     {Action_ProjectSave,     MSG_FILE_SAVE,   NULL, 0, 0},
     /* 3  ACTION_PROJECT_SAVEAS */
     {Action_ProjectSaveAs,   MSG_FILE_SAVEAS, NULL, 0, 0},
+
+    /*  */
+    {Action_ProjectIconify,    MSG_MENU_ICONIFY,  NULL, 0, 0},
     /* 4  ACTION_PROJECT_ABOUT */
     {Action_ProjectAbout,    MSG_MENU_ABOUT,  NULL, 0, 0},
     /* 5  ACTION_PROJECT_QUIT */
@@ -938,7 +1013,13 @@ static PmAction actionTable[ACTION_COUNT] = {
     {Action_ExportPng, MSG_EXPORT_PNG, NULL, 0, 0},
 
     /* ACTION_IMPORT_IMAGE */
-    {Action_ImportImage, MSG_IMPORT_IMAGE, NULL, 0, 0}
+    {Action_ImportImage, MSG_IMPORT_IMAGE, NULL, 0, 0},
+
+    /* ACTION_OPEN_RECENT_0..3 */
+    {Action_OpenRecent0, MSG_MENU_OPEN_RECENT, NULL, 0, 0},
+    {Action_OpenRecent1, MSG_MENU_OPEN_RECENT, NULL, 0, 0},
+    {Action_OpenRecent2, MSG_MENU_OPEN_RECENT, NULL, 0, 0},
+    {Action_OpenRecent3, MSG_MENU_OPEN_RECENT, NULL, 0, 0}
 
 };
 

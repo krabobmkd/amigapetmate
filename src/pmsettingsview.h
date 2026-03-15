@@ -37,14 +37,23 @@ typedef struct PmSettingsView
     char            modeIdHexStr[16];    /* "0xXXXXXXXX\0"                     */
     char            modeDescStr[80];     /* mode name from graphics.library     */
 
-    ULONG           currentModeId;       /* current screen mode ID              */
-    BOOL            useWorkbench;        /* TRUE = use WB display mode          */
+    /* UI Background group */
+    Object         *bgLayout;            /* "UI Background" group               */
+    Object         *useOneColorBgCheck;  /* checkbox: Use one color for bg      */
+    Object         *bgImagePathDisplay;  /* read-only display: image path       */
+    Object         *chooseBgImageBtn;    /* "Choose..." button for image path   */
+    Object         *removeBgImageBtn;    /* "Remove" button for image path      */
+
+    char            bgImagePathBuf[256]; /* display buffer for bgImagePath      */
 
 } PmSettingsView;
 
 /* Gadget IDs for this window */
-#define GAD_SETTINGS_USEWB       100
-#define GAD_SETTINGS_CHOOSEMODE  101
+#define GAD_SETTINGS_USEWB          100
+#define GAD_SETTINGS_CHOOSEMODE     101
+#define GAD_SETTINGS_USEONECLORBG   102
+#define GAD_SETTINGS_CHOOSEBGIMAGE  103
+#define GAD_SETTINGS_REMOVEBGIMAGE  104
 
 /*
  * Initialize the Settings window.
@@ -66,12 +75,16 @@ BOOL  PmSettingsView_HandleInput(PmSettingsView *psv);
 ULONG PmSettingsView_GetSignalMask(PmSettingsView *psv);
 
 /* Get/set the "Use Workbench mode" checkbox state. */
-BOOL  PmSettingsView_GetUseWorkbench(PmSettingsView *psv);
-void  PmSettingsView_SetUseWorkbench(PmSettingsView *psv, BOOL useWb);
+void  PmSettingsView_SetFSModeIdLikeWorkbench(PmSettingsView *psv, ULONG fsUseWBMode);
 
 /* Get/set the screen ModeId. INVALID_ID (0xFFFFFFFF) = not configured. */
-ULONG PmSettingsView_GetModeId(PmSettingsView *psv);
 void  PmSettingsView_SetModeId(PmSettingsView *psv, ULONG modeId);
+
+/* Set the "Use one color for background" checkbox state. */
+void  PmSettingsView_SetUseOneColorBg(PmSettingsView *psv, int useOneColor);
+
+/* Set the background image path display and the AppSettings value. */
+void  PmSettingsView_SetBgImagePath(PmSettingsView *psv, const char *path);
 
 /* Dispose all resources (closes window first if open). */
 void  PmSettingsView_Dispose(PmSettingsView *psv);

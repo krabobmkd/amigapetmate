@@ -18,11 +18,20 @@
 #include "compilers.h"
 #include "class_colorswatch.h"
 #include "petscii_style.h"
+
+#include <proto/cybergraphics.h>
+#include <cybergraphics/cybergraphics.h>
+
+extern struct Library *CyberGfxBase;
+
+
 #include "bdbprintf.h"
 /* Convenience cast: Object * -> struct Gadget * */
 #ifndef G
 #define G(o) ((struct Gadget *)(o))
 #endif
+
+
 
 /* ------------------------------------------------------------------ */
 /* Per-instance data                                                    */
@@ -31,6 +40,7 @@
 typedef struct ColorSwatchData {
     PetsciiStyle *style;       /* colour palette (not owned) */
     UBYTE         colorIndex;  /* 0..15 – index into style   */
+    UBYTE       renderType;
 } ColorSwatchData;
 
 /* ------------------------------------------------------------------ */
@@ -95,6 +105,7 @@ static ULONG ColorSwatch_OnNew(Class *cl, Object *o, struct opSet *msg)
     inst             = (ColorSwatchData *)INST_DATA(cl, newObj);
     inst->style      = style;
     inst->colorIndex = colorIndex;
+    inst->renderType = 0;
 
     return (ULONG)newObj;
 }
@@ -237,9 +248,24 @@ static ULONG ColorSwatch_OnRender(Class *cl, Object *o, struct gpRender *msg)
 
     if (w <= 0 || h <= 0) return 0;
 
-    SetAPen(rp, (LONG)PetsciiStyle_Pen(inst->style, inst->colorIndex));
-    RectFill(rp, (LONG)left, (LONG)top,
-                 (LONG)(left + w - 1), (LONG)(top + h - 1));
+
+    if(CyberGfxBase &&
+        msg->gpr_GInfo->gi_Screen &&
+       msg->gpr_GInfo->gi_Screen->RastPort.BitMap &&
+       (GetCyberMapAttr(msg->gpr_GInfo->gi_Screen->RastPort.BitMap, CYBRMATTR_ISCYBERGFX) != 0) &&
+       (GetCyberMapAttr(msg->gpr_GInfo->gi_Screen->RastPort.BitMap, CYBRMATTR_DEPTH) > 8)
+        )
+    {
+        FillPixelArray(rp,(UWORD)left,(UWORD)top,
+                            (UWORD)w,(UWORD)h,
+                            inst->style->paletteARGB[inst->colorIndex]
+                            );
+    } else
+    {
+        SetAPen(rp, (LONG)PetsciiStyle_Pen(inst->style, inst->colorIndex));
+        RectFill(rp, (LONG)left, (LONG)top,
+                     (LONG)(left + w - 1), (LONG)(top + h - 1));
+    }
 
     SetAPen(rp, (LONG)PetsciiStyle_Pen(inst->style, 0));
     Move(rp, (LONG)left,(LONG)top);
