@@ -30,16 +30,20 @@
 
 #include "boopsimainwindow.h"
 #include "pmsettingsview.h"
+#include "pmmenu.h"
 #include "petscii_canvas.h"  /* PCA_TransformBrush, PCA_Brush, BRUSH_TRANSFORM_* */
 #include "petscii_brush.h"   /* PetsciiBrush */
+
 
 /* External globals from petmate.c */
 extern struct Library *AslBase;
 extern struct IntuitionBase *IntuitionBase;
 
+extern void refreshUI();
 void SetStatusBarMessage(int enumMessage);
 /* Last directory used in a file requester (persists across open/save calls) */
 static char *s_lastDir = NULL;
+
 
 /* -----------------------------------------------------------------------
  * Minimal LCG random number generator (Knuth / Numerical Recipes).
@@ -75,8 +79,12 @@ static ULONG pmRand(ULONG n)
 //     return LOC(MSG_PETSCII_FILEIO_OK+strnum);
 // }
 
-/* - - - Helper: apply a new palette to the style and re-obtain pens - - - */
-static void applyPalette(PmActionContext *ctx, UBYTE paletteID)
+
+extern void RefreshAllColorGadgets();
+static void rebuildMenuIfPossible(PmActionContext *ctx);
+/* - - - Apply a new palette to the style and update the menu checkmark - - - */
+
+void PmAction_ApplyPalette(PmActionContext *ctx, UBYTE paletteID)
 {
     PetsciiProject *proj;
     PetsciiStyle   *sty;
@@ -92,7 +100,14 @@ static void applyPalette(PmActionContext *ctx, UBYTE paletteID)
     if (sty) {
         PetsciiStyle_Init(sty, paletteID);
         PetsciiStyle_Apply(sty, CurrentMainScreen);
+        RefreshAllColorGadgets();
     }
+
+    if (ctx->pmenu && CurrentMainWindow) {
+        PmMenu_UpdatePaletteCheck((PmMenu *)ctx->pmenu,
+                                  CurrentMainWindow, paletteID);
+    }
+
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -217,6 +232,12 @@ BOOL Action_ProjectOpen(PmActionContext *ctx)
     PmStr_Free(pathbuf);
     SetStatusBarMessage(MSG_PETSCII_FILEIO_OK+err);
 
+    if (err == PETSCII_FILEIO_OK && app) {
+        AppSettings_AddRecentFile(&app->appSettings, pathbuf);
+        rebuildMenuIfPossible(ctx);
+    }
+    PmStr_Free(pathbuf);
+    refreshUI();
     return TRUE;
 }
 
@@ -258,9 +279,23 @@ BOOL Action_ProjectSaveAs(PmActionContext *ctx)
         (err == MSG_PETSCII_FILEIO_OK)?MSG_PETSCII_FILEIO_WRITEOK:
         (MSG_PETSCII_FILEIO_OK+err)
         );
+
+    if (err == PETSCII_FILEIO_OK && app) {
+        AppSettings_AddRecentFile(&app->appSettings, pathbuf);
+        rebuildMenuIfPossible(ctx);
+    }
+    PmStr_Free(pathbuf);
     return TRUE;
 }
 
+BOOL Action_ProjectIconify(PmActionContext *ctx)
+{
+    if(!app || !CurrentMainWindow) return;
+
+    #define DO_ICONIFY 1
+    BMainWindow_Close(&app->mainwindow,app->window_obj,DO_ICONIFY);
+    return TRUE;
+}
 BOOL Action_ProjectAbout(PmActionContext *ctx)
 {
     Object *req;
@@ -275,9 +310,12 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
 "integrated with old Commodore 8 Bit machines, the first of\n"
 "which was the \"PET\", hence the name PETSCII in regard to ASCII.\n\n"
 "Forked and ported to C by Krb from the original TypeScript source.\33n\n\n"
-"     \33c\33b (c)2026 License is MIT, read file LICENSE.\33n\n\n"
-"\33cSources for Amiga PetMate are hosted at:\n"
-"https://github.com/krabobmkd/amigapetmate\33n\n\n"
+
+"\33c\33b (c)2026 License is MIT, read file LICENSE.\33n\n\n"
+"Sources for Amiga PetMate are hosted at:\n"
+"https://github.com/krabobmkd/amigapetmate\n"
+"Report bugs and ask functionalities at:\n"
+"https://github.com/krabobmkd/amigapetmate/issues\n\n"
 " \33bOriginal PetMate projects are hosted at:\33n\n"
 "\33c\33bnurpax https://github.com/nurpax/petmate\33n\n"
 "\33c\33bwbochar https://github.com/wbochar/petmate9\33n\n\n"
@@ -285,15 +323,14 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
 "wouldn't exist without the Official Amiga developer forum:\n"
 "https://developer.amigaos3.net/forum"
 
-//"Amiga PetMate - C64 PETSCII Art Editor - port v0.1"
-//"This is all about drawing with the character sets that were\n"
-//"     (c)2026 License is MIT, read file LICENSE.\n\n"
+
 			,
             REQ_TitleText,(ULONG)"About Amiga PetMate",
 			REQ_GadgetText,(ULONG)"_Ok",
             TAG_END);
     }
     if(!app->aboutRequester) return FALSE;
+
 
 
     SetGadgetAttrs(app->mainvlayout, CurrentMainWindow,NULL,
@@ -359,8 +396,11 @@ BOOL Action_EditUndo(PmActionContext *ctx)
 
     if (PetsciiUndoBuffer_Undo(bufs[proj->currentScreen], scr)) {
         proj->modified = 1;
+        refreshUI();
         return TRUE;
     }
+    refreshUI();
+
     return FALSE;
 }
 
@@ -381,8 +421,11 @@ BOOL Action_EditRedo(PmActionContext *ctx)
 
     if (PetsciiUndoBuffer_Redo(bufs[proj->currentScreen], scr)) {
         proj->modified = 1;
+        refreshUI();
         return TRUE;
     }
+    refreshUI();
+
     return FALSE;
 }
 
@@ -604,10 +647,11 @@ BOOL Action_OpenSettings(PmActionContext *ctx)
    Palette actions
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-BOOL Action_PalettePetmate(PmActionContext *ctx)  { applyPalette(ctx, PALETTE_PETMATE);  return TRUE; }
-BOOL Action_PaletteColodore(PmActionContext *ctx) { applyPalette(ctx, PALETTE_COLODORE); return TRUE; }
-BOOL Action_PalettePepto(PmActionContext *ctx)    { applyPalette(ctx, PALETTE_PEPTO);    return TRUE; }
-BOOL Action_PaletteVice(PmActionContext *ctx)     { applyPalette(ctx, PALETTE_VICE);     return TRUE; }
+
+BOOL Action_PalettePetmate(PmActionContext *ctx)  { PmAction_ApplyPalette(ctx, PALETTE_PETMATE);  return TRUE; }
+BOOL Action_PaletteColodore(PmActionContext *ctx) { PmAction_ApplyPalette(ctx, PALETTE_COLODORE); return TRUE; }
+BOOL Action_PalettePepto(PmActionContext *ctx)    { PmAction_ApplyPalette(ctx, PALETTE_PEPTO);    return TRUE; }
+BOOL Action_PaletteVice(PmActionContext *ctx)     { PmAction_ApplyPalette(ctx, PALETTE_VICE);     return TRUE; }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Brush transform actions
@@ -872,6 +916,47 @@ BOOL Action_ImportImage(PmActionContext *ctx)
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Recent files helper
+   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void rebuildMenuIfPossible(PmActionContext *ctx)
+{
+    if (ctx->pmenu && CurrentMainWindow && CurrentMainScreen) {
+        PmMenu_Rebuild((PmMenu *)ctx->pmenu,
+                       CurrentMainScreen, CurrentMainWindow,
+                       &app->appSettings);
+    }
+}
+
+static BOOL openRecentFile(PmActionContext *ctx, int slot)
+{
+    const char *path;
+    int err;
+
+    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+    if (!app) return FALSE;
+
+    path = AppSettings_GetRecentFile(&app->appSettings, slot);
+    if (!path) return FALSE;
+
+    err = PetsciiFileIO_Load(*ctx->pproject, path);
+    SetStatusBarMessage(MSG_PETSCII_FILEIO_OK + err);
+
+    if (err == PETSCII_FILEIO_OK) {
+        AppSettings_AddRecentFile(&app->appSettings, path);
+        rebuildMenuIfPossible(ctx);
+    }
+    refreshUI();
+    return (BOOL)(err == PETSCII_FILEIO_OK);
+}
+
+BOOL Action_OpenRecent0(PmActionContext *ctx) { return openRecentFile(ctx, 0); }
+BOOL Action_OpenRecent1(PmActionContext *ctx) { return openRecentFile(ctx, 1); }
+BOOL Action_OpenRecent2(PmActionContext *ctx) { return openRecentFile(ctx, 2); }
+BOOL Action_OpenRecent3(PmActionContext *ctx) { return openRecentFile(ctx, 3); }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Generate actions
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -995,7 +1080,7 @@ static UBYTE charlinelinks[16]={
 
 
 /* =======================================================================
- * Magic Line â€” common infrastructure
+ * Magic Line — common infrastructure
  *
  * connMap: a UBYTE array parallel to scr->framebuf.
  *   0x00        cell is empty (code==32), available for drawing.
@@ -1038,7 +1123,7 @@ static BOOL mlPlace(PetsciiScreen *scr, UBYTE *connMap,
 }
 
 /* ----------------------------------------------------------------------- *
- * Algorithm A â€” Random worm walk                                           *
+ * Algorithm A — Random worm walk                                           *
  *                                                                          *
  * Multiple short worms start at random empty cells and wander freely,     *
  * changing direction ~20% of the time.  A new worm is spawned whenever    *
@@ -1095,7 +1180,7 @@ static void mlWalkRandom(PetsciiScreen *scr, UBYTE *connMap,
 }
 
 /* ----------------------------------------------------------------------- *
- * Algorithm B â€” Reconnecting worm walk                                    *
+ * Algorithm B — Reconnecting worm walk                                    *
  *                                                                          *
  * Same as A but 40% of steps bias the direction toward the worm's own     *
  * start cell, encouraging closed loops.  When the worm reaches start      *
@@ -1184,7 +1269,7 @@ static void mlWalkReconnect(PetsciiScreen *scr, UBYTE *connMap,
 }
 
 /* ----------------------------------------------------------------------- *
- * Algorithm C â€” Recursive fractal quad-cross                              *
+ * Algorithm C — Recursive fractal quad-cross                              *
  *                                                                          *
  * Draws a cross at the midpoint of a rectangle, then recurses on the four *
  * quadrants in shuffled order.  Recursion depth is derived from            *
@@ -1266,7 +1351,7 @@ static void mlFractal(PetsciiScreen *scr, UBYTE *connMap,
 }
 
 /* ----------------------------------------------------------------------- *
- * Algorithm D â€” Tron light-cycle trajectories (Action_GenerateTronLines)  *
+ * Algorithm D — Tron light-cycle trajectories (Action_GenerateTronLines)  *
  *                                                                          *
  * Four players start from the four screen corners heading inward.          *
  * Each moves straight and turns 90 degrees (left or right) after a random  *
@@ -1317,7 +1402,7 @@ static void mlTron(PetsciiScreen *scr, UBYTE *connMap,
         }
     }
     if (aliveCnt == 0)
-        printf("mlTron: no players could start â€” screen may be full\n");
+        printf("mlTron: no players could start — screen may be full\n");
 
     /*
      * In Tron, any cell that already has connection bits is treated as a wall:
@@ -1368,7 +1453,7 @@ static void mlTron(PetsciiScreen *scr, UBYTE *connMap,
                     if (mlPlace(scr, connMap, col, row, prevBit[i], color))
                         filled++;
                     if (prevBit[i] == 0)
-                        printf("mlTron: player %d eliminated immediately at (%d,%d) â€” all directions blocked\n", i, col, row);
+                        printf("mlTron: player %d eliminated immediately at (%d,%d) — all directions blocked\n", i, col, row);
                     else
                         printf("mlTron: player %d eliminated at (%d,%d) after %d steps\n", i, col, row, straight[i]);
                     alive[i] = FALSE;
@@ -1392,7 +1477,7 @@ static void mlTron(PetsciiScreen *scr, UBYTE *connMap,
         if (alive[i])
             mlPlace(scr, connMap, cols[i], rows[i], prevBit[i], color);
     }
-    printf("mlTron: done â€” filled=%d target=%d\n", filled, target);
+    printf("mlTron: done — filled=%d target=%d\n", filled, target);
 }
 
 /* Common setup / teardown shared by both Generate actions */
@@ -1444,12 +1529,13 @@ static void mlRunFinish(PetsciiProject *proj, UBYTE *connMap)
  * Action_GenerateMagicLine
  *
  * Picks one of three line-generation algorithms at random:
- *   0 â€” Random worm walk    (mlWalkRandom,    50% fill)
- *   1 â€” Reconnecting worms  (mlWalkReconnect, 40% fill)
- *   2 â€” Fractal quad-cross  (mlFractal,       60% fill)
+ *   0 — Random worm walk    (mlWalkRandom,    50% fill)
+ *   1 — Reconnecting worms  (mlWalkReconnect, 40% fill)
+ *   2 — Fractal quad-cross  (mlFractal,       60% fill)
  * ----------------------------------------------------------------------- */
 BOOL Action_GenerateMagicLine(PmActionContext *ctx)
 {
+
     PetsciiProject *proj;
     PetsciiScreen  *scr;
     UBYTE          *connMap;
@@ -1505,6 +1591,9 @@ static PmAction actionTable[ACTION_COUNT] = {
     {Action_ProjectSave,     MSG_FILE_SAVE,   NULL, 0, 0},
     /* 3  ACTION_PROJECT_SAVEAS */
     {Action_ProjectSaveAs,   MSG_FILE_SAVEAS, NULL, 0, 0},
+
+    /*  */
+    {Action_ProjectIconify,    MSG_MENU_ICONIFY,  NULL, 0, 0},
     /* 4  ACTION_PROJECT_ABOUT */
     {Action_ProjectAbout,    MSG_MENU_ABOUT,  NULL, 0, 0},
     /* 5  ACTION_PROJECT_QUIT */
@@ -1601,7 +1690,13 @@ static PmAction actionTable[ACTION_COUNT] = {
     /* ACTION_GENERATE_MAGIC_LINE */
     {Action_GenerateMagicLine, MSG_GENERATE_MAGIC_LINE, NULL, 0, 0},
     /* ACTION_GENERATE_TRON_LINES */
-    {Action_GenerateTronLines, MSG_GENERATE_TRON_LINES, NULL, 0, 0}
+    {Action_GenerateTronLines, MSG_GENERATE_TRON_LINES, NULL, 0, 0},
+
+    /* ACTION_OPEN_RECENT_0..3 */
+    {Action_OpenRecent0, MSG_MENU_OPEN_RECENT, NULL, 0, 0},
+    {Action_OpenRecent1, MSG_MENU_OPEN_RECENT, NULL, 0, 0},
+    {Action_OpenRecent2, MSG_MENU_OPEN_RECENT, NULL, 0, 0},
+    {Action_OpenRecent3, MSG_MENU_OPEN_RECENT, NULL, 0, 0}
 
 };
 

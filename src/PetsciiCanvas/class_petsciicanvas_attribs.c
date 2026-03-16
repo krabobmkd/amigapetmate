@@ -116,8 +116,8 @@ ULONG PetsciiCanvas_OnNew(Class *cl, Object *o, struct opSet *msg)
     PetsciiCanvas_OnSet(cl, newObj,msg);
 
     /* Fill the buffer immediately so it is ready for first GM_RENDER */
-    PetsciiScreenBuf_RebuildFull(inst->screenbuf, screen, style);
-
+ /*too soon   PetsciiScreenBuf_RebuildFull(inst->screenbuf, screen, style);
+*/
     return (ULONG)newObj;
 }
 
@@ -203,6 +203,8 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
         switch (tag->ti_Tag)
         {
             case PCA_Screen:
+            if((PetsciiScreen *)tag->ti_Data != inst->screen)
+            {
                 inst->screen = (PetsciiScreen *)tag->ti_Data;
                 if (inst->screenbuf && inst->screen) {
                     /* If character dimensions changed, recreate buffer */
@@ -216,6 +218,7 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                         /* screenbuf->valid = 0 after Create; RebuildFull
                          * is called lazily in GM_RENDER                  */
                     } else {
+
                         inst->screenbuf->valid = 0;
                     }
                     inst->refreshExtraMarge = 1;
@@ -223,6 +226,7 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                 }
 
                 inst->scaledBufDirty = TRUE;
+            }
                 result = 1;
                 break;
 
@@ -246,12 +250,17 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
 
             case PCA_Dirty:
                 if (tag->ti_Data && inst->screenbuf) {
-                    inst->screenbuf->valid = 0;
-                    inst->scaledBufDirty   = TRUE;
+                 bdbprintf("r PCA_Dirty ->valid=0\n");
+                    if(inst->screenbuf->valid)
+                    {
+                      redraw = 1;
+                        inst->screenbuf->valid = 0;
+                        inst->scaledBufDirty   = TRUE;
+                    }
                 }
                 //inst->refreshExtraMarge = 1;
                 result = 1;
-                redraw = 1;
+
                 break;
 
             case PCA_KeepRatio:
@@ -308,9 +317,12 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                     if(inst->screen->backgroundColor != (UBYTE)tag->ti_Data)
                     {
                         inst->screen->backgroundColor = (UBYTE)tag->ti_Data;
-                        if(inst->screenbuf) inst->screenbuf->valid = 0;
-                        inst->scaledBufDirty = TRUE;
-                        redraw = 1; /* need a total redraw, background color affect all */
+                        if(inst->screenbuf && inst->screenbuf->valid)
+                        {
+                            inst->screenbuf->valid = 0;
+                            inst->scaledBufDirty = TRUE;
+                            redraw = 1; /* need a total redraw, background color affect all */
+                        }
 
                     }
                 }
@@ -322,9 +334,14 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                     if(inst->screen->borderColor != (UBYTE)tag->ti_Data)
                     {
                         inst->screen->borderColor = (UBYTE)tag->ti_Data;
-                        if(inst->screenbuf) inst->screenbuf->valid = 0;
-                        inst->scaledBufDirty = TRUE; /* could optimize just redraw bodrers... */
-                        redraw = 1; /* need a total redraw, background color affect all */
+                bdbprintf("PCA_BdColor ->valid=0 color:%d\n",(int)inst->screen->borderColor);
+                        if(inst->screenbuf &&
+                          inst->screenbuf->valid )
+                         {
+                           inst->screenbuf->valid = 0;
+                            inst->scaledBufDirty = TRUE; /* could optimize just redraw bodrers... */
+                            redraw = 1; /* need a total redraw, background color affect all */
+                        }
                     }
                 }
                 result = 1;

@@ -23,6 +23,7 @@
 #include "petscii_types.h"
 #include "pmstring.h"
 #include "cjson/cJSON.h"
+extern void refreshUI();
 
 extern void SetStatusBarMessage(int enumMessage);
 

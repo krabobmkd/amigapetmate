@@ -9,23 +9,27 @@
  * Loaded/saved through tooltypepref API.
  */
 
-#define APPSETTINGS_MAX_RECENT 8
+#define APPSETTINGS_MAX_RECENT 4
 
 typedef struct AppSettings {
     char *tempDir;                              /* AllocVec-managed path */
     char *recentFiles[APPSETTINGS_MAX_RECENT];  /* [0] = most recent */
     int   recentCount;
 
+    /* values that can be changed in SettingsView window: */
     /* Screen mode for fullscreen: */
-    BOOL  useWorkbench;   /* TRUE = use WB screen mode (SA_LikeWorkbench)     */
+    int  screenModeIdLikeWorkbench;   /* TRUE = use WB screen mode (SA_LikeWorkbench)     */
+
     ULONG screenModeId;   /* display ID for SA_DisplayID; 0xFFFFFFFF=invalid  */
+
+    /* UI background style: */
+    int   useOneColorBg;  /* TRUE = use solid UI background color, no image   */
+    char *bgImagePath;    /* AllocVec'd path to background image, NULL = none */
+
 } AppSettings;
 
-/* Initialize (zeroes struct). Call before Load. */
-void AppSettings_Init(AppSettings *as);
-
 /* Load settings from icon tooltypes. Calls ToolTypePrefs_Init internally. */
-void AppSettings_Load(AppSettings *as, const char *exename);
+void AppSettings_Load(AppSettings *as);
 
 /* Save settings to icon tooltypes, then ToolTypePrefs_Save. */
 void AppSettings_Save(AppSettings *as);
@@ -35,6 +39,9 @@ void AppSettings_Close(AppSettings *as);
 
 /* Set temp directory (duplicates string). */
 void AppSettings_SetTempDir(AppSettings *as, const char *path);
+
+/* Set background image path (duplicates string; NULL clears it). */
+void AppSettings_SetBgImagePath(AppSettings *as, const char *path);
 
 /* Get current temp directory (may return NULL). */
 const char *AppSettings_GetTempDir(AppSettings *as);
@@ -47,13 +54,5 @@ int AppSettings_GetRecentCount(AppSettings *as);
 
 /* Get recent file path by index (0 = most recent). Returns NULL if out of range. */
 const char *AppSettings_GetRecentFile(AppSettings *as, int index);
-
-/* Get/set "Use Workbench screen mode" flag (default TRUE). */
-BOOL AppSettings_GetUseWorkbench(AppSettings *as);
-void AppSettings_SetUseWorkbench(AppSettings *as, BOOL val);
-
-/* Get/set screen mode ID for fullscreen (0xFFFFFFFF = INVALID_ID = not set). */
-ULONG AppSettings_GetScreenModeId(AppSettings *as);
-void  AppSettings_SetScreenModeId(AppSettings *as, ULONG modeId);
 
 #endif /* APPSETTINGS_H */

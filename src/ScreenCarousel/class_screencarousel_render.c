@@ -26,6 +26,12 @@
 #include <proto/layers.h>
 #include "screen_carousel_private.h"
 
+
+#include <proto/cybergraphics.h>
+#include <cybergraphics/cybergraphics.h>
+
+extern struct Library *CyberGfxBase;
+
 /* ------------------------------------------------------------------ */
 /* Internal helpers                                                     */
 /* ------------------------------------------------------------------ */
@@ -63,6 +69,21 @@ ULONG ScreenCarousel_OnLayout(Class *cl, Object *o, struct gpLayout *msg)
         OrRectRegion(inst->clipRegion, &framerect);
     }
 
+    inst->renderType = RENDT_WRITECHUNKYPIXEL8;
+
+    if(CyberGfxBase &&
+        msg->gpl_GInfo->gi_Screen &&
+       msg->gpl_GInfo->gi_Screen->RastPort.BitMap &&
+       (GetCyberMapAttr(msg->gpl_GInfo->gi_Screen->RastPort.BitMap, CYBRMATTR_ISCYBERGFX) != 0) &&
+       (GetCyberMapAttr(msg->gpl_GInfo->gi_Screen->RastPort.BitMap, CYBRMATTR_DEPTH) > 8)
+        )
+    {
+        /* will be ok drawing 16bit with Cybergraphics */
+        inst->renderType = RENDT_CGXRGBCLUT;
+    }
+
+
+
     return 1;
 }
 
@@ -95,9 +116,12 @@ void ScreenCarousel_RenderOne(ScreenCarouselData *inst, Object *o,struct RastPor
         if (!inst->minis[idx] || !inst->minis[idx]->valid) return;
 
         /* Blit the 42x27 miniature */
-        PetsciiScreenMini_Blit(inst->minis[idx], rp,
+        if(inst->renderType == RENDT_WRITECHUNKYPIXEL8)
+            PetsciiScreenMini_Blit(inst->minis[idx], rp,
                                 gx + thumbX, gy + thumbY);
-
+        else if(inst->renderType == RENDT_CGXRGBCLUT)
+            PetsciiScreenMini_BlitRGB(inst->minis[idx], rp,
+                                gx + thumbX, gy + thumbY);
     /* important to pass NULL if oldClipRegion was NULL.*/
     InstallClipRegion(rp->Layer, oldClipRegion);
 }
@@ -199,7 +223,11 @@ ULONG ScreenCarousel_OnRender(Class *cl, Object *o, struct gpRender *msg)
         if (!inst->minis[i] || !inst->minis[i]->valid) continue;
 
         /* Blit the 42x27 miniature */
-        PetsciiScreenMini_Blit(inst->minis[i], rp,
+        if(inst->renderType == RENDT_WRITECHUNKYPIXEL8)
+            PetsciiScreenMini_Blit(inst->minis[i], rp,
+                                gx + thumbX, gy + thumbY);
+        else if(inst->renderType == RENDT_CGXRGBCLUT)
+             PetsciiScreenMini_BlitRGB(inst->minis[i], rp,
                                 gx + thumbX, gy + thumbY);
 
         /* Highlight border around the current screen */

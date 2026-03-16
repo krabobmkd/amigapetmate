@@ -7,7 +7,8 @@
 
 #include "appsettings.h"
 #include "tooltypepref.h"
-
+#include "petmate.h"
+#include <stdio.h>
 static char *StrDup(const char *s)
 {
     char *copy;
@@ -20,29 +21,22 @@ static char *StrDup(const char *s)
 }
 
 /* Tooltype key names */
-#define TT_TEMPDIR      "TEMPDIR"
-#define TT_RECENT       "RECENT"      /* RECENT0, RECENT1, ... RECENT7 */
-#define TT_USE_WORKBENCH "USEWB"      /* "1" or "0" */
-#define TT_SCREENMODEID  "SCREENMODEID" /* 8 hex digits, e.g. "00029000" */
+#define TT_TEMPDIR       "TEMPDIR"
+#define TT_RECENT        "RECENT"        /* RECENT0, RECENT1, ... RECENT7 */
+#define TT_USE_WORKBENCH "FSUSEWBMODEID" /* "1" or "0" */
+#define TT_SCREENMODEID  "SCREENMODEID"  /* 8 hex digits, e.g. "00029000" */
+#define TT_USEONECLORBG  "USEONECLORBG"  /* "1" or "0" */
+#define TT_BGIMAGE       "BGIMAGE"       /* absolute image file path */
 
-void AppSettings_Init(AppSettings *as)
-{
-    if(!as) return;
-    memset(as, 0, sizeof(AppSettings));
-}
-
-void AppSettings_Load(AppSettings *as, const char *exename)
+void AppSettings_Load(AppSettings *as)
 {
     int i;
     const char *val;
     char key[16]; /* "RECENT0" .. "RECENT7" */
 
-    if(!as || !exename) return;
+    if(!as) return;
 
-    if(!ToolTypePrefs_Init(exename)) {
-        printf("AppSettings: Could not load tooltypes for '%s'\n", exename);
-        return;
-    }
+    /* ToolTypePrefs_Init is to be done at ebgining of main. */
 
     /* Load temp directory */
     val = ToolTypePrefs_Get(TT_TEMPDIR);
@@ -52,7 +46,7 @@ void AppSettings_Load(AppSettings *as, const char *exename)
 
     /* Load screen mode settings */
     val = ToolTypePrefs_Get(TT_USE_WORKBENCH);
-    as->useWorkbench = (!val || val[0] != '0') ? TRUE : FALSE; /* default TRUE */
+    as->screenModeIdLikeWorkbench = (!val || val[0] != '0') ? TRUE : FALSE; /* default TRUE */
 
     as->screenModeId = (ULONG)~0L; /* INVALID_ID default */
     val = ToolTypePrefs_Get(TT_SCREENMODEID);
@@ -60,6 +54,18 @@ void AppSettings_Load(AppSettings *as, const char *exename)
         unsigned long parsed = 0;
         sscanf(val, "%lX", &parsed);
         as->screenModeId = (ULONG)parsed;
+    }
+
+    /* Load UI background settings */
+    val = ToolTypePrefs_Get(TT_USEONECLORBG);
+    if(val) as->useOneColorBg = 1;
+    else  as->useOneColorBg = 0;
+
+    if(as->bgImagePath) FreeVec(as->bgImagePath);
+    as->bgImagePath = NULL;
+    val = ToolTypePrefs_Get(TT_BGIMAGE);
+    if (val && val[0] != '\0') {
+        as->bgImagePath = StrDup(val);
     }
 
     /* Load recent files */
@@ -78,21 +84,52 @@ void AppSettings_Load(AppSettings *as, const char *exename)
             /* else: file gone, skip it */
         }
     }
+    /* fullscreen and window position */
+    {
+        const char *p = ToolTypePrefs_Get("FULLSCREEN");
+        app->mainwindow.fullscreen = (p != NULL);
+        p = ToolTypePrefs_Get("WINDOW");
+        if(p)
+        {
+            app->mainwindow.left = 0;
+            app->mainwindow.top = 0;
+            app->mainwindow.width = 0;
+            app->mainwindow.height = 0;
+
+             sscanf(p,"%d:%d:%d:%d",&app->mainwindow.left,&app->mainwindow.top,
+                            &app->mainwindow.width,&app->mainwindow.height);
+        }
+
+    }
+
 }
 
 void AppSettings_Save(AppSettings *as)
 {
     int i;
-    char key[16];
+    char key[32];
 
     if(!as) return;
 
     /* Save screen mode settings */
-    ToolTypePrefs_Set(TT_USE_WORKBENCH, as->useWorkbench ? "1" : "0");
+    ToolTypePrefs_Set(TT_USE_WORKBENCH, as->screenModeIdLikeWorkbench ? "1" : "0");
     {
         char hexbuf[16];
         sprintf(hexbuf, "%08lX", (unsigned long)as->screenModeId);
         ToolTypePrefs_Set(TT_SCREENMODEID, hexbuf);
+    }
+
+
+    /* Save UI background settings */
+    if( as->useOneColorBg)
+    {
+        ToolTypePrefs_Set(TT_USEONECLORBG,NULL);
+    } else ToolTypePrefs_Remove(TT_USEONECLORBG);
+
+    if (as->bgImagePath && as->bgImagePath[0] != '\0') {
+        ToolTypePrefs_Set(TT_BGIMAGE, as->bgImagePath);
+    } else {
+        ToolTypePrefs_Remove(TT_BGIMAGE);
     }
 
     /* Save temp directory */
@@ -100,9 +137,23 @@ void AppSettings_Save(AppSettings *as)
         ToolTypePrefs_Set(TT_TEMPDIR, as->tempDir);
     }
 
+    if(app->mainwindow.fullscreen)
+    {
+        ToolTypePrefs_Set("FULLSCREEN",NULL);
+    }
+    else
+    {
+        char buf[32];
+        ToolTypePrefs_Remove("FULLSCREEN");
+        BMainWindow_GetWindowPos(&app->mainwindow,app->window_obj);
+        snprintf(buf,31,"%d:%d:%d:%d",app->mainwindow.left,app->mainwindow.top,
+                           app->mainwindow.width,app->mainwindow.height );
+         ToolTypePrefs_Set("WINDOW",buf);
+    }
+
     /* Save recent files */
     for(i = 0; i < APPSETTINGS_MAX_RECENT; i++) {
-        sprintf(key, "%s%d", TT_RECENT, i);
+        snprintf(key,31, "%s%d", TT_RECENT, i);
         if(i < as->recentCount && as->recentFiles[i]) {
             ToolTypePrefs_Set(key, as->recentFiles[i]);
         } else {
@@ -121,6 +172,9 @@ void AppSettings_Close(AppSettings *as)
 
     FreeVec(as->tempDir);
     as->tempDir = NULL;
+
+    FreeVec(as->bgImagePath);
+    as->bgImagePath = NULL;
 
     for(i = 0; i < APPSETTINGS_MAX_RECENT; i++) {
         FreeVec(as->recentFiles[i]);
@@ -207,26 +261,10 @@ const char *AppSettings_GetRecentFile(AppSettings *as, int index)
     return as->recentFiles[index];
 }
 
-BOOL AppSettings_GetUseWorkbench(AppSettings *as)
+void AppSettings_SetBgImagePath(AppSettings *as, const char *path)
 {
-    if(!as) return TRUE;
-    return as->useWorkbench;
+    if (!as) return;
+    FreeVec(as->bgImagePath);
+    as->bgImagePath = path ? StrDup(path) : NULL;
 }
 
-void AppSettings_SetUseWorkbench(AppSettings *as, BOOL val)
-{
-    if(!as) return;
-    as->useWorkbench = val;
-}
-
-ULONG AppSettings_GetScreenModeId(AppSettings *as)
-{
-    if(!as) return (ULONG)~0L;
-    return as->screenModeId;
-}
-
-void AppSettings_SetScreenModeId(AppSettings *as, ULONG modeId)
-{
-    if(!as) return;
-    as->screenModeId = modeId;
-}

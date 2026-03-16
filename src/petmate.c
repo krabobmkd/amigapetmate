@@ -1,7 +1,6 @@
 /*
  * Petmate Amiga - C64 PETSCII Art Editor
  * Main application: library init, window creation, event loop, cleanup.
- * Architecture follows aukboopsi/aukboopsi.c patterns.
  */
 
 #include <stdio.h>
@@ -56,7 +55,6 @@
 #include "class_layoutwithpopup.h"
 #include "class_charlayout.h"
 
-/* Phase 2 */
 #include "petscii_style.h"
 #include "pmlocale.h"
 #include "pmaction.h"
@@ -66,30 +64,30 @@
 #include "pmsettingsview.h"
 #include "appsettings.h"
 
-
-/* Phase 4 */
 #include "petscii_canvas.h"
 
-/* Phase 5 */
 #include "char_selector.h"
 #include "color_picker.h"
 
-/* Phase 7 */
 #include "pmtoolbar.h"
 #include "screen_carousel.h"
 
-/* Phase 8 */
+
 #include "petscii_undo.h"
 
-/* Phase 9 */
 #include "petscii_fileio.h"
 
+#include "tooltypepref.h"
+#include <workbench/startup.h>
+
+#include <petscii_cellpx.h>
 #include <stdio.h>
 
 
 struct Task *myTask = NULL;
 
-const char *pVersion = "$VER: Petmate 0.1 (18.02.2026)";
+
+const char *pVersion = "$VER: Petmate 0.8";
 
 /* Library bases */
 struct IntuitionBase   *IntuitionBase = NULL;
@@ -101,6 +99,7 @@ struct Library         *AslBase       = NULL;
 struct Library         *GadToolsBase  = NULL;
 struct LocaleBase      *LocaleBase    = NULL; /* optional */
 struct Library         *DataTypesBase = NULL;
+struct Library          *CyberGfxBase = NULL;
 /* BOOPSI class bases */
 struct Library *WindowBase = NULL;
 struct Library *LayoutBase = NULL;
@@ -143,13 +142,16 @@ static LibraryEntry libraryTable[] = {
 /* Clipboard for Edit > Copy/Paste Screen */
 static PetsciiScreen *g_clipScreen = NULL;
 
+/* from tooltypepref.c use both for tooltipes and appicon */
+extern struct DiskObject *AppDiskObject;
 
 struct App *app = NULL;
 
 /* Forward declarations */
 void cleanexit(const char *pmessage);
 void exitclose(void);
-static void refreshUI(void);
+
+void refreshUI(void);
 static void rebuildUndoBuffers(void);
 
 void cleanexit(const char *pmessage)
@@ -163,12 +165,15 @@ void cleanexit(const char *pmessage)
  * Call after any action that may change the current screen, charset,
  * screen count, or other visible state.
  */
-static void refreshUI(void)
+
+void refreshUI(void)
 {
     PetsciiScreen *scr;
     UBYTE          charset;
 
     if (!app || !app->project) return;
+
+ bdbprintf("refreshUI\n");
 
     scr = PetsciiProject_GetCurrentScreen(app->project);
     if (!scr) return;
@@ -318,9 +323,19 @@ int main(int argc, char **argv)
 {
     (void)argc; (void)argv;
 
+
+
+LONG a = 640*640;
+LONG b = 540;
+
+ LONG c = DivW(a,b);
+ LONG c2 = a/b;
+ printf("r: DivW: %08x  ndiv: %08x\n",c,c2);
+
+ if(1 )return 0;
+
     myTask = FindTask(NULL);
     atexit(&exitclose);
-
     /* Open all required libraries via table */
     {
         LibraryEntry *entry;
@@ -335,8 +350,10 @@ int main(int argc, char **argv)
         }
     }
 
-    /* optional, can return NULL */
+
+    /* optional libs, can return NULL */
     DataTypesBase = OpenLibrary("datatypes.library",39);
+    CyberGfxBase  = OpenLibrary("cybergraphics.library", 1);
 
     /* Open locale.library (optional - soft failure) */
     LocaleBase = (struct LocaleBase *)OpenLibrary("locale.library", 38);
@@ -351,6 +368,25 @@ int main(int argc, char **argv)
     app->toolState.fgColor = C64_LIGHTBLUE;
     app->toolState.bgColor = C64_BLUE;
     app->toolState.showGrid = 0;
+
+    /* read settnigs from icon tooltypes (very Amigaish thing)
+     *  if launch from command line */
+    if(argc>0)
+    {
+        int result = ToolTypePrefs_Init(argv[0]);
+    } else
+    if(argc ==0 && argv != 0)
+    { /*  if launch from Workbench, Amiga C startup must give us that struct that way: */
+        int i;
+        struct WBStartup *WBenchMsg = (struct WBStartup *)argv; // Amiga C startup magic.
+        struct WBArg *wbarg=WBenchMsg->sm_ArgList;
+        for( i=0 ;
+            i < WBenchMsg->sm_NumArgs;
+            i++, wbarg++)
+        {
+            if((*wbarg->wa_Name) && (ToolTypePrefs_Init(wbarg->wa_Name))) break;
+        } // end loop by wbarg
+    }
 
     /* Create initial project */
     app->project = PetsciiProject_Create();
@@ -376,6 +412,7 @@ int main(int argc, char **argv)
     app->actionCtx.style     = (void *)&app->style;
     app->actionCtx.clipScreen = (void *)&g_clipScreen;
     app->actionCtx.undoBufs  = (void *)app->undoBufs;
+    app->actionCtx.pmenu     = (void *)&app->mainwindow.menu;
 
     /* Initialize the BOOPSI message target model */
     if (!initMessageTargetModel()) cleanexit("Can't create BOOPSI message target");
@@ -648,10 +685,7 @@ int main(int argc, char **argv)
             TAG_END);
 
         /* Main vertical layout: carousel | work area | status bar */
-        app->mainvlayout = (Object *)NewObject(
-        //LAYOUT_GetClass(),
-        LayoutWithPopupClass,
-         NULL,
+        app->mainvlayout = (Object *)NewObject(LayoutWithPopupClass, NULL,
             LAYOUT_DeferLayout,   TRUE,
             LAYOUT_SpaceOuter,    TRUE,
             LAYOUT_BottomSpacing, 2,
@@ -685,17 +719,19 @@ int main(int argc, char **argv)
 
     if (!app->mainvlayout) cleanexit("Layout error");
 
-
-
-
     /* Create message port */
     app->app_port = CreateMsgPort();
 
-    /* Calculate window Y position below screen title bar */
-
-//        WA_IDCMP, IDCMP_CLOSEWINDOW | IDCMP_MENUPICK | IDCMP_RAWKEY ,
 
     /* Create window object */
+    {
+        ULONG lasttag = TAG_END;
+        ULONG lastValue = 0;
+        if(AppDiskObject)
+        {
+            lasttag = WINDOW_Icon;
+            lastValue = (ULONG)AppDiskObject;
+        }
     app->window_obj = (Object *)NewObject(WINDOW_GetClass(), NULL,
         WA_Left, 40,
         WA_Top, 40,
@@ -706,45 +742,41 @@ int main(int argc, char **argv)
                   IDCMP_GADGETDOWN | IDCMP_GADGETUP | IDCMP_MOUSEMOVE,
         WA_Flags, WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET |
                   WFLG_SIZEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH
-                  /* | WFLG_REPORTMOUSE*/
+
                   ,
-// WFLG_REPORTMOUSE
+
         WA_ReportMouse,TRUE, //test
         WA_Title, (ULONG)LOC(MSG_WINDOW_TITLE),
         WINDOW_ParentGroup, (ULONG)app->mainvlayout,
         WINDOW_IconifyGadget, TRUE,
         WINDOW_IconTitle, (ULONG)"PetMate",
         WINDOW_AppPort, (ULONG)app->app_port,
+        lasttag,lastValue,
         TAG_END);
-
+    }
     if (!app->window_obj) cleanexit("Can't create window");
 
     /* Initialize Project Settings window */
     if(!PmSettingsView_Init(&app->settingsView,
                                   LOC(MSG_SETTINGS)))
     {
-        printf("Warning: Could not create Project Settings window\n");
+
+      //  printf("Warning: Could not create Project Settings window\n");
     }
 
     /* Load application settings from icon tooltypes and sync to settings view */
-    AppSettings_Init(&app->appSettings);
-    AppSettings_Load(&app->appSettings, "petmate");
-    PmSettingsView_SetUseWorkbench(&app->settingsView,
-        AppSettings_GetUseWorkbench(&app->appSettings));
-    PmSettingsView_SetModeId(&app->settingsView,
-        AppSettings_GetScreenModeId(&app->appSettings));
+
+    AppSettings_Load(&app->appSettings);
+    PmSettingsView_SetFSModeIdLikeWorkbench(&app->settingsView,app->appSettings.screenModeIdLikeWorkbench);
+    PmSettingsView_SetModeId(&app->settingsView,app->appSettings.screenModeId);
+    PmSettingsView_SetUseOneColorBg(&app->settingsView,app->appSettings.useOneColorBg);
+    PmSettingsView_SetBgImagePath(&app->settingsView,app->appSettings.bgImagePath);
 
     /* Open the window */
+    BMainWindow_SetTitle(&app->mainwindow,"PetMate v0.1 beta");
+    /*  Open the window or screen accoring to last prefs. */
+    BMainWindow_Show(&app->mainwindow,app->window_obj,&app->appSettings);
 
-     BMainWindow_SetTitle(&app->mainwindow,"PetMate v0.1 beta");
-    /*  Open the window or screen. */
-  //  BMainWindow_SwitchToWB(&app->mainwindow,app->window_obj,&app->appSettings);
-     //BMainWindow_Show(&app->mainwindow,app->window_obj,&app->appSettings);
-  BMainWindow_SwitchToFullScreen(&app->mainwindow,app->window_obj,&app->appSettings);
-    /* Brush menu starts disabled — no brush exists at launch */
-    PmMenu_UpdateBrushMenu(&app->mainwindow.menu, CurrentMainWindow, app->canvasGadget);
-    // bdbprintf("PetMate started. Project has %d screen(s).\n",
-    //           (int)app->project->screenCount);
 
     /* - - - Input Event Loop - - - */
     {
@@ -783,6 +815,8 @@ int main(int argc, char **argv)
                 flushbdbprint();
                 switch (result & WMHI_CLASSMASK)
                 {
+
+
                     case WMHI_RAWKEY:
                     {
                         /* keys managed at mainwindow level */
@@ -892,7 +926,8 @@ int main(int argc, char **argv)
                                     rebuildUndoBuffers();
                                 }
                                 /* Sync all gadgets with project state */
-                                refreshUI();
+
+                               /*not here ! refreshUI(); */
                             }
                         }
                         break;
@@ -925,7 +960,8 @@ int main(int argc, char **argv)
                             if (clickedIdx < app->project->screenCount) {
                                 PetsciiProject_SetCurrentScreen(app->project,
                                                                 (UWORD)clickedIdx);
-                                refreshUI();
+
+
                             }
                         }
                     }
@@ -1006,6 +1042,7 @@ int main(int argc, char **argv)
                                     PmMenu_UpdateBrushMenu(&app->mainwindow.menu,
                                         CurrentMainWindow, app->canvasGadget);
                                 }
+
 
                                 ptag = FindTagItem(PCA_BrushRemoved, msg);
                                 if (ptag)
@@ -1145,13 +1182,15 @@ int main(int argc, char **argv)
                                         PetsciiScreen *scr =
                                             PetsciiProject_GetCurrentScreen(app->project);
 
-                                        if (scr) {
+
+                                        if (scr && scr->charset != PETSCII_CHARSET_UPPER) {
                                             scr->charset = PETSCII_CHARSET_UPPER;
                                             app->project->modified = 1;
 
                                             SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
                                                 CHSA_Charset, PETSCII_CHARSET_UPPER,
                                                 TAG_END);
+                                                bdbprintf("PCA_Dirty from GAD_CHARSET_UPPER\n");
                                             SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
                                                 PCA_Dirty, (ULONG)TRUE,
                                                 TAG_END);
@@ -1187,12 +1226,14 @@ int main(int argc, char **argv)
                                         PetsciiScreen *scr =
                                             PetsciiProject_GetCurrentScreen(app->project);
 
-                                        if (scr) {
+
+                                        if (scr && scr->charset != PETSCII_CHARSET_LOWER) {
                                             scr->charset = PETSCII_CHARSET_LOWER;
                                             app->project->modified = 1;
                                             SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
                                                 CHSA_Charset, (ULONG)PETSCII_CHARSET_LOWER,
                                                 TAG_END);
+                                                bdbprintf("PCA_Dirty from GAD_CHARSET_LOWER\n");
                                             SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
                                                 PCA_Dirty, (ULONG)TRUE,
                                                 TAG_END);
@@ -1224,7 +1265,7 @@ int main(int argc, char **argv)
                                     (ptag->ti_Data != 0) )
                                 {
                                     PmAction_Execute(ACTION_EDIT_UNDO, &app->actionCtx);
-                                    refreshUI();
+
                                 }
                                 break;
 
@@ -1233,7 +1274,8 @@ int main(int argc, char **argv)
                                     (ptag->ti_Data != 0) )
                                 {
                                     PmAction_Execute(ACTION_EDIT_REDO, &app->actionCtx);
-                                    refreshUI();
+
+
                                 }
                                 break;
 
@@ -1253,7 +1295,7 @@ int main(int argc, char **argv)
                                     }
                                     PmAction_Execute(ACTION_EDIT_CLEAR_SCREEN,
                                                      &app->actionCtx);
-                                    refreshUI();
+
                                 }
                                 break;
                             }
@@ -1278,10 +1320,15 @@ int main(int argc, char **argv)
 void exitclose(void)
 {
     flushbdbprint();
-    printf("exitclose()\n");
+
+   // printf("exitclose()\n");
 
     if (app)
     {
+        /* save settings*/
+        AppSettings_Save(&app->appSettings);
+        AppSettings_Close(&app->appSettings);
+
         /* Destroy undo buffers (before project, as buffers clone screens) */
         {
             UWORD i;
@@ -1299,8 +1346,7 @@ void exitclose(void)
             app->project = NULL;
         }
 
-        AppSettings_Save(&app->appSettings);
-        AppSettings_Close(&app->appSettings);
+
         PmSettingsView_Dispose(&app->settingsView);
 
         if(app->aboutRequester)
@@ -1369,6 +1415,8 @@ void exitclose(void)
     bdbprintf_report_classes();
     flushbdbprint();
 
+
+    if(CyberGfxBase) CloseLibrary(CyberGfxBase);
     if(DataTypesBase) CloseLibrary(DataTypesBase);
 
     /* Close all other libraries in reverse order */
@@ -1410,16 +1458,23 @@ void RefreshAllColorGadgets()
     SetGadgetAttrs(app->carouselGadget,CurrentMainWindow,NULL,
         SCA_Style,(ULONG)&app->style,TAG_END);
 
+    // SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+    //     PCA_Dirty,(ULONG)TRUE,TAG_END);
 
+    RefreshGList((struct Gadget *)app->mainvlayout,
+                 CurrentMainWindow, NULL, 1);
     /* just those wouldn't refresh automatically at palette change */
-    RefreshGList((struct Gadget *)app->colorPickerFgGadget,
-                 CurrentMainWindow, NULL, 1);
 
-    RefreshGList((struct Gadget *)app->toolbar.bgColorWatch,
-                 CurrentMainWindow, NULL, 1);
+    // RefreshGList((struct Gadget *)app->colorPickerFgGadget,
+    //              CurrentMainWindow, NULL, 1);
 
-    RefreshGList((struct Gadget *)app->toolbar.borderColorWatch,
-                 CurrentMainWindow, NULL, 1);
+
+    // RefreshGList((struct Gadget *)app->toolbar.bgColorWatch,
+    //              CurrentMainWindow, NULL, 1);
+
+
+    // RefreshGList((struct Gadget *)app->toolbar.borderColorWatch,
+    //              CurrentMainWindow, NULL, 1);
 
 }
 void UpdateCarouselThumbNail(PetsciiScreen *screen)

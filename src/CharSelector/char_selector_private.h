@@ -18,6 +18,15 @@
 #define G(o) ((struct Gadget *)(o))
 #endif
 
+/*
+enum for render type,  renderType
+*/
+#define RENDT_WRITECHUNKYPIXEL8 0
+#define RENDT_CGXRGBCLUT 1
+#define RENDT_OCS 2
+
+
+
 typedef struct CharSelectorData {
     PetsciiStyle *style;
     struct Region *clipRegion;
@@ -51,7 +60,7 @@ typedef struct CharSelectorData {
     /* draw optimisation */
     BOOL              refreshExtraMarge;
 
-
+    WORD    renderType;
 } CharSelectorData;
 
 ULONG CharSelector_OnNew        (Class *cl, Object *o, struct opSet     *msg);

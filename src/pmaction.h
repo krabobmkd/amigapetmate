@@ -28,6 +28,7 @@ struct PmActionContext {
     void *style;                /* PetsciiStyle * - C64 color pens */
     void *clipScreen;           /* PetsciiScreen ** - clipboard for copy/paste */
     void *undoBufs;             /* PetsciiUndoBuffer *[PETSCII_MAX_SCREENS]  */
+    void *pmenu;                /* PmMenu * - for updating menu checkmarks */
 };
 
 /* Action definition */
@@ -46,6 +47,7 @@ enum {
     ACTION_PROJECT_OPEN,
     ACTION_PROJECT_SAVE,
     ACTION_PROJECT_SAVEAS,
+    ACTION_PROJECT_ICONIFY,
     ACTION_PROJECT_ABOUT,
     ACTION_PROJECT_QUIT,
 
@@ -112,12 +114,22 @@ enum {
     ACTION_GENERATE_MAGIC_LINE,
     ACTION_GENERATE_TRON_LINES,
 
+    /* Recent files (slots 0..APPSETTINGS_MAX_RECENT-1) */
+    ACTION_OPEN_RECENT_0,
+    ACTION_OPEN_RECENT_1,
+    ACTION_OPEN_RECENT_2,
+    ACTION_OPEN_RECENT_3,
+
     /* Must be last */
     ACTION_COUNT
 };
 
 /* Initialize action system: localizes action names from MSG_* strings */
 void      PmAction_Init(void);
+
+/* Apply palette by ID: updates project, style, and menu checkmark.
+ * Exposed so callers (e.g. at startup after loading) can sync state. */
+void PmAction_ApplyPalette(PmActionContext *ctx, UBYTE paletteID);
 
 /* Get action by ID (NULL if out of range) */
 PmAction *PmAction_Get(ULONG actionID);
@@ -174,8 +186,10 @@ BOOL Action_ExportPng(PmActionContext *ctx);
 
 BOOL Action_ImportImage(PmActionContext *ctx);
 
-BOOL Action_GenerateRandomFromBrush(PmActionContext *ctx);
-BOOL Action_GenerateMagicLine(PmActionContext *ctx);
+BOOL Action_OpenRecent0(PmActionContext *ctx);
+BOOL Action_OpenRecent1(PmActionContext *ctx);
+BOOL Action_OpenRecent2(PmActionContext *ctx);
+BOOL Action_OpenRecent3(PmActionContext *ctx);
 BOOL Action_GenerateTronLines(PmActionContext *ctx);
 
 #endif /* PMACTION_H */

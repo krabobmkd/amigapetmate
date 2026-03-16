@@ -24,6 +24,7 @@ enum {
     MSG_FILE_OPEN,
     MSG_FILE_SAVEAS,
     MSG_FILE_SAVE,
+    MSG_MENU_ICONIFY,
     MSG_MENU_ABOUT,
     MSG_MENU_QUIT,
 
@@ -139,6 +140,23 @@ enum {
     MSG_STATUS_START_LASSO,
     MSG_STATUS_TEXT,
 
+    /* Settings window - UI Background group */
+    MSG_SETTINGS_UI_BG_GROUP,     /* group label: "UI Background"              */
+    MSG_SETTINGS_USEONECLORBG,    /* checkbox:    "Use one color for background"*/
+    MSG_SETTINGS_BGIMAGE_LABEL,   /* row label:   "Background Image:"           */
+    MSG_SETTINGS_CHOOSE_BGIMAGE,  /* button:      "Choose..."                  */
+    MSG_SETTINGS_BGIMAGE_TITLE,   /* ASL title:   "Choose background image"    */
+    MSG_SETTINGS_BGIMAGE_NONE,    /* placeholder: "(none)"                     */
+    MSG_SETTINGS_REMOVEBGIMAGE,   /* button:      "Remove"                     */
+
+    /* Recent files submenu */
+    MSG_MENU_OPEN_RECENT,             /* "Open Recent" parent item label       */
+
+    MSG_SETTINGS_FSUSEWBMODE,
+    MSG_SETTINGS_CHOOSEDOTS,
+    MSG_SETTINGS_SCREENMODECL,
+    MSG_SETTINGS_DESCRIPTIONCL,
+    MSG_SETTINGS_FULLSCREENDISPLAYMODE,
 
     /* Must be last */
     MSG_COUNT

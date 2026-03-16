@@ -52,11 +52,18 @@ void BMainWindow_SetTitle(struct BoopsiMainWindow *mw, const char *title);
 void BMainWindow_Show(struct BoopsiMainWindow *mw,Object *window_obj,struct AppSettings *appSettings);
 void BMainWindow_Toggle(struct BoopsiMainWindow *mw,Object *window_obj,struct AppSettings *appSettings);
 
+void BMainWindow_GetWindowPos(struct BoopsiMainWindow *mw,Object *window_obj);
+
+
 /* at iconify or quitting */
 void BMainWindow_Close(struct BoopsiMainWindow *mw,Object *window_obj, int iconify);
 
+/* Intuition level Window */
 extern struct Window *CurrentMainWindow;
+
+/* Intuition level Screen, Can be either the WB locked screen, or our private screen */
 extern struct Screen *CurrentMainScreen;
+
 /* direct C64 color mapping */
 extern int  CurrentMainScreen_PreIndexed;
 

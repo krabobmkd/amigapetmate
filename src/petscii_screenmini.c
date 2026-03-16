@@ -13,6 +13,14 @@
 #include <proto/exec.h>
 #include <proto/graphics.h>
 
+#include "petmate.h"
+#include <proto/cybergraphics.h>
+#include <cybergraphics/cybergraphics.h>
+
+extern struct Library *CyberGfxBase;
+
+
+
 /* ------------------------------------------------------------------ */
 /* Create / Destroy                                                     */
 /* ------------------------------------------------------------------ */
@@ -49,8 +57,8 @@ void PetsciiScreenMini_Render(PetsciiScreenMini   *mini,
                   ? petsciiLowerMinify
                   : petsciiUpperMinify;
 
-    borderPen = (UBYTE)PetsciiStyle_Pen(style, scr->borderColor);
-    bgPen     = (UBYTE)PetsciiStyle_Pen(style, scr->backgroundColor);
+    borderPen = (UBYTE)PetsciiStyle_BmPen(style, scr->borderColor);
+    bgPen     = (UBYTE)PetsciiStyle_BmPen(style, scr->backgroundColor);
 
     /* --- Top border row (row 0) ---------------------------------------- */
     for (i = 0; i < SCREENMINI_W; i++)
@@ -74,7 +82,7 @@ void PetsciiScreenMini_Render(PetsciiScreenMini   *mini,
             cell = &scr->framebuf[row * (ULONG)scr->width + col];
 
             if (minifyTable[cell->code])
-                pen = (UBYTE)PetsciiStyle_Pen(style, cell->color);
+                pen = (UBYTE)PetsciiStyle_BmPen(style, cell->color);
             else
                 pen = bgPen;
 
@@ -106,4 +114,21 @@ void PetsciiScreenMini_Blit(const PetsciiScreenMini *mini,
                       (LONG)(destY + SCREENMINI_H - 1),
                       (UBYTE *)mini->pixels,
                       SCREENMINI_W);
+}
+
+void PetsciiScreenMini_BlitRGB(const PetsciiScreenMini *mini,
+                             struct RastPort         *rp,
+                             WORD                     destX,
+                             WORD                     destY)
+{
+    if (!mini || !rp || !mini->valid) return;
+
+    WriteLUTPixelArray(mini->pixels,0,0, // srcxy
+                        SCREENMINI_W,  // bytes per row
+                        rp,
+                        (APTR)&app->style.paletteARGB[0],
+                        destX,destY,
+                        SCREENMINI_W,SCREENMINI_H,
+                        CTABFMT_XRGB8
+                        );
 }

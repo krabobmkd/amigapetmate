@@ -11,6 +11,10 @@
 #include <intuition/gadgetclass.h>
 #include "color_picker_private.h"
 
+#include <proto/cybergraphics.h>
+#include <cybergraphics/cybergraphics.h>
+
+extern struct Library *CyberGfxBase;
 
 
 ULONG ColorPicker_OnDomain(Class *cl, Object *o, struct gpDomain  *msg)
@@ -56,20 +60,23 @@ ULONG ColorPicker_OnRender(Class *cl, Object *o, struct gpRender *msg)
     WORD             width;
     WORD             height;
     UBYTE            colorIdx;
-    UBYTE            savedMode;
+    UBYTE            useCgx;
     WORD             col;
     WORD             row;
     WORD             x,x2;
     WORD             y,y2;
     WORD             selCol;
     WORD             selRow;
-    WORD             selX;
-    WORD             selY;
-
-    (void)cl;
 
     inst = (ColorPickerData *)INST_DATA(cl, o);
     if (!inst->style) return 0;
+
+    useCgx = (CyberGfxBase &&
+        msg->gpr_GInfo->gi_Screen &&
+       msg->gpr_GInfo->gi_Screen->RastPort.BitMap &&
+       (GetCyberMapAttr(msg->gpr_GInfo->gi_Screen->RastPort.BitMap, CYBRMATTR_ISCYBERGFX) != 0) &&
+       (GetCyberMapAttr(msg->gpr_GInfo->gi_Screen->RastPort.BitMap, CYBRMATTR_DEPTH) > 8)
+        );
 
     rp     = msg->gpr_RPort;
     left   = G(o)->LeftEdge;
@@ -95,10 +102,18 @@ ULONG ColorPicker_OnRender(Class *cl, Object *o, struct gpRender *msg)
         x2   = left +1+  ((col+1) *(width-1) /COLORPICKER_COLS);
         y2   = top  +1+  ((row+1) *(height-1)/COLORPICKER_ROWS);
 
-        SetAPen(rp, (LONG)PetsciiStyle_Pen(inst->style, colorIdx));
-        RectFill(rp,
-                 (LONG)x,              (LONG)y,
+        if(useCgx)
+        {
+            //FillPixelArray(RastPort,DestX, DestY,SizeX,SizeY,ARGB)
+            FillPixelArray(rp,(UWORD)x,(UWORD)y,(UWORD)(x2-1-x),(UWORD)(y2-1-y),
+                inst->style->paletteARGB[colorIdx]);
+
+        } else {
+            SetAPen(rp, (LONG)PetsciiStyle_Pen(inst->style, colorIdx));
+            RectFill(rp,
+                 (LONG)x, (LONG)y,
                  (LONG)(x2 - 2),(LONG)(y2 - 2));
+        }
                  /* grid like this */
 
 //        if((colorIdx == inst-> selectedColor))

@@ -4,6 +4,15 @@
 #include <proto/exec.h>
 #include <proto/graphics.h>
 
+/* jsust to get the palette */
+#include "petmate.h"
+#include "petscii_style.h"
+
+#include <proto/cybergraphics.h>
+#include <cybergraphics/cybergraphics.h>
+
+extern struct Library *CyberGfxBase;
+
 /*
  * PetsciiScreenBuf - flat chunky render buffer for one PETSCII screen.
  *
@@ -15,38 +24,11 @@
  * Clear bit -> background pen (screen->backgroundColor).
  */
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Internal: render one 8x8 cell into the flat chunky buffer.
-   col, row: character grid position (not pixel position).
-   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-static void renderCell(UBYTE *chunky, ULONG pixW,
-                        UWORD col, UWORD row,
-                        UBYTE charCode, UBYTE charColor, UBYTE bgColor,
-                        UBYTE charset,
-                        const PetsciiStyle *style)
-{
-    const UBYTE *glyph;
-    UBYTE fgPen, bgPen;
-    ULONG baseOffset;
-    UWORD py, px;
-    UBYTE bits;
-
-    glyph    = PetsciiCharset_GetGlyph(charset, charCode);
-    fgPen    = (UBYTE)PetsciiStyle_Pen(style, charColor);
-    bgPen    = (UBYTE)PetsciiStyle_Pen(style, bgColor);
-
-    /* Offset of the top-left pixel of this cell */
-    baseOffset = (ULONG)(row * 8) * pixW + (ULONG)(col * 8);
-
-    for (py = 0; py < 8; py++) {
-        bits = glyph[py];
-        for (px = 0; px < 8; px++) {
-            chunky[baseOffset + (ULONG)py * pixW + px] =
-                (bits & 0x80) ? fgPen : bgPen;
-            bits = (UBYTE)(bits << 1);
-        }
-    }
-}
+/* renderCell() has been inlined into each call site for 68000 performance:
+ * - bgPen hoisted out of loops (constant per full render)
+ * - rowStride = pixW*8 computed once
+ * - all inner offsets use running additions, no per-pixel multiply
+ */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Public API
@@ -93,23 +75,52 @@ void PetsciiScreenBuf_RebuildFull(PetsciiScreenBuf *buf,
                                    const PetsciiScreen *scr,
                                    const PetsciiStyle *style)
 {
-    UWORD col, row;
+    UBYTE              *chunky;
+    ULONG               pixW;
+    ULONG               rowStride;        /* pixW * 8: chunky advance per char row */
+    UBYTE               bgPen;            /* constant for whole screen */
+    ULONG               rowBase;          /* chunky offset to top of current char row */
+    ULONG               cellBase;         /* chunky offset to top-left of current cell */
+    ULONG               lineBase;         /* chunky offset to current pixel row */
+    const PetsciiPixel *cellRow;          /* pointer to first cell of current char row */
     const PetsciiPixel *cell;
+    const UBYTE        *glyph;
+    UBYTE               fgPen;
+    UBYTE               bits;
+    UWORD               row, col, py, px;
 
     if (!buf || !scr || !style || !buf->chunky) return;
 
+    chunky    = buf->chunky;
+    pixW      = buf->pixW;
+    rowStride = pixW * 8;
+    bgPen     = (UBYTE)PetsciiStyle_BmPen(style, scr->backgroundColor);
+
+    rowBase = 0;
+    cellRow = scr->framebuf;
     for (row = 0; row < scr->height; row++) {
+        cellBase = rowBase;
         for (col = 0; col < scr->width; col++) {
-            cell = PetsciiScreen_PixelAt(scr, col, row);
-            renderCell(buf->chunky, buf->pixW,
-                       col, row,
-                       cell->code, cell->color, scr->backgroundColor,
-                       scr->charset,
-                       style);
+            cell     = cellRow + col;
+            glyph    = PetsciiCharset_GetGlyph(scr->charset, cell->code);
+            fgPen    = (UBYTE)PetsciiStyle_BmPen(style, cell->color);
+            lineBase = cellBase;
+            for (py = 0; py < 8; py++) {
+                bits = glyph[py];
+                for (px = 0; px < 8; px++) {
+                    chunky[lineBase + px] = (bits & 0x80) ? fgPen : bgPen;
+                    bits <<= 1;
+                }
+                lineBase += pixW;
+            }
+            cellBase += 8;
         }
+        rowBase += rowStride;
+        cellRow += scr->width;
     }
 
     buf->valid = 1;
+
 }
 
 void PetsciiScreenBuf_UpdateCell(PetsciiScreenBuf *buf,
@@ -118,16 +129,29 @@ void PetsciiScreenBuf_UpdateCell(PetsciiScreenBuf *buf,
                                   UWORD col, UWORD row)
 {
     const PetsciiPixel *cell;
+    const UBYTE        *glyph;
+    UBYTE               fgPen, bgPen;
+    ULONG               lineBase;
+    UBYTE               bits;
+    UWORD               py, px;
 
     if (!buf || !scr || !style || !buf->chunky) return;
     if (col >= scr->width || row >= scr->height) return;
 
-    cell = PetsciiScreen_PixelAt(scr, col, row);
-    renderCell(buf->chunky, buf->pixW,
-               col, row,
-               cell->code, cell->color, scr->backgroundColor,
-               scr->charset,
-               style);
+    cell     = PetsciiScreen_PixelAt(scr, col, row);
+    glyph    = PetsciiCharset_GetGlyph(scr->charset, cell->code);
+    fgPen    = (UBYTE)PetsciiStyle_BmPen(style, cell->color);
+    bgPen    = (UBYTE)PetsciiStyle_BmPen(style, scr->backgroundColor);
+    lineBase = ((ULONG)row << 3) * buf->pixW + ((ULONG)col << 3);
+
+    for (py = 0; py < 8; py++) {
+        bits = glyph[py];
+        for (px = 0; px < 8; px++) {
+            buf->chunky[lineBase + px] = (bits & 0x80) ? fgPen : bgPen;
+            bits <<= 1;
+        }
+        lineBase += buf->pixW;
+    }
 }
 
 void PetsciiScreenBuf_BlitNative(PetsciiScreenBuf *buf,
@@ -144,6 +168,22 @@ void PetsciiScreenBuf_BlitNative(PetsciiScreenBuf *buf,
                       buf->chunky,
                       (LONG)buf->pixW);
 }
+void PetsciiScreenBuf_BlitNativeRGB(PetsciiScreenBuf *buf,
+                                  struct RastPort *rp,
+                                  WORD destX, WORD destY)
+{
+    if (!buf || !rp || !buf->chunky || !buf->valid) return;
+
+    WriteLUTPixelArray(buf->chunky,0,0, // srcxy
+                        buf->pixW, // buf->pixW, // bytes per row
+                        rp,
+                        (APTR)&app->style.paletteARGB[0],
+                        destX,destY,
+                        buf->pixW,buf->pixH,
+                        CTABFMT_XRGB8
+                        );
+}
+
 
 void PetsciiChunky_Scale(const UBYTE *src, ULONG srcW, ULONG srcH,
                           UBYTE       *dst, ULONG dstW, ULONG dstH)
@@ -188,19 +228,44 @@ void PetsciiScreenBuf_RenderCells(UBYTE              *dst,
                                    UBYTE               charset,
                                    const PetsciiStyle *style)
 {
-    UWORD col;
-    UWORD row;
+    UBYTE               bgPen;
+    ULONG               rowStride;
+    ULONG               rowBase;
+    ULONG               cellBase;
+    ULONG               lineBase;
+    const PetsciiPixel *cellRow;
+    const PetsciiPixel *cell;
+    const UBYTE        *glyph;
+    UBYTE               fgPen;
+    UBYTE               bits;
+    UWORD               row, col, py, px;
 
     if (!dst || !cells || !style || brushW == 0 || brushH == 0) return;
 
+    bgPen     = (UBYTE)PetsciiStyle_BmPen(style, bgColor);
+    rowStride = pixW * 8;
+
+    rowBase = 0;
+    cellRow = cells;
     for (row = 0; row < brushH; row++) {
+        cellBase = rowBase;
         for (col = 0; col < brushW; col++) {
-            const PetsciiPixel *cell = &cells[(ULONG)row * brushW + col];
-            renderCell(dst, pixW,
-                       col, row,
-                       cell->code, cell->color, bgColor,
-                       charset, style);
+            cell     = cellRow + col;
+            glyph    = PetsciiCharset_GetGlyph(charset, cell->code);
+            fgPen    = (UBYTE)PetsciiStyle_BmPen(style, cell->color);
+            lineBase = cellBase;
+            for (py = 0; py < 8; py++) {
+                bits = glyph[py];
+                for (px = 0; px < 8; px++) {
+                    dst[lineBase + px] = (bits & 0x80) ? fgPen : bgPen;
+                    bits <<= 1;
+                }
+                lineBase += pixW;
+            }
+            cellBase += 8;
         }
+        rowBase += rowStride;
+        cellRow += brushW;
     }
 }
 
@@ -223,4 +288,68 @@ void PetsciiScreenBuf_BlitScaled(PetsciiScreenBuf *buf,
                       (ULONG)(WORD)destY + (ULONG)destH - 1,
                       tmpBuf,
                       (LONG)destW);
+}
+
+
+/* experimental unfinished, do not touch.  */
+void PetsciiScreenBuf_BlitScaledRGB16(PetsciiScreenBuf *buf,
+                                  struct RastPort *rp,
+                                  WORD destX, WORD destY,
+                                  UWORD destW, UWORD destH,
+                                  UBYTE *tmpBuf)
+{
+    if(!CyberGfxBase) return;
+    if (!buf || !rp || !buf->chunky || !buf->valid || !tmpBuf) return;
+    if (destW == 0 || destH == 0) return;
+
+    PetsciiChunky_Scale(buf->chunky, buf->pixW, buf->pixH,
+                         tmpBuf, (ULONG)destW, (ULONG)destH);
+
+    WriteLUTPixelArray(tmpBuf,0,0, // srcxy
+                        destW, // buf->pixW, // bytes per row
+                        rp,
+                        (APTR)&app->style.paletteARGB[0],
+                        destX,destY,
+                        destW,destH,
+                        CTABFMT_XRGB8
+                        );
+
+/*
+ULONG        WriteLUTPixelArray(APTR, UWORD, UWORD, UWORD, struct RastPort *, APTR,
+			        UWORD, UWORD, UWORD, UWORD, UBYTE);
+*/
+/*
+APTR	srcRect - pointer to an array of pixels from which to fetch the
+	          CLUT data. Pixels are specified in bytes, 8bits/pixel.
+UWORD	(SrcX,SrcY) - starting point in the source rectangle
+UWORD	SrcMod - The number of bytes per row in the source rectangle.
+ struct RastPort *	RastPort -  pointer to a RastPort structure
+APTR	CTable - pointer to the color table using the format specified
+		with CTabFormat
+UWORD	(DestX,DestY) - starting point in the RastPort
+UWORD	(SizeX,SizeY) - size of the rectangle that should be transfered
+UBYTE	CTabFormat - color table format in the source rectangle
+		Currently supported formats are:
+		 CTABFMT_XRGB8 - CTable is a pointer to a ULONG table
+		 	which contains 256 entries. Each entry specifies the
+			rgb colour value for the related index. The format
+			is XXRRGGBB.
+
+	count = WriteLUTPixelArray(srcRect,SrcX ,SrcY ,SrcMod,RastPort,
+	D0		  	      A0   D0:16 D1:16 D2:16     A1
+			CTable,DestX,DestY,SizeX,SizeY,CTabFormat)
+			  A2   D3:16 D4:16 D5:16 D6:16      D7
+
+	count = WriteLUTPixelArray(srcRect,SrcX ,SrcY ,SrcMod,RastPort,
+	D0		  	      A0   D0:16 D1:16 D2:16     A1
+			CTable,DestX,DestY,SizeX,SizeY,CTabFormat)
+			*/
+
+    // WriteChunkyPixels(rp,
+    //                   (ULONG)(WORD)destX,
+    //                   (ULONG)(WORD)destY,
+    //                   (ULONG)(WORD)destX + (ULONG)destW - 1,
+    //                   (ULONG)(WORD)destY + (ULONG)destH - 1,
+    //                   tmpBuf,
+    //                   (LONG)destW);
 }

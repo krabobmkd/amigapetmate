@@ -68,7 +68,11 @@ void PetsciiScreenBuf_BlitScaled(PetsciiScreenBuf *buf,
                                   WORD destX, WORD destY,
                                   UWORD destW, UWORD destH,
                                   UBYTE *tmpBuf);
-
+void PetsciiScreenBuf_BlitScaledRGB16(PetsciiScreenBuf *buf,
+                                  struct RastPort *rp,
+                                  WORD destX, WORD destY,
+                                  UWORD destW, UWORD destH,
+                                  UBYTE *tmpBuf);
 /* Scale any chunky pixel buffer using nearest-neighbor 16:16 fixed-point.
  * src: srcW x srcH bytes (row-major).  dst: dstW x dstH bytes (caller-alloc).
  * Does NOT call WriteChunkyPixels; only fills dst.

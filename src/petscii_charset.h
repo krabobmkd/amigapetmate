@@ -3,7 +3,7 @@
 
 #include <exec/types.h>
 #include "petscii_types.h"
-
+#include "compilers.h"
 /*
  * C64 ROM charset data.
  * Two charsets of 256 characters, each character is 8 bytes (8x8 pixels).
@@ -33,6 +33,13 @@ extern const UBYTE c64CharOrderReverse[PETSCII_CHAR_COUNT];
  * charset: PETSCII_CHARSET_UPPER or PETSCII_CHARSET_LOWER
  * code: screen code 0-255
  */
-const UBYTE *PetsciiCharset_GetGlyph(UBYTE charset, UBYTE code);
+//const UBYTE *PetsciiCharset_GetGlyph(UBYTE charset, UBYTE code);
+INLINE const UBYTE *PetsciiCharset_GetGlyph(UBYTE charset, UBYTE code)
+{
+    if (charset == PETSCII_CHARSET_LOWER)
+        return &c64CharsetLower[(UWORD)code <<3];
+    return &c64CharsetUpper[(UWORD)code <<3];
+}
+
 
 #endif /* PETSCII_CHARSET_H */

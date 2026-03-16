@@ -159,7 +159,7 @@ set(PETMATE_CAROUSEL_SOURCES
 add_subdirectory(../giflib ${CMAKE_CURRENT_BINARY_DIR}/giflib)
 
 if(AMIGA)
-    add_executable(petmate
+    add_executable(PetMate
         ${PETMATE_SOURCES}
         ${PETMATE_FRAMEWORK_SOURCES}
         ${PETMATE_SCREENBUF_SOURCES}
@@ -174,23 +174,36 @@ if(AMIGA)
         # ${PETMATE_EXTRA_SOURCES}
     )
 
-    install(TARGETS petmate
+    install(TARGETS PetMate
         ARCHIVE DESTINATION bin
     )
 
-    target_compile_definitions(petmate PRIVATE
+    target_compile_definitions(PetMate PRIVATE
         PETSCIICANVAS_STATICLINK=1
         CHARSELECTOR_STATICLINK=1
         COLORPICKER_STATICLINK=1
         USE_DEBUG_BDBPRINT=1
     )
 
-    target_compile_options(petmate PRIVATE
-        $<$<CONFIG:RELEASE>:-O2 -Wno-narrowing -DNDEBUG>
+    target_compile_options(PetMate PRIVATE
+        $<$<CONFIG:RELEASE>:-Os -Wno-narrowing -DNDEBUG>
         ${AMIGA_COMPILER_OPTIONS}
     )
 
-    target_link_libraries(petmate gif)
+    target_link_libraries(PetMate gif)
+
+    # Copy the Amiga icon alongside the executable after each build
+    add_custom_command(TARGET PetMate POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/PetMate.info
+            ${CMAKE_CURRENT_BINARY_DIR}/PetMate.info
+        COMMENT "Copying PetMate.info to build directory"
+    )
+
+    add_executable(testdiv
+        testdiv.c
+    )
+    target_compile_options(testdiv PRIVATE ${AMIGA_COMPILER_OPTIONS})
 
 #    # Development tool: generate petscii_chartransform.c/.h
 #    # Run on Amiga (or emulator), redirect output to project root.

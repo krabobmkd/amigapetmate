@@ -79,8 +79,7 @@
 /* ------------------------------------------------------------------ */
 /* 1. GCC 2.x / GCC 6.x "Bebbo" targeting mc68000 (not mc68020+)     */
 /* ------------------------------------------------------------------ */
-#if 0
-// defined(__GNUC__) && defined(__mc68000__)
+#if defined(__GNUC__) && defined(__mc68000__)
 
 INLINE WORD CellPx(LONG n, LONG cDim, WORD pDim)
 {
@@ -150,24 +149,22 @@ INLINE LONG CellPx(LONG n, LONG cDim, WORD pDim)
 /* Use this when the dividend is already a pre-formed LONG product and */
 /* no fixed *8 scale is needed (e.g. colour-picker cell geometry).     */
 /* ------------------------------------------------------------------ */
-#if 0
-// defined(__GNUC__) && defined(__mc68000__)
+#if defined(__GNUC__) && defined(__mc68000__)
 
-INLINE LONG DivW(LONG n, WORD d)
+inline LONG DivW(REG(d0, signed int  n),REG(d1, signed short dvs))
 {
-    __asm__ ("divs.w %1,%0\n\text.w %0" : "+d"(n) : "d"(d));
-    return (LONG)n;   /* low word = quotient */
+    asm volatile ("divs.w %1,%0\n\text.w %0" : "+d"(n) : "d"(dvs) : );
+    return n;   /* low word = quotient */
 }
 
 INLINE ULONG DivU(ULONG n, UWORD d)
 {
-    __asm__ ("divu.w %1,%0\n\swap %0\n\tclr.w %0\n\tswap %0" : "+d"(n) : "d"(d));
+    __asm__ ("divu.w %1,%0\n\tswap %0\n\tclr.w %0\n\tswap %0" : "=d"(n) : "d"(d));
     return (ULONG)n;   /* low word = quotient */
 }
 
 
-#elif 0
-//defined(__SASC)
+#elif defined(__SASC)
 
 INLINE LONG DivW(LONG n, WORD d)
 {

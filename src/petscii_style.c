@@ -8,6 +8,12 @@
 #include "boopsimainwindow.h"
 #include <stdio.h>
 
+#include <proto/cybergraphics.h>
+#include <cybergraphics/cybergraphics.h>
+
+extern struct Library *CyberGfxBase;
+
+
 /*
  * ObtainPenForRGB - expand 8-bit 0x00RRGGBB to 32-bit and call ObtainBestPenA.
  * Falls back to FindColor if the pen allocation fails.
@@ -34,12 +40,14 @@ static void ObtainPenForRGB(struct ColorMap *cm, ManagedColor *c)
 
     if (pen != -1) {
         c->pen = (WORD)pen;
+
         c->allocated = 1;
     } else {
         /* Fallback: find nearest existing pen without allocating */
         c->pen = (WORD)FindColor(cm, r, g, b, 255);
         c->allocated = 0;
     }
+    c->bmpen = (UBYTE)c->pen; /* by default same, can be overriden for CGX */
 }
 
 static void ReleasePenIfValid(struct ColorMap *cm, ManagedColor *c)
@@ -71,7 +79,7 @@ extern int CurrentMainScreen_PreIndexed;
 
 int PetsciiStyle_Apply(PetsciiStyle *style, struct Screen *scr)
 {
-    struct ColorMap *cm;
+
     UWORD i;
 
     if (!style) return 0;
@@ -79,20 +87,20 @@ int PetsciiStyle_Apply(PetsciiStyle *style, struct Screen *scr)
     /* Release any previously obtained pens first */
     PetsciiStyle_Release(style);
 
-    style->screen = scr;
-    if (!scr) return 1;
+    style->screen = scr; /* now screen optional can be null */
 
-    if(CurrentMainScreen_PreIndexed && CurrentMainScreen)
+    /*0: use screen pens,
+     * 1&2: use 16c C64 order slightly scrambled,
+     * 2: fullscreen that need LoadRGB32()  */
+    if(CurrentMainScreen_PreIndexed)
     {
         int cmindex[C64_COLOR_COUNT];
-        ULONG palettergb32[2+(C64_COLOR_COUNT*3)]; /* the LoadRGB32 format */
-        ULONG *ppal = &palettergb32[0];
 
+        ULONG *ppal32 = &style->paletteRGB32[0];
         /* 16 color index of screen is almost the C64 palette */
         for (i = 0; i < C64_COLOR_COUNT; i++) {
             style->c64pens[i].allocated =0;
             style->c64pens[i].pen = i;
-
             cmindex[i] = i;
         }
         style->c64pens[0].pen = 1;
@@ -105,24 +113,47 @@ int PetsciiStyle_Apply(PetsciiStyle *style, struct Screen *scr)
         cmindex[2] = 1;
         cmindex[15] = 2;
 
-        *ppal++ = (C64_COLOR_COUNT<<16)|0;
+        *ppal32++ = (C64_COLOR_COUNT<<16)|0;
         for (i = 0; i < C64_COLOR_COUNT; i++) {
             ULONG rgb = style->c64pens[cmindex[i]].rgbcolor;
-            *ppal++ = (rgb & 0x00ff0000)<<8;
-            *ppal++ = (rgb & 0x0000ff00)<<16;
-            *ppal++ = (rgb & 0x000000ff)<<24;
+            *ppal32++ = (rgb & 0x00ff0000)<<8;
+            *ppal32++ = (rgb & 0x0000ff00)<<16;
+            *ppal32++ = (rgb & 0x000000ff)<<24;
         }
-        *ppal++  = 0;
-
-        LoadRGB32(&CurrentMainScreen->ViewPort,&palettergb32[0]);
+        *ppal32++  = 0;
+        /* now in prescreen init need the RGB32 version before screen opening */
+        if(scr)
+         LoadRGB32(&scr->ViewPort,&style->paletteRGB32[0]);
 
     } else
+    /* both screen pens mode and cgx mode need pens */
+    if(scr)
     {
-        cm = scr->ViewPort.ColorMap;
+        int cmindex[C64_COLOR_COUNT];
+        ULONG *ppal888 = &style->paletteARGB[0];
+        struct ColorMap *cm = scr->ViewPort.ColorMap;
         for (i = 0; i < C64_COLOR_COUNT; i++) {
             ObtainPenForRGB(cm, &style->c64pens[i]);
         }
     }
+
+    /* ARGB CLUT palette used by some CyberGraphics function */
+   if(CyberGfxBase && scr &&
+       (GetCyberMapAttr(scr->RastPort.BitMap, CYBRMATTR_ISCYBERGFX) != 0) &&
+       (GetCyberMapAttr(scr->RastPort.BitMap, CYBRMATTR_DEPTH) > 8)
+        )
+    {
+        for (i = 0; i < C64_COLOR_COUNT; i++)
+        {
+            style->paletteARGB[i] = style->c64pens[i].rgbcolor;
+            style->c64pens[i].bmpen = i;
+        }
+    }
+    // style->paletteARGB[0] = style->c64pens[15].rgbcolor;
+    // style->paletteARGB[1] = style->c64pens[0].rgbcolor;
+    // style->paletteARGB[2] = style->c64pens[1].rgbcolor;
+    // style->paletteARGB[15] = style->c64pens[2].rgbcolor;
+
 
     return 1;
 }
