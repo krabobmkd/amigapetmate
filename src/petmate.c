@@ -648,7 +648,10 @@ int main(int argc, char **argv)
             TAG_END);
 
         /* Main vertical layout: carousel | work area | status bar */
-        app->mainvlayout = (Object *)NewObject(LayoutWithPopupClass, NULL,
+        app->mainvlayout = (Object *)NewObject(
+        //LAYOUT_GetClass(),
+        LayoutWithPopupClass,
+         NULL,
             LAYOUT_DeferLayout,   TRUE,
             LAYOUT_SpaceOuter,    TRUE,
             LAYOUT_BottomSpacing, 2,
@@ -738,6 +741,8 @@ int main(int argc, char **argv)
   //  BMainWindow_SwitchToWB(&app->mainwindow,app->window_obj,&app->appSettings);
      //BMainWindow_Show(&app->mainwindow,app->window_obj,&app->appSettings);
   BMainWindow_SwitchToFullScreen(&app->mainwindow,app->window_obj,&app->appSettings);
+    /* Brush menu starts disabled — no brush exists at launch */
+    PmMenu_UpdateBrushMenu(&app->mainwindow.menu, CurrentMainWindow, app->canvasGadget);
     // bdbprintf("PetMate started. Project has %d screen(s).\n",
     //           (int)app->project->screenCount);
 
@@ -995,12 +1000,18 @@ int main(int argc, char **argv)
                                 ptag = FindTagItem(PCA_SignalStopTool, msg);
                                 if (ptag)
                                 {
-                                    /* if text or brush finish, back to previous draw tool */
+                                    /* lasso/text ended: back to previous draw tool */
                                     setTool(app->toolState.lastDrawTool);
+                                    /* brush may have just been created (lasso) */
+                                    PmMenu_UpdateBrushMenu(&app->mainwindow.menu,
+                                        CurrentMainWindow, app->canvasGadget);
+                                }
 
-                                    // PmToolbar_SetActiveTool(&app->toolbar, app->toolState.lastDrawTool,
-                                    //             CurrentMainWindow);
-
+                                ptag = FindTagItem(PCA_BrushRemoved, msg);
+                                if (ptag)
+                                {
+                                    PmMenu_UpdateBrushMenu(&app->mainwindow.menu,
+                                        CurrentMainWindow, app->canvasGadget);
                                 }
                             }
                             break;

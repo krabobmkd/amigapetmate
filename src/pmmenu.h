@@ -12,6 +12,7 @@
 
 #include <exec/types.h>
 #include <intuition/intuition.h>
+#include <intuition/classusr.h>
 #include "pmaction.h"
 
 /* Menu state */
@@ -30,5 +31,11 @@ void PmMenu_Close(PmMenu *pm, struct Window *window);
 /* Get action ID from a menu selection code (result & WMHI_MENUMASK).
  * Returns -1 if no valid selection. */
 LONG PmMenu_ToActionID(PmMenu *pm, UWORD menuCode);
+
+/* Enable or disable the Brush menu and all its items depending on whether
+ * the canvas gadget currently holds a brush (PCA_Brush != NULL).
+ * Call after PmMenu_Create() and whenever PCA_SignalStopTool or
+ * PCA_BrushRemoved is received. */
+void PmMenu_UpdateBrushMenu(PmMenu *pm, struct Window *window, Object *canvasGadget);
 
 #endif /* PMMENU_H */

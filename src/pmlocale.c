@@ -184,6 +184,8 @@ static const char *defaultStrings[MSG_COUNT] = {
     "Random From Brush",
     /* MSG_GENERATE_MAGIC_LINE */
     "Magic Line",
+    /* MSG_GENERATE_TRON_LINES */
+    "Tron Lines",
 
     /* status bar message per tools - keep it same order as enum */
     "Draw char and Color.",

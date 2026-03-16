@@ -130,6 +130,7 @@ enum {
     MSG_MENU_GENERATE,
     MSG_GENERATE_RANDOM_BRUSH,
     MSG_GENERATE_MAGIC_LINE,
+    MSG_GENERATE_TRON_LINES,
 
     /* status bar messages */
     MSG_STATUS_DRAW,

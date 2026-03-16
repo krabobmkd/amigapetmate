@@ -149,6 +149,13 @@ ULONG PetsciiCanvas_OnGoActive  (Class *cl, Object *o, struct gpInput     *msg);
 ULONG PetsciiCanvas_OnInput     (Class *cl, Object *o, struct gpInput     *msg);
 ULONG PetsciiCanvas_OnGoInactive(Class *cl, Object *o, struct gpGoInactive *msg);
 
+/* Shared notification helper (class_petsciicanvas_handleinput.c).
+ * Sends an OM_NOTIFY for the given attribute up the BOOPSI chain.
+ * GInfo may be NULL when called from OM_SET with no visual context. */
+ULONG PetsciiCanvas_NotifyAttribChange(Class *cl, Object *Gad,
+                                       struct GadgetInfo *GInfo,
+                                       ULONG attrib, ULONG value);
+
 /* Main dispatcher (class_petsciicanvas_dispatch.c) */
 ULONG ASM SAVEDS PetsciiCanvas_Dispatch(
     REG(a0, Class *cl),

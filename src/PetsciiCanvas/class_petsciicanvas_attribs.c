@@ -272,7 +272,11 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                     inst->currentTool = (UBYTE)tag->ti_Data;
                     if(inst->currentTool == TOOL_LASSOBRUSH)
                     {
-                        FreeBrush(inst);
+                        if (inst->brush) {
+                            FreeBrush(inst);
+                            PetsciiCanvas_NotifyAttribChange(cl, o, msg->ops_GInfo,
+                                PCA_BrushRemoved, TRUE);
+                        }
                     }
                     /* Cancel any active lasso when the tool changes */
                     inst->isLassoing = FALSE;
@@ -284,7 +288,11 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
             // bdbprintf("canvas received: PCA_SelectedChar\n");
                 inst->selectedChar = (UBYTE)tag->ti_Data;
                 /* Clicking the char selector: reset to 1x1 single-char draw mode */
-                FreeBrush(inst);
+                if (inst->brush) {
+                    FreeBrush(inst);
+                    PetsciiCanvas_NotifyAttribChange(cl, o, msg->ops_GInfo,
+                        PCA_BrushRemoved, TRUE);
+                }
                 result = 1;
                 break;
 

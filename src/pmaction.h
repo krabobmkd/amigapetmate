@@ -110,6 +110,7 @@ enum {
     /* Generate */
     ACTION_GENERATE_RANDOM_BRUSH,
     ACTION_GENERATE_MAGIC_LINE,
+    ACTION_GENERATE_TRON_LINES,
 
     /* Must be last */
     ACTION_COUNT
@@ -175,5 +176,6 @@ BOOL Action_ImportImage(PmActionContext *ctx);
 
 BOOL Action_GenerateRandomFromBrush(PmActionContext *ctx);
 BOOL Action_GenerateMagicLine(PmActionContext *ctx);
+BOOL Action_GenerateTronLines(PmActionContext *ctx);
 
 #endif /* PMACTION_H */

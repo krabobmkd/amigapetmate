@@ -49,7 +49,7 @@
 #include "petscii_ascii.h"
 #include <bdbprintf.h>
 
-static ULONG PetsciiCanvas_NotifyAttribChange(Class *cl,Object *Gad, struct GadgetInfo *GInfo,
+ULONG PetsciiCanvas_NotifyAttribChange(Class *cl,Object *Gad, struct GadgetInfo *GInfo,
                                         ULONG attrib, ULONG value)
 {
     struct opUpdate notifymsg;

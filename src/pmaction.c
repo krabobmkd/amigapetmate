@@ -19,6 +19,8 @@
 #include <proto/dos.h>
 #include <proto/intuition.h>
 #include <intuition/intuition.h>
+#include <intuition/classusr.h>
+#include <intuition/gadgetclass.h>
 #include <proto/asl.h>
 #include <libraries/asl.h>
 
@@ -282,6 +284,10 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
 "\33cThis is also a project made to explore Intuition BOOPSI and\n"
 "wouldn't exist without the Official Amiga developer forum:\n"
 "https://developer.amigaos3.net/forum"
+
+//"Amiga PetMate - C64 PETSCII Art Editor - port v0.1"
+//"This is all about drawing with the character sets that were\n"
+//"     (c)2026 License is MIT, read file LICENSE.\n\n"
 			,
             REQ_TitleText,(ULONG)"About Amiga PetMate",
 			REQ_GadgetText,(ULONG)"_Ok",
@@ -289,15 +295,15 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
     }
     if(!app->aboutRequester) return FALSE;
 
-// WA_IDCMP
-    SetAttrs(app->window_obj,WA_IDCMP,0,TAG_END);
+
+    SetGadgetAttrs(app->mainvlayout, CurrentMainWindow,NULL,
+                    GA_DISABLED,TRUE,TAG_END);
 
     OpenRequester(app->aboutRequester,CurrentMainWindow);
 
-        SetAttrs(app->window_obj,WA_IDCMP,
-            IDCMP_CLOSEWINDOW | IDCMP_MENUPICK | IDCMP_RAWKEY |
-                IDCMP_GADGETDOWN | IDCMP_GADGETUP | IDCMP_MOUSEMOVE
-            ,TAG_END);
+
+    SetGadgetAttrs(app->mainvlayout, CurrentMainWindow,NULL,
+                    GA_DISABLED,FALSE,TAG_END);
 
     return TRUE;
 }
@@ -900,6 +906,13 @@ BOOL Action_GenerateRandomFromBrush(PmActionContext *ctx)
     scr  = PetsciiProject_GetCurrentScreen(proj);
     if (!scr) return FALSE;
 
+    /* Push undo snapshot before modifying the screen */
+    if (ctx->undoBufs) {
+        PetsciiUndoBuffer **bufs = (PetsciiUndoBuffer **)ctx->undoBufs;
+        if (bufs[proj->currentScreen])
+            PetsciiUndoBuffer_Push(bufs[proj->currentScreen], scr);
+    }
+
     ts = (ToolState *)ctx->toolState;
     currentTool = ts ? ts->currentTool : TOOL_DRAW;
 
@@ -954,11 +967,528 @@ BOOL Action_GenerateRandomFromBrush(PmActionContext *ctx)
     return TRUE;
 }
 
+/* char link tables for magic lines */
+#define CLINK_UP 	1
+#define CLINK_DOWN	2
+#define CLINK_LEFT	4
+#define CLINK_RIGHT	8
+/* the 16 cases where upper charset chars are a line that goes from a border to another, or cross another line */
+static UBYTE charlinelinks[16]={
+	32, // (empty char)
+	33, // CLINK_UP  (terminate line)
+	32, // CLINK_DOWN (terminate line)
+	66, // CLINK_UP|CLINK_DOWN
+	32, // CLINK_LEFT (terminate line)
+	75, // CLINK_LEFT|CLINK_UP
+	73, // CLINK_LEFT|CLINK_DOWN
+	115, // CLINK_LEFT|CLINK_UP|CLINK_DOWN
+
+	32, // CLINK_RIGHT (terminate line)
+	74, // CLINK_RIGHT|CLINK_UP
+	85, // CLINK_RIGHT|CCLINK_DOWN
+	107, // CLINK_RIGHT|CCLINK_UP|CLINK_DOWN
+	64, // CLINK_RIGHT|CCLINK_LEFT
+	113, // CLINK_RIGHT|CCLINK_LEFT|CLINK_UP
+	114, // CLINK_RIGHT|CCLINK_LEFT|CLINK_DOWN
+	91, // CLINK_RIGHT|CCLINK_LEFT|CLINK_UP|CLINK_DOWN
+};
+
+
+/* =======================================================================
+ * Magic Line — common infrastructure
+ *
+ * connMap: a UBYTE array parallel to scr->framebuf.
+ *   0x00        cell is empty (code==32), available for drawing.
+ *   0x01-0x0F   live CLINK_* connection bits OR'd in so far.
+ *   ML_OBSTACLE cell was non-empty on entry; never modified.
+ *
+ * Direction encoding used throughout:
+ *   0 = UP   (row-1)
+ *   1 = DOWN (row+1)
+ *   2 = LEFT (col-1)
+ *   3 = RIGHT(col+1)
+ * ======================================================================= */
+#define ML_OBSTACLE 0x80
+
+static const UBYTE s_ml_clinkbit[4] = { CLINK_UP, CLINK_DOWN, CLINK_LEFT, CLINK_RIGHT };
+static const int   s_ml_dc[4]       = {  0,  0, -1,  1 };
+static const int   s_ml_dr[4]       = { -1,  1,  0,  0 };
+static const int   s_ml_opp[4]      = {  1,  0,  3,  2 };
+
+static void mlInitMap(const PetsciiScreen *scr, UBYTE *connMap)
+{
+    int i;
+    int total = (int)scr->width * (int)scr->height;
+    for (i = 0; i < total; i++)
+        connMap[i] = (scr->framebuf[i].code == 32) ? 0 : ML_OBSTACLE;
+}
+
+/* OR bits into cell, update screen char.  Returns TRUE if cell was empty. */
+static BOOL mlPlace(PetsciiScreen *scr, UBYTE *connMap,
+                    int col, int row, UBYTE bits, UBYTE color)
+{
+    int  idx = row * (int)scr->width + col;
+    BOOL was;
+    if (connMap[idx] & ML_OBSTACLE) return FALSE;
+    was = (connMap[idx] == 0);
+    connMap[idx] |= bits;
+    scr->framebuf[idx].code  = charlinelinks[connMap[idx] & 0x0F];
+    scr->framebuf[idx].color = color;
+    return was;
+}
+
+/* ----------------------------------------------------------------------- *
+ * Algorithm A — Random worm walk                                           *
+ *                                                                          *
+ * Multiple short worms start at random empty cells and wander freely,     *
+ * changing direction ~20% of the time.  A new worm is spawned whenever    *
+ * the current one gets stuck.  Crossing an existing line OR-s the new     *
+ * connection bits to produce the correct junction character automatically. *
+ * ----------------------------------------------------------------------- */
+static void mlWalkRandom(PetsciiScreen *scr, UBYTE *connMap,
+                         int percent, UBYTE color)
+{
+    int   total  = (int)scr->width * (int)scr->height;
+    int   target = (total * percent) / 100;
+    int   filled = 0;
+    int   tries    = 0;
+    int   steps    = 0;
+    int   col, row, dir, nc, nr, blocked;
+    UBYTE prevBit;
+
+    while (filled < target && tries < total * 4) {
+        col = (int)pmRand((ULONG)scr->width);
+        row = (int)pmRand((ULONG)scr->height);
+        if (connMap[row * (int)scr->width + col] != 0) { tries++; continue; }
+
+        dir     = (int)pmRand(4);
+        prevBit = 0;
+        blocked = 0;
+        steps   = 0;
+
+        /* Step budget = total cells: each worm can visit every cell at most once */
+        while (blocked < 4 && steps < total) {
+            nc = col + s_ml_dc[dir];
+            nr = row + s_ml_dr[dir];
+            if (nc < 0 || nc >= (int)scr->width ||
+                nr < 0 || nr >= (int)scr->height ||
+                (connMap[nr * (int)scr->width + nc] & ML_OBSTACLE)) {
+                dir = (dir + 1) & 3;
+                blocked++;
+                continue;
+            }
+            blocked = 0;
+            steps++;
+            if (mlPlace(scr, connMap, col, row, prevBit | s_ml_clinkbit[dir], color))
+                filled++;
+            prevBit = s_ml_clinkbit[s_ml_opp[dir]];
+            col = nc;
+            row = nr;
+            /* ~20% chance: turn left or right */
+            if (pmRand(5) == 0)
+                dir = (pmRand(2) == 0) ? (dir + 1) & 3 : (dir + 3) & 3;
+        }
+        if (mlPlace(scr, connMap, col, row, prevBit, color))
+            filled++;
+        tries++;
+    }
+}
+
+/* ----------------------------------------------------------------------- *
+ * Algorithm B — Reconnecting worm walk                                    *
+ *                                                                          *
+ * Same as A but 40% of steps bias the direction toward the worm's own     *
+ * start cell, encouraging closed loops.  When the worm reaches start      *
+ * the loop is sealed and a new worm begins elsewhere.                      *
+ * ----------------------------------------------------------------------- */
+static void mlWalkReconnect(PetsciiScreen *scr, UBYTE *connMap,
+                             int percent, UBYTE color)
+{
+    int   total  = (int)scr->width * (int)scr->height;
+    int   target = (total * percent) / 100;
+    int   filled = 0;
+    int   tries  = 0;
+    int   steps  = 0;
+    int   startC, startR, col, row, dir, nc, nr;
+    int   blocked, d, dC, dR, dist, bestDist, bestDir;
+    UBYTE prevBit;
+
+    while (filled < target && tries < total * 4) {
+        startC = (int)pmRand((ULONG)scr->width);
+        startR = (int)pmRand((ULONG)scr->height);
+        if (connMap[startR * (int)scr->width + startC] != 0) { tries++; continue; }
+
+        col     = startC;
+        row     = startR;
+        dir     = (int)pmRand(4);
+        prevBit = 0;
+        blocked = 0;
+        steps   = 0;
+
+        while (blocked < 4 && steps < total) {
+            /* 40% of steps: steer toward start using best reachable direction */
+            if (pmRand(10) < 4 && (col != startC || row != startR)) {
+                bestDist = 0x7FFF;
+                bestDir  = -1;  /* -1 = none found yet */
+                for (d = 0; d < 4; d++) {
+                    nc = col + s_ml_dc[d];
+                    nr = row + s_ml_dr[d];
+                    if (nc < 0 || nc >= (int)scr->width ||
+                        nr < 0 || nr >= (int)scr->height ||
+                        (connMap[nr * (int)scr->width + nc] & ML_OBSTACLE)) continue;
+                    dC = nc - startC;  dR = nr - startR;
+                    dist = dC * dC + dR * dR;
+                    if (dist < bestDist) { bestDist = dist; bestDir = d; }
+                }
+                /* Only steer if a valid closer direction was found */
+                if (bestDir >= 0) dir = bestDir;
+            }
+
+            nc = col + s_ml_dc[dir];
+            nr = row + s_ml_dr[dir];
+            if (nc < 0 || nc >= (int)scr->width ||
+                nr < 0 || nr >= (int)scr->height ||
+                (connMap[nr * (int)scr->width + nc] & ML_OBSTACLE)) {
+                dir = (dir + 1) & 3;
+                blocked++;
+                continue;
+            }
+            blocked = 0;
+
+            /* Returned to start: close the loop */
+            if (nc == startC && nr == startR && prevBit != 0) {
+                if (mlPlace(scr, connMap, col, row,
+                            prevBit | s_ml_clinkbit[dir], color))
+                    filled++;
+                mlPlace(scr, connMap, startC, startR,
+                        s_ml_clinkbit[s_ml_opp[dir]], color);
+                break;
+            }
+
+            steps++;
+            if (mlPlace(scr, connMap, col, row,
+                        prevBit | s_ml_clinkbit[dir], color))
+                filled++;
+            prevBit = s_ml_clinkbit[s_ml_opp[dir]];
+            col = nc;
+            row = nr;
+            if (pmRand(4) == 0)
+                dir = (pmRand(2) == 0) ? (dir + 1) & 3 : (dir + 3) & 3;
+        }
+        if ((blocked >= 4 || steps >= total) && (col != startC || row != startR)) {
+            if (mlPlace(scr, connMap, col, row, prevBit, color))
+                filled++;
+        }
+        tries++;
+    }
+}
+
+/* ----------------------------------------------------------------------- *
+ * Algorithm C — Recursive fractal quad-cross                              *
+ *                                                                          *
+ * Draws a cross at the midpoint of a rectangle, then recurses on the four *
+ * quadrants in shuffled order.  Recursion depth is derived from            *
+ * log2(max_dim) so the pattern always adapts to the screen size.           *
+ * Stops early when the fill target is reached.                             *
+ * ----------------------------------------------------------------------- */
+static void mlFractalRec(PetsciiScreen *scr, UBYTE *connMap,
+                          int x, int y, int w, int h,
+                          int depth, UBYTE color,
+                          int *filledPtr, int target)
+{
+    int   midC, midR, c, r;
+    int   order[4], i, j, tmp;
+    UBYTE bits;
+
+    if (depth <= 0 || w < 2 || h < 2 || *filledPtr >= target) return;
+    midC = x + w / 2;
+    midR = y + h / 2;
+
+    for (r = y; r < y + h; r++) {          /* vertical bar at midC */
+        bits = 0;
+        if (r > y)       bits |= CLINK_UP;
+        if (r < y + h-1) bits |= CLINK_DOWN;
+        if (mlPlace(scr, connMap, midC, r, bits, color)) (*filledPtr)++;
+    }
+    for (c = x; c < x + w; c++) {          /* horizontal bar at midR */
+        bits = 0;
+        if (c > x)       bits |= CLINK_LEFT;
+        if (c < x + w-1) bits |= CLINK_RIGHT;
+        if (mlPlace(scr, connMap, c, midR, bits, color)) (*filledPtr)++;
+    }
+
+    /* Shuffle quadrant order so partial fills look asymmetric / organic */
+    order[0] = 0;  order[1] = 1;  order[2] = 2;  order[3] = 3;
+    for (i = 3; i > 0; i--) {
+        j = (int)pmRand((ULONG)(i + 1));
+        tmp = order[i];  order[i] = order[j];  order[j] = tmp;
+    }
+    for (i = 0; i < 4; i++) {
+        if (*filledPtr >= target) return;
+        switch (order[i]) {
+            case 0:
+                mlFractalRec(scr, connMap, x, y,
+                             midC - x, midR - y,
+                             depth-1, color, filledPtr, target);
+                break;
+            case 1:
+                mlFractalRec(scr, connMap, midC+1, y,
+                             x + w - midC - 1, midR - y,
+                             depth-1, color, filledPtr, target);
+                break;
+            case 2:
+                mlFractalRec(scr, connMap, x, midR+1,
+                             midC - x, y + h - midR - 1,
+                             depth-1, color, filledPtr, target);
+                break;
+            case 3:
+                mlFractalRec(scr, connMap, midC+1, midR+1,
+                             x + w - midC - 1, y + h - midR - 1,
+                             depth-1, color, filledPtr, target);
+                break;
+        }
+    }
+}
+
+static void mlFractal(PetsciiScreen *scr, UBYTE *connMap,
+                      int percent, UBYTE color)
+{
+    int total  = (int)scr->width * (int)scr->height;
+    int target = (total * percent) / 100;
+    int filled = 0;
+    int maxDim = (scr->width > scr->height) ? (int)scr->width : (int)scr->height;
+    int depth  = 0;
+    int d      = maxDim;
+    while (d > 1 && depth < 8) { d >>= 1; depth++; }
+    mlFractalRec(scr, connMap, 0, 0,
+                 (int)scr->width, (int)scr->height,
+                 depth, color, &filled, target);
+}
+
+/* ----------------------------------------------------------------------- *
+ * Algorithm D — Tron light-cycle trajectories (Action_GenerateTronLines)  *
+ *                                                                          *
+ * Four players start from the four screen corners heading inward.          *
+ * Each moves straight and turns 90 degrees (left or right) after a random  *
+ * number of straight steps, or when forced to by a wall or screen edge.    *
+ * Paths may cross, generating junction characters.  A player is eliminated *
+ * when all four directions are blocked.                                     *
+ * ----------------------------------------------------------------------- */
+static void mlTron(PetsciiScreen *scr, UBYTE *connMap,
+                   int maxChars, UBYTE color)
+{
+    int   target   = maxChars;
+    int   filled   = 0;
+    int   aliveCnt = 4;
+    int   i, d, newDir, nc, nr, col, row, dir, blocked;
+    int   cols[4], rows[4], dirs[4], straight[4];
+    UBYTE prevBit[4];
+    BOOL  alive[4];
+
+    /* Place each player at a random empty cell with a random initial direction.
+     * Using fixed corners fails after the first call since the corners and
+     * their neighbours are already filled and the players are immediately trapped. */
+    {
+        int total = (int)scr->width * (int)scr->height;
+        int t, tc, tr;
+        for (i = 0; i < 4; i++) {
+            cols[i] = -1;
+            rows[i] = -1;
+            dirs[i] = (int)pmRand(4);
+            for (t = 0; t < total * 2; t++) {
+                tc = (int)pmRand((ULONG)scr->width);
+                tr = (int)pmRand((ULONG)scr->height);
+                if (connMap[tr * (int)scr->width + tc] == 0) {
+                    cols[i] = tc;
+                    rows[i] = tr;
+                    break;
+                }
+            }
+        }
+    }
+
+    for (i = 0; i < 4; i++) {
+        prevBit[i]  = 0;
+        straight[i] = 0;
+        alive[i]    = (cols[i] >= 0);  /* FALSE if no empty cell was found */
+        if (!alive[i]) {
+            aliveCnt--;
+            printf("mlTron: player %d could not find an empty start cell\n", i);
+        }
+    }
+    if (aliveCnt == 0)
+        printf("mlTron: no players could start — screen may be full\n");
+
+    /*
+     * In Tron, any cell that already has connection bits is treated as a wall:
+     * the light trail itself becomes an obstacle.  connMap == 0 is the only
+     * passable state (empty cell not yet visited by anyone).
+     */
+#define ML_TRON_BLOCKED(cm, nr, nc, w) \
+    ((nc) < 0 || (nc) >= (w) || (nr) < 0 || (nr) >= (int)scr->height || \
+     (cm)[(nr) * (w) + (nc)] != 0)
+
+    while (aliveCnt > 0 && filled < target) {
+        for (i = 0; i < 4; i++) {
+            if (!alive[i]) continue;
+
+            col = cols[i];  row = rows[i];  dir = dirs[i];
+            straight[i]++;
+
+            /* Random 90-degree turn after 2..7 straight steps */
+            if (straight[i] > 2 + (int)pmRand(6)) {
+                newDir = (dir + 1 + (int)(pmRand(2) * 2)) & 3;
+                nc = col + s_ml_dc[newDir];
+                nr = row + s_ml_dr[newDir];
+                if (!ML_TRON_BLOCKED(connMap, nr, nc, (int)scr->width)) {
+                    dir = newDir;
+                    straight[i] = 0;
+                }
+            }
+
+            nc = col + s_ml_dc[dir];
+            nr = row + s_ml_dr[dir];
+
+            /* Current direction blocked: try the three alternatives */
+            if (ML_TRON_BLOCKED(connMap, nr, nc, (int)scr->width)) {
+                blocked = 0;
+                for (d = 1; d <= 3; d++) {
+                    newDir = (dir + d) & 3;
+                    nc = col + s_ml_dc[newDir];
+                    nr = row + s_ml_dr[newDir];
+                    if (!ML_TRON_BLOCKED(connMap, nr, nc, (int)scr->width)) {
+                        dir = newDir;
+                        straight[i] = 0;
+                        break;
+                    }
+                    blocked++;
+                }
+                if (blocked == 3) {
+                    /* Eliminated */
+                    if (mlPlace(scr, connMap, col, row, prevBit[i], color))
+                        filled++;
+                    if (prevBit[i] == 0)
+                        printf("mlTron: player %d eliminated immediately at (%d,%d) — all directions blocked\n", i, col, row);
+                    else
+                        printf("mlTron: player %d eliminated at (%d,%d) after %d steps\n", i, col, row, straight[i]);
+                    alive[i] = FALSE;
+                    aliveCnt--;
+                    continue;
+                }
+                nc = col + s_ml_dc[dir];
+                nr = row + s_ml_dr[dir];
+            }
+
+            if (mlPlace(scr, connMap, col, row,
+                        prevBit[i] | s_ml_clinkbit[dir], color))
+                filled++;
+            prevBit[i] = s_ml_clinkbit[s_ml_opp[dir]];
+            cols[i] = nc;
+            rows[i] = nr;
+            dirs[i] = dir;
+        }
+    }
+    for (i = 0; i < 4; i++) {
+        if (alive[i])
+            mlPlace(scr, connMap, cols[i], rows[i], prevBit[i], color);
+    }
+    printf("mlTron: done — filled=%d target=%d\n", filled, target);
+}
+
+/* Common setup / teardown shared by both Generate actions */
+static BOOL mlRunSetup(PmActionContext *ctx, PetsciiProject **projOut,
+                       PetsciiScreen **scrOut, UBYTE **connMapOut, UBYTE *colorOut)
+{
+    PetsciiProject    *proj;
+    PetsciiScreen     *scr;
+    PetsciiUndoBuffer *undoBuf;
+    ToolState         *ts;
+    UBYTE             *connMap;
+
+    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+    proj = *ctx->pproject;
+    scr  = PetsciiProject_GetCurrentScreen(proj);
+    if (!scr) return FALSE;
+
+    /* Push undo snapshot before modifying the screen */
+    if (ctx->undoBufs) {
+        PetsciiUndoBuffer **bufs = (PetsciiUndoBuffer **)ctx->undoBufs;
+        undoBuf = bufs[proj->currentScreen];
+        if (undoBuf)
+            PetsciiUndoBuffer_Push(undoBuf, scr);
+    }
+
+    ts     = (ToolState *)ctx->toolState;
+    *colorOut   = ts ? ts->fgColor : 14;
+    connMap = (UBYTE *)AllocVec((ULONG)((int)scr->width * (int)scr->height), MEMF_ANY);
+    if (!connMap) return FALSE;
+    mlInitMap(scr, connMap);
+    *projOut    = proj;
+    *scrOut     = scr;
+    *connMapOut = connMap;
+    return TRUE;
+}
+
+static void mlRunFinish(PetsciiProject *proj, UBYTE *connMap)
+{
+    FreeVec(connMap);
+    proj->modified = 1;
+    if (app && app->canvasGadget) {
+        SetAttrs(app->canvasGadget, PCA_Dirty, TRUE, TAG_END);
+        RefreshGList((struct Gadget *)app->canvasGadget,
+                     CurrentMainWindow, NULL, 1);
+    }
+}
+
+/* -----------------------------------------------------------------------
+ * Action_GenerateMagicLine
+ *
+ * Picks one of three line-generation algorithms at random:
+ *   0 — Random worm walk    (mlWalkRandom,    50% fill)
+ *   1 — Reconnecting worms  (mlWalkReconnect, 40% fill)
+ *   2 — Fractal quad-cross  (mlFractal,       60% fill)
+ * ----------------------------------------------------------------------- */
 BOOL Action_GenerateMagicLine(PmActionContext *ctx)
 {
-    (void)ctx;
-    /* TODO: implement magic line generation */
-    return FALSE;
+    PetsciiProject *proj;
+    PetsciiScreen  *scr;
+    UBYTE          *connMap;
+    UBYTE           color;
+    int             algo;
+
+    if (!mlRunSetup(ctx, &proj, &scr, &connMap, &color)) return FALSE;
+
+    algo = (int)pmRand(3);
+    switch (algo) {
+        case 0: mlWalkRandom   (scr, connMap, 50, color); break;
+        case 1: mlWalkReconnect(scr, connMap, 40, color); break;
+        default: mlFractal     (scr, connMap, 60, color); break;
+    }
+
+    mlRunFinish(proj, connMap);
+    return TRUE;
+}
+
+/* -----------------------------------------------------------------------
+ * Action_GenerateTronLines
+ *
+ * Fills the screen using the Tron light-cycle algorithm: four players
+ * start from the four corners, each heading inward.  They draw straight
+ * lines with occasional 90-degree turns, creating a pattern of right-angle
+ * corridors.  Paths may cross, producing junction characters.
+ * Target fill: 70% of empty cells.
+ * ----------------------------------------------------------------------- */
+BOOL Action_GenerateTronLines(PmActionContext *ctx)
+{
+    PetsciiProject *proj;
+    PetsciiScreen  *scr;
+    UBYTE          *connMap;
+    UBYTE           color;
+
+    if (!mlRunSetup(ctx, &proj, &scr, &connMap, &color)) return FALSE;
+    mlTron(scr, connMap, 120, color);
+    mlRunFinish(proj, connMap);
+    return TRUE;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1069,7 +1599,9 @@ static PmAction actionTable[ACTION_COUNT] = {
     /* ACTION_GENERATE_RANDOM_BRUSH */
     {Action_GenerateRandomFromBrush, MSG_GENERATE_RANDOM_BRUSH, NULL, 0, 0},
     /* ACTION_GENERATE_MAGIC_LINE */
-    {Action_GenerateMagicLine, MSG_GENERATE_MAGIC_LINE, NULL, 0, 0}
+    {Action_GenerateMagicLine, MSG_GENERATE_MAGIC_LINE, NULL, 0, 0},
+    /* ACTION_GENERATE_TRON_LINES */
+    {Action_GenerateTronLines, MSG_GENERATE_TRON_LINES, NULL, 0, 0}
 
 };
 

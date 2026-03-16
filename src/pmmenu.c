@@ -8,6 +8,7 @@
 #include <proto/intuition.h>
 #include <proto/gadtools.h>
 #include <libraries/gadtools.h>
+#include "PetsciiCanvas/petscii_canvas.h"  /* PCA_Brush, PCA_BrushRemoved */
 
 extern struct Library *GadToolsBase;
 void cleanexit(const char *pmessage);
@@ -96,6 +97,7 @@ static struct NewMenu menuTemplate[] = {
     {NM_TITLE, NULL, 0, 0, 0, (APTR)MSG_MENU_GENERATE},
         {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_GENERATE_RANDOM_BRUSH},
         {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_GENERATE_MAGIC_LINE},
+        {NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_GENERATE_TRON_LINES},
 
     /* - - - Brush - - - */
     {NM_TITLE, NULL, 0, 0, 0, (APTR)MSG_MENU_BRUSH},
@@ -212,4 +214,48 @@ LONG PmMenu_ToActionID(PmMenu *pm, UWORD menuCode)
     if (!item) return -1;
 
     return (LONG)GTMENUITEM_USERDATA(item);
+}
+
+void PmMenu_UpdateBrushMenu(PmMenu *pm, struct Window *window, Object *canvasGadget)
+{
+    struct Menu     *menu;
+    struct MenuItem *item;
+    ULONG            brushPtr = 0;
+    BOOL             hasBrush;
+    UWORD            enableFlag;
+
+    if (!pm || !pm->menu || !window || !canvasGadget) return;
+
+    GetAttr(PCA_Brush, canvasGadget, &brushPtr);
+    hasBrush    = (brushPtr != 0) ? TRUE : FALSE;
+    enableFlag  = hasBrush ? ITEMENABLED : 0;
+
+    /* Locate the Brush menu by finding the first menu whose first item
+     * carries ACTION_BRUSH_FLIP_X in its UserData. */
+    for (menu = pm->menu; menu; menu = menu->NextMenu) {
+        item = menu->FirstItem;
+        if (!item) continue;
+        if (GTMENUITEM_USERDATA(item) != (APTR)ACTION_BRUSH_FLIP_X) continue;
+
+        /* Found it — update menu title and every item atomically.
+         * ClearMenuStrip/ResetMenuStrip is required while modifying flags
+         * on a menu already attached to a window. */
+        ClearMenuStrip(window);
+
+        if (hasBrush)
+            menu->Flags |= MENUENABLED;
+        else
+            menu->Flags &= ~MENUENABLED;
+
+        for (item = menu->FirstItem; item; item = item->NextItem) {
+            if (item->ItemFill == (APTR)NM_BARLABEL) continue; /* separator */
+            if (hasBrush)
+                item->Flags |= ITEMENABLED;
+            else
+                item->Flags &= ~ITEMENABLED;
+        }
+
+        ResetMenuStrip(window, pm->menu);
+        return;
+    }
 }

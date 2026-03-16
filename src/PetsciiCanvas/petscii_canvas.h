@@ -48,11 +48,16 @@
  * Set via OM_NEW or OM_SET to enable in-stroke undo snapshots.   */
 #define PCA_UndoBuffer   (PCA_Dummy +14) /* (PetsciiUndoBuffer *) new/set  */
 
-/* Signal: tell outside this tool is finisehd
-   -brush lasso ends, meaning a new brush.
-   -Text pressed Esc
-*/
+/* Signal: tool just ended.
+   - lasso released → new brush captured.
+   - text tool pressed Esc.
+   Receivers should call GetAttr(PCA_Brush,...) to test whether a brush exists. */
 #define PCA_SignalStopTool   (PCA_Dummy +15)
+
+/* Signal: brush was removed (selected-char click, tool switch to LASSOBRUSH, etc.).
+   Fired whenever FreeBrush() destroys an existing brush from within OM_SET.
+   Always paired with PCA_Brush == 0 at the time of the notification. */
+#define PCA_BrushRemoved     (PCA_Dummy +18)
 
 /* Read-only: returns the current brush pointer (PetsciiBrush *), or 0 if none. */
 #define PCA_Brush        (PCA_Dummy +17) /* (PetsciiBrush *) get only           */
