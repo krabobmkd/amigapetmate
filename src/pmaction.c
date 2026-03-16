@@ -80,7 +80,7 @@ static ULONG pmRand(ULONG n)
 // }
 
 
-extern void RefreshAllColorGadgets();
+//extern void RefreshAllColorGadgets();
 static void rebuildMenuIfPossible(PmActionContext *ctx);
 /* - - - Apply a new palette to the style and update the menu checkmark - - - */
 
@@ -100,7 +100,8 @@ void PmAction_ApplyPalette(PmActionContext *ctx, UBYTE paletteID)
     if (sty) {
         PetsciiStyle_Init(sty, paletteID);
         PetsciiStyle_Apply(sty, CurrentMainScreen);
-        RefreshAllColorGadgets();
+        //RefreshAllColorGadgets();
+        refreshUI();
     }
 
     if (ctx->pmenu && CurrentMainWindow) {
@@ -385,6 +386,8 @@ BOOL Action_EditUndo(PmActionContext *ctx)
     PetsciiScreen      *scr;
     PetsciiUndoBuffer **bufs;
 
+    printf("Action_EditUndo\n");
+
     if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
     if (!ctx->undoBufs) return FALSE;
 
@@ -399,6 +402,7 @@ BOOL Action_EditUndo(PmActionContext *ctx)
         refreshUI();
         return TRUE;
     }
+
     refreshUI();
 
     return FALSE;
@@ -409,6 +413,8 @@ BOOL Action_EditRedo(PmActionContext *ctx)
     PetsciiProject     *proj;
     PetsciiScreen      *scr;
     PetsciiUndoBuffer **bufs;
+
+printf("Action_EditRedo\n");
 
     if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
     if (!ctx->undoBufs) return FALSE;
@@ -451,6 +457,9 @@ BOOL Action_EditCopyScreen(PmActionContext *ctx)
     }
 
     *clip = PetsciiScreen_Clone(src);
+
+    refreshUI();
+
     return (*clip != NULL);
 }
 
@@ -479,6 +488,8 @@ BOOL Action_EditClearScreen(PmActionContext *ctx)
 {
     PetsciiProject *proj;
     PetsciiScreen  *scr;
+
+ printf("Action_EditClearScreen\n");
 
     if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
 

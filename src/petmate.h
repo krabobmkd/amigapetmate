@@ -92,6 +92,9 @@ struct App {
     /* Application-level settings (temp dir, recent files) */
     AppSettings appSettings;
 
+    /* used tyo delay complete refresh and do it once. */
+    int doRefreshUI;
+
     /* for some label */
     char selectedCharLabelText[32];
 };

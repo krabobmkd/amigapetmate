@@ -1,4 +1,6 @@
 ﻿
+ O introduced bugs with undo while optimizing refresh
+
  O test on CDTV
  O test on AmigaGuide
  X do icon

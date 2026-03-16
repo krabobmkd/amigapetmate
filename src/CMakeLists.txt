@@ -200,11 +200,6 @@ if(AMIGA)
         COMMENT "Copying PetMate.info to build directory"
     )
 
-    add_executable(testdiv
-        testdiv.c
-    )
-    target_compile_options(testdiv PRIVATE ${AMIGA_COMPILER_OPTIONS})
-
 #    # Development tool: generate petscii_chartransform.c/.h
 #    # Run on Amiga (or emulator), redirect output to project root.
 #    add_executable(findtables

@@ -47,6 +47,7 @@ static void FreeBgBitmap(void);
 
 extern struct Library *CyberGfxBase;
 
+extern void refreshUI();
 
 /* external window management */
 void OpenSettingsWindow()
@@ -212,7 +213,6 @@ void GenericOpenWindow(BoopsiMainWindow *mw,Object *window_obj,struct AppSetting
 /* This function realloc pens if screen changed  */
 extern void UpdatePensToCurrentMainScreen();
 
-extern void RefreshAllColorGadgets();
 
 void BMainWindow_GetWindowPos(struct BoopsiMainWindow *mw,Object *window_obj)
 {
@@ -532,10 +532,10 @@ the full-blown "new look" graphics. If you want the 3D embossed look,
         }
 
     }
-
-    mw->fullscreen = TRUE;
     /* some may need reindexation and window must be opened */
-    RefreshAllColorGadgets();
+    refreshUI();
+    mw->fullscreen = TRUE;
+
 }
 
 
@@ -649,13 +649,15 @@ void BMainWindow_SwitchToWB(struct BoopsiMainWindow *mw,Object *window_obj,struc
 
     mw->fullscreen = FALSE;
 
+
     /* re-open */
     GenericOpenWindow( mw, window_obj, appSettings );
 
     /* There may exists more screens than just WB when closing fs. make sure WB the visible screen. */
     ScreenToFront(CurrentMainScreen);
 
-
     /* some may need reindexation and window must be opened */
-    RefreshAllColorGadgets();
+    refreshUI();
+
+
 }

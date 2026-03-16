@@ -79,7 +79,7 @@ extern int CurrentMainScreen_PreIndexed;
 
 int PetsciiStyle_Apply(PetsciiStyle *style, struct Screen *scr)
 {
-
+    WORD isRGB;
     UWORD i;
 
     if (!style) return 0;
@@ -88,6 +88,11 @@ int PetsciiStyle_Apply(PetsciiStyle *style, struct Screen *scr)
     PetsciiStyle_Release(style);
 
     style->screen = scr; /* now screen optional can be null */
+
+    isRGB = (CyberGfxBase && scr &&
+       (GetCyberMapAttr(scr->RastPort.BitMap, CYBRMATTR_ISCYBERGFX) != 0) &&
+       (GetCyberMapAttr(scr->RastPort.BitMap, CYBRMATTR_DEPTH) > 8)
+        );
 
     /*0: use screen pens,
      * 1&2: use 16c C64 order slightly scrambled,
@@ -101,6 +106,7 @@ int PetsciiStyle_Apply(PetsciiStyle *style, struct Screen *scr)
         for (i = 0; i < C64_COLOR_COUNT; i++) {
             style->c64pens[i].allocated =0;
             style->c64pens[i].pen = i;
+
             cmindex[i] = i;
         }
         style->c64pens[0].pen = 1;
@@ -119,6 +125,7 @@ int PetsciiStyle_Apply(PetsciiStyle *style, struct Screen *scr)
             *ppal32++ = (rgb & 0x00ff0000)<<8;
             *ppal32++ = (rgb & 0x0000ff00)<<16;
             *ppal32++ = (rgb & 0x000000ff)<<24;
+            style->c64pens[cmindex[i]].bmpen = i;
         }
         *ppal32++  = 0;
         /* now in prescreen init need the RGB32 version before screen opening */
@@ -138,10 +145,7 @@ int PetsciiStyle_Apply(PetsciiStyle *style, struct Screen *scr)
     }
 
     /* ARGB CLUT palette used by some CyberGraphics function */
-   if(CyberGfxBase && scr &&
-       (GetCyberMapAttr(scr->RastPort.BitMap, CYBRMATTR_ISCYBERGFX) != 0) &&
-       (GetCyberMapAttr(scr->RastPort.BitMap, CYBRMATTR_DEPTH) > 8)
-        )
+   if(isRGB)
     {
         for (i = 0; i < C64_COLOR_COUNT; i++)
         {

@@ -87,7 +87,7 @@ int PetsciiProject_CloneCurrentScreen(PetsciiProject *proj)
     proj->screenCount++;
     proj->modified = 1;
 
-   // refreshUI();
+    refreshUI();
 
     return (int)idx;
 }

@@ -3,11 +3,18 @@
 #include <exec/types.h>
 #include "compilers.h"
 
-inline LONG __asm DivW(REG(d0, signed int  n),REG(d1, signed int dvs))
+static inline int DivsW(int  n, short dvs)
 {
-    asm volatile ("divs.w %1,%0\n\text.w %0\n\tmove.l #0x1337,d0" : "+d"(n) : "d"(dvs) : );
-    return n;   /* low word = quotient */
+    asm volatile ("divs.w  %1,%0\n\text.l %0\n" : "+d"(n) : "d"(dvs) : );
+    return n;
 }
+static inline unsigned int DivuW(unsigned int  n,unsigned short dvs)
+{
+    asm volatile ("divu.w  %1,%0\n\text.l %0\n" : "+d"(n) : "d"(dvs) : );
+    return n;
+}
+
+
 
 int main(char **argv,int argc)
 {
@@ -17,8 +24,8 @@ LONG a = 640*640;
 LONG b = 540;
 
  LONG c = DivW(a,b);
- LONG c2 = a/b;
- printf("r: DivW: %08x  ndiv: %08x\n",c,c2);
+
+ printf("result: %08x\n",c);
 
     return 0;
 }

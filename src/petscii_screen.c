@@ -3,6 +3,8 @@
 #include <proto/exec.h>
 #include <string.h>
 
+extern void refreshUI();
+
 PetsciiScreen *PetsciiScreen_Create(UWORD width, UWORD height)
 {
     PetsciiScreen *scr;
@@ -45,7 +47,7 @@ PetsciiScreen *PetsciiScreen_CreateDefault(void)
 {
     return PetsciiScreen_Create(PETSCII_DEFAULT_WIDTH, PETSCII_DEFAULT_HEIGHT);
 }
-
+/* also used internally by undo stack */
 PetsciiScreen *PetsciiScreen_Clone(const PetsciiScreen *src)
 {
     PetsciiScreen *dst;
@@ -71,14 +73,18 @@ PetsciiScreen *PetsciiScreen_Clone(const PetsciiScreen *src)
     dst->charset = src->charset;
     memcpy(dst->name, src->name, PETSCII_NAME_LEN);
 
+   //not here, because used by undo push refreshUI();
+
     return dst;
 }
-
+/* also used to flush undo stack */
 void PetsciiScreen_Destroy(PetsciiScreen *scr)
 {
     if (!scr) return;
     if (scr->framebuf) FreeVec(scr->framebuf);
     FreeVec(scr);
+
+   // refreshUI();
 }
 
 void PetsciiScreen_Clear(PetsciiScreen *scr, UBYTE color)
@@ -91,6 +97,8 @@ void PetsciiScreen_Clear(PetsciiScreen *scr, UBYTE color)
         scr->framebuf[i].code = 32;
         scr->framebuf[i].color = color;
     }
+    refreshUI();
+
 }
 
 void PetsciiScreen_SetPixel(PetsciiScreen *scr, UWORD col, UWORD row,
@@ -137,6 +145,8 @@ void PetsciiScreen_CopyData(PetsciiScreen *dst, const PetsciiScreen *src)
 
     bufSize = (ULONG)src->width * (ULONG)src->height * sizeof(PetsciiPixel);
     memcpy(dst->framebuf, src->framebuf, bufSize);
+
+   refreshUI();
 }
 
 void PetsciiScreen_ShiftLeft(PetsciiScreen *scr)
@@ -152,6 +162,7 @@ void PetsciiScreen_ShiftLeft(PetsciiScreen *scr)
         }
         *PetsciiScreen_PixelAt(scr, scr->width - 1, row) = first;
     }
+    refreshUI();
 }
 
 void PetsciiScreen_ShiftRight(PetsciiScreen *scr)
@@ -168,6 +179,7 @@ void PetsciiScreen_ShiftRight(PetsciiScreen *scr)
         }
         *PetsciiScreen_PixelAt(scr, 0, row) = last;
     }
+    refreshUI();
 }
 
 void PetsciiScreen_ShiftUp(PetsciiScreen *scr)
@@ -195,6 +207,7 @@ void PetsciiScreen_ShiftUp(PetsciiScreen *scr)
     memcpy(PetsciiScreen_PixelAt(scr, 0, scr->height - 1), tmpRow, rowSize);
 
     FreeVec(tmpRow);
+   refreshUI();
 }
 
 void PetsciiScreen_ShiftDown(PetsciiScreen *scr)
@@ -222,4 +235,5 @@ void PetsciiScreen_ShiftDown(PetsciiScreen *scr)
     memcpy(PetsciiScreen_PixelAt(scr, 0, 0), tmpRow, rowSize);
 
     FreeVec(tmpRow);
+   refreshUI();
 }

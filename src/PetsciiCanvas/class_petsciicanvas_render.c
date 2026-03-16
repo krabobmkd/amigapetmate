@@ -37,31 +37,13 @@
 #include <intuition/gadgetclass.h>
 #include "petscii_canvas_private.h"
 #include "petscii_screenbuf.h"
-#include "../petscii_cellpx.h"
+#include "../fastdiv68k.h"
 #include <bdbprintf.h>
 
 #include <proto/cybergraphics.h>
 #include <cybergraphics/cybergraphics.h>
 
 extern struct Library *CyberGfxBase;
-
-/*
- * CELL_PX(n, contentDim, pixDim)
- * Project char edge index n (0..screenW or 0..screenH) to a content-relative
- * pixel coordinate.  Same formula used by drawGrid() and the cursor highlight,
- * guaranteed to align with BlitScaled's 16:16 mapping.
- */
-#define CELL_PX(n, cDim, pDim) \
-    ((WORD)(((LONG)(n) * 8 * (LONG)(cDim)) / (WORD)(pDim)))
-
-/*
-    Note in 68000, division operators are divu.w or divs.w that does ULONG/UWORD and LONG/WORD.
-    C compilers are usually stupids and will consider each math operation have same params types,
-    so it will compile a "LONG/LONG" that the 68k can't do, even when types are LONG/WORD.
-    So a Math lib will be called in 68000 mode, when starting with 68020 it will use divs.l
-
-
-*/
 
 /* ------------------------------------------------------------------ */
 /* Static: ensure inst->scaledBuf is (w x h) bytes.                   */
@@ -122,7 +104,7 @@ static void computeContentRect(
     }
 
     /* Try fitting content to full width */
-    fitH = (ULONG)DivW(gadW * idealH ,idealW);
+    fitH = (ULONG)DivuW(gadW * idealH ,idealW);
     if (fitH <= (ULONG)gadH) {
         *outW = gadW;
         *outH = (WORD)fitH;
@@ -132,7 +114,7 @@ static void computeContentRect(
     }
 
     /* Otherwise fit to full height */
-    fitW = (ULONG)DivW(gadH * idealW , idealH);
+    fitW = (ULONG)DivuW(gadH * idealW , idealH);
     if (fitW > (ULONG)gadW) fitW = (ULONG)gadW; /* safety clamp */
     *outW = (WORD)fitW;
     *outH = gadH;
@@ -227,8 +209,8 @@ static void updateContentRect(PetsciiCanvasData *inst, WORD gadW, WORD gadH)
     }
 
     /* Per-cell pixel size derived from the outer frame */
-    cellW = (scrW + 2 > 0) ? (WORD)(DivW(outerW , (WORD)(scrW + 2))) : 0;
-    cellH = (scrH + 2 > 0) ? (WORD)(DivW(outerH , (WORD)(scrH + 2))) : 0;
+    cellW = (scrW + 2 > 0) ? (WORD)(DivuW(outerW , (WORD)(scrW + 2))) : 0;
+    cellH = (scrH + 2 > 0) ? (WORD)(DivuW(outerH , (WORD)(scrH + 2))) : 0;
 
     /* Inner character rect = outer frame minus 1-cell border on each side */
     inst->contentX = (WORD)(outerX + cellW);
@@ -256,7 +238,7 @@ static void drawGrid(struct RastPort *rp,
     SetAPen(rp, 1);
 
     while(1) {
-        WORD  xx  = (WORD)(left + DivW((x*8*width),inst->screenbuf->pixW) );
+        WORD  xx  = (WORD)(left + DivuW((x*8*width),inst->screenbuf->pixW) );
         if(xx>=(left+width)) break;
 
         Move(rp, (LONG)xx, (LONG)top);
@@ -266,7 +248,7 @@ static void drawGrid(struct RastPort *rp,
     }
 
    while(1) {
-        WORD  yy  = (WORD)(top + DivW((y*8*height),inst->screenbuf->pixH) );
+        WORD  yy  = (WORD)(top + DivuW((y*8*height),inst->screenbuf->pixH) );
         if(yy>=(top+height)) break;
 
         Move(rp, (LONG)left, (LONG)yy);
@@ -309,7 +291,7 @@ static void drawGridSubRect(struct RastPort *rp,
 
     /* Vertical lines */
     for (x = 0; ; x++) {
-        xx = CELL_PX(x, inst->contentW, inst->screenbuf->pixW);
+        xx = DivuW(x*8*inst->contentW, inst->screenbuf->pixW);
         if (xx >= inst->contentW) break;
         if (xx >= px1 && xx < px2) {
             Move(rp, (LONG)(absX + xx), (LONG)(absY + py1));
@@ -319,7 +301,7 @@ static void drawGridSubRect(struct RastPort *rp,
 
     /* Horizontal lines */
     for (y = 0; ; y++) {
-        yy = CELL_PX(y, inst->contentH, inst->screenbuf->pixH);
+        yy = DivuW(y*8* inst->contentH, inst->screenbuf->pixH);
         if (yy >= inst->contentH) break;
         if (yy >= py1 && yy < py2) {
             Move(rp, (LONG)(absX + px1), (LONG)(absY + yy));
@@ -363,10 +345,10 @@ static void repairHoverRegion(struct RastPort *rp,
     rcol2 = (col + bW + 1 < scrW) ? (WORD)(col + bW + 1) : scrW;
     rrow2 = (row + bH + 1 < scrH) ? (WORD)(row + bH + 1) : scrH;
 
-    px1 = CELL_PX(rcol,  inst->contentW, inst->screenbuf->pixW);
-    py1 = CELL_PX(rrow,  inst->contentH, inst->screenbuf->pixH);
-    px2 = CELL_PX(rcol2, inst->contentW, inst->screenbuf->pixW);
-    py2 = CELL_PX(rrow2, inst->contentH, inst->screenbuf->pixH);
+    px1 = DivuW(rcol*8*  inst->contentW, inst->screenbuf->pixW);
+    py1 = DivuW(rrow*8*  inst->contentH, inst->screenbuf->pixH);
+    px2 = DivuW(rcol2*8* inst->contentW, inst->screenbuf->pixW);
+    py2 = DivuW(rrow2*8* inst->contentH, inst->screenbuf->pixH);
 
     /* Safety clamp to content area */
     if (px1 < 0)               px1 = 0;
@@ -441,10 +423,10 @@ static void drawHoverOverlay(struct RastPort *rp,
 
         if (inst->textCursorCol < 0 || inst->textCursorRow < 0) return;
 
-        tx1 = CELL_PX(inst->textCursorCol,     inst->contentW, inst->screenbuf->pixW);
-        ty1 = CELL_PX(inst->textCursorRow,     inst->contentH, inst->screenbuf->pixH);
-        tx2 = CELL_PX(inst->textCursorCol + 1, inst->contentW, inst->screenbuf->pixW);
-        ty2 = CELL_PX(inst->textCursorRow + 1, inst->contentH, inst->screenbuf->pixH);
+        tx1 = DivuW(inst->textCursorCol*8*     inst->contentW, inst->screenbuf->pixW);
+        ty1 = DivuW(inst->textCursorRow*8*     inst->contentH, inst->screenbuf->pixH);
+        tx2 = DivuW((inst->textCursorCol + 1)*8* inst->contentW, inst->screenbuf->pixW);
+        ty2 = DivuW((inst->textCursorRow + 1)*8* inst->contentH, inst->screenbuf->pixH);
 
         savedMode = rp->DrawMode;
         SetDrMd(rp, COMPLEMENT);
@@ -467,10 +449,10 @@ static void drawHoverOverlay(struct RastPort *rp,
 
         lassoNormalized(inst, &col1, &row1, &col2, &row2);
 
-        lx1 = CELL_PX(col1, inst->contentW, inst->screenbuf->pixW);
-        ly1 = CELL_PX(row1, inst->contentH, inst->screenbuf->pixH);
-        lx2 = CELL_PX(col2, inst->contentW, inst->screenbuf->pixW);
-        ly2 = CELL_PX(row2, inst->contentH, inst->screenbuf->pixH);
+        lx1 = DivuW(col1*8* inst->contentW, inst->screenbuf->pixW);
+        ly1 = DivuW(row1*8* inst->contentH, inst->screenbuf->pixH);
+        lx2 = DivuW(col2*8* inst->contentW, inst->screenbuf->pixW);
+        ly2 = DivuW(row2*8* inst->contentH, inst->screenbuf->pixH);
 
         /* 1px outside the char cells to match repairHoverRegion expansion */
         sx1 = (WORD)(absX + lx1 - 1);
@@ -513,13 +495,13 @@ static void drawHoverOverlay(struct RastPort *rp,
 
         if (inst->cursorCol < 0 || inst->cursorRow < 0) return;
 
-        px1 = CELL_PX(inst->cursorCol -inst->brushHotx,
+        px1 = DivsW((inst->cursorCol -inst->brushHotx)*8*
                        inst->contentW, inst->screenbuf->pixW);
-        py1 = CELL_PX(inst->cursorRow -inst->brushHoty,
+        py1 = DivsW((inst->cursorRow -inst->brushHoty)*8*
                        inst->contentH, inst->screenbuf->pixH);
-        px2 = CELL_PX(inst->cursorCol + inst->brushW -inst->brushHotx,
+        px2 = DivsW((inst->cursorCol + inst->brushW -inst->brushHotx)*8*
                        inst->contentW, inst->screenbuf->pixW);
-        py2 = CELL_PX(inst->cursorRow + inst->brushH -inst->brushHoty,
+        py2 = DivsW((inst->cursorRow + inst->brushH -inst->brushHoty)*8*
                        inst->contentH, inst->screenbuf->pixH);
         /* magic, we let the clipRegion manage this a best way.
         *if (px1 < 0)              px1 = 0;

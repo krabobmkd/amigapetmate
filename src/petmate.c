@@ -80,7 +80,6 @@
 #include "tooltypepref.h"
 #include <workbench/startup.h>
 
-#include <petscii_cellpx.h>
 #include <stdio.h>
 
 
@@ -165,15 +164,22 @@ void cleanexit(const char *pmessage)
  * Call after any action that may change the current screen, charset,
  * screen count, or other visible state.
  */
-
 void refreshUI(void)
+{
+    /* delay and avoid agregation */
+    if(!app) return;
+    app->doRefreshUI++;
+    if (myTask) Signal(myTask, SIGBREAKF_CTRL_F);
+}
+
+void refreshUI_Apply(void)
 {
     PetsciiScreen *scr;
     UBYTE          charset;
 
     if (!app || !app->project) return;
 
- bdbprintf("refreshUI\n");
+ bdbprintf("refreshUI_Apply\n");
 
     scr = PetsciiProject_GetCurrentScreen(app->project);
     if (!scr) return;
@@ -321,18 +327,6 @@ int testGadgetRect(Object *o, int x, int y)
 
 int main(int argc, char **argv)
 {
-    (void)argc; (void)argv;
-
-
-
-LONG a = 640*640;
-LONG b = 540;
-
- LONG c = DivW(a,b);
- LONG c2 = a/b;
- printf("r: DivW: %08x  ndiv: %08x\n",c,c2);
-
- if(1 )return 0;
 
     myTask = FindTask(NULL);
     atexit(&exitclose);
@@ -398,11 +392,6 @@ LONG b = 540;
     /* Initialize action system (localizes action names) */
     PmAction_Init();
 
-    /* Initialize style from the project's current palette and obtain pens */
-    /*now done at window opening , because screen may change
-     PetsciiStyle_Init(&app->style, app->project->currentPalette);
-
-    */
     /* Create initial undo buffers (one per screen in the fresh project) */
     rebuildUndoBuffers();
 
@@ -1275,7 +1264,6 @@ LONG b = 540;
                                 {
                                     PmAction_Execute(ACTION_EDIT_REDO, &app->actionCtx);
 
-
                                 }
                                 break;
 
@@ -1308,6 +1296,14 @@ LONG b = 540;
                     }
                 } /* end while BoopsiDelay_NextMessage */
             } /* end if BoopsiDelay_HasMessages */
+
+        if(app->doRefreshUI>0)
+        {
+            printf("app->doRefreshUI:%d\n",app->doRefreshUI);
+            refreshUI_Apply();
+            app->doRefreshUI = 0;
+        }
+
 
         } /* end main loop */
     }
@@ -1448,35 +1444,35 @@ void updateCharSelectedLabel(ULONG ichar)
 
 }
 /* when color index changed, because of window/fullscreen switch or else */
-void RefreshAllColorGadgets()
-{
-     if(!CurrentMainWindow) return;
+// void RefreshAllColorGadgets()
+// {
+//      if(!CurrentMainWindow) return;
 
-    SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
-        CHSA_Dirty,TRUE,TAG_END);
+//     SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
+//         CHSA_Dirty,TRUE,TAG_END);
 
-    SetGadgetAttrs(app->carouselGadget,CurrentMainWindow,NULL,
-        SCA_Style,(ULONG)&app->style,TAG_END);
+//     SetGadgetAttrs(app->carouselGadget,CurrentMainWindow,NULL,
+//         SCA_Style,(ULONG)&app->style,TAG_END);
 
-    // SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
-    //     PCA_Dirty,(ULONG)TRUE,TAG_END);
+//     // SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+//     //     PCA_Dirty,(ULONG)TRUE,TAG_END);
 
-    RefreshGList((struct Gadget *)app->mainvlayout,
-                 CurrentMainWindow, NULL, 1);
-    /* just those wouldn't refresh automatically at palette change */
+//     RefreshGList((struct Gadget *)app->mainvlayout,
+//                  CurrentMainWindow, NULL, 1);
+//     /* just those wouldn't refresh automatically at palette change */
 
-    // RefreshGList((struct Gadget *)app->colorPickerFgGadget,
-    //              CurrentMainWindow, NULL, 1);
-
-
-    // RefreshGList((struct Gadget *)app->toolbar.bgColorWatch,
-    //              CurrentMainWindow, NULL, 1);
+//     // RefreshGList((struct Gadget *)app->colorPickerFgGadget,
+//     //              CurrentMainWindow, NULL, 1);
 
 
-    // RefreshGList((struct Gadget *)app->toolbar.borderColorWatch,
-    //              CurrentMainWindow, NULL, 1);
+//     // RefreshGList((struct Gadget *)app->toolbar.bgColorWatch,
+//     //              CurrentMainWindow, NULL, 1);
 
-}
+
+//     // RefreshGList((struct Gadget *)app->toolbar.borderColorWatch,
+//     //              CurrentMainWindow, NULL, 1);
+
+// }
 void UpdateCarouselThumbNail(PetsciiScreen *screen)
 {
     // LONG idx = -1;
