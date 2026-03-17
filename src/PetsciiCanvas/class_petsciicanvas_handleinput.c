@@ -421,8 +421,8 @@ ULONG PetsciiCanvas_OnGoActive(Class *cl, Object *o, struct gpInput *msg)
         /* ---- TOOL_DRAW / COLORIZE / CHARDRAW click ------------------- */
         if (isClick) {
             /* Take undo snapshot before the first painted cell of this stroke */
-            if (inst->undoBuf && inst->screen) {
-                PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+            if ( inst->screen) {
+                PetsciiUndoBuffer_Push(inst->screen);
             }
 
             if(inst->brush && inst->brushW>0 && inst->brushH>0)
@@ -567,8 +567,8 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
                 if (inst->screen && inst->screenbuf && inst->style) {
                     WORD c;
                     PetsciiPixel px;
-                    if (inst->undoBuf)
-                        PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+
+                    PetsciiUndoBuffer_Push( inst->screen );
                     for (c = inst->textCursorCol; c < (WORD)inst->screen->width - 1; c++) {
                         px = PetsciiScreen_GetPixel(inst->screen, (UWORD)(c+1), (UWORD)inst->textCursorRow);
                         PetsciiScreen_SetPixel(inst->screen, (UWORD)c, (UWORD)inst->textCursorRow, px.code, px.color);
@@ -586,8 +586,8 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
                 if (inst->screen && inst->screenbuf && inst->style) {
                     WORD c;
                     PetsciiPixel px;
-                    if (inst->undoBuf)
-                        PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+
+                    PetsciiUndoBuffer_Push( inst->screen );
                     for (c = inst->textCursorCol; c < (WORD)inst->screen->width - 1; c++) {
                         px = PetsciiScreen_GetPixel(inst->screen, (UWORD)(c+1), (UWORD)inst->textCursorRow);
                         PetsciiScreen_SetPixel(inst->screen, (UWORD)c, (UWORD)inst->textCursorRow, px.code, px.color);
@@ -627,8 +627,8 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
                 if (screenCode >= 0 &&
                     inst->textCursorCol >= 0 && inst->textCursorRow >= 0) {
 // bdbprintf("print one\n");
-                    if (inst->undoBuf)
-                        PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+
+                    PetsciiUndoBuffer_Push( inst->screen );
 
                     PetsciiScreen_SetPixel(inst->screen,
                                            (UWORD)inst->textCursorCol,
@@ -792,10 +792,10 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
 
         } else {
             /* Normal draw tools */
-            if (inst->undoBuf && inst->screen/* &&
+            if ( inst->screen/* &&
                 inst->currentTool != TOOL_BRUSH &&
                 inst->currentTool != TOOL_TEXT*/) {
-                PetsciiUndoBuffer_Push(inst->undoBuf, inst->screen);
+                PetsciiUndoBuffer_Push( inst->screen );
             }
 
             /* paint brush if brush is on */

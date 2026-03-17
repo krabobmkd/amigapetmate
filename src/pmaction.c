@@ -384,20 +384,17 @@ BOOL Action_EditUndo(PmActionContext *ctx)
 {
     PetsciiProject     *proj;
     PetsciiScreen      *scr;
-    PetsciiUndoBuffer **bufs;
 
     printf("Action_EditUndo\n");
 
     if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
-    if (!ctx->undoBufs) return FALSE;
 
     proj = *ctx->pproject;
-    bufs = (PetsciiUndoBuffer **)ctx->undoBufs;
     scr  = PetsciiProject_GetCurrentScreen(proj);
 
-    if (!scr || !bufs[proj->currentScreen]) return FALSE;
+    if (!scr) return FALSE;
 
-    if (PetsciiUndoBuffer_Undo(bufs[proj->currentScreen], scr)) {
+    if (PetsciiUndoBuffer_Undo( scr)) {
         proj->modified = 1;
         refreshUI();
         return TRUE;
@@ -412,20 +409,17 @@ BOOL Action_EditRedo(PmActionContext *ctx)
 {
     PetsciiProject     *proj;
     PetsciiScreen      *scr;
-    PetsciiUndoBuffer **bufs;
 
 printf("Action_EditRedo\n");
 
     if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
-    if (!ctx->undoBufs) return FALSE;
 
     proj = *ctx->pproject;
-    bufs = (PetsciiUndoBuffer **)ctx->undoBufs;
     scr  = PetsciiProject_GetCurrentScreen(proj);
 
-    if (!scr || !bufs[proj->currentScreen]) return FALSE;
+    if (!scr) return FALSE;
 
-    if (PetsciiUndoBuffer_Redo(bufs[proj->currentScreen], scr)) {
+    if (PetsciiUndoBuffer_Redo( scr)) {
         proj->modified = 1;
         refreshUI();
         return TRUE;
@@ -1003,11 +997,9 @@ BOOL Action_GenerateRandomFromBrush(PmActionContext *ctx)
     if (!scr) return FALSE;
 
     /* Push undo snapshot before modifying the screen */
-    if (ctx->undoBufs) {
-        PetsciiUndoBuffer **bufs = (PetsciiUndoBuffer **)ctx->undoBufs;
-        if (bufs[proj->currentScreen])
-            PetsciiUndoBuffer_Push(bufs[proj->currentScreen], scr);
-    }
+
+    PetsciiUndoBuffer_Push(scr);
+
 
     ts = (ToolState *)ctx->toolState;
     currentTool = ts ? ts->currentTool : TOOL_DRAW;
@@ -1507,12 +1499,9 @@ static BOOL mlRunSetup(PmActionContext *ctx, PetsciiProject **projOut,
     if (!scr) return FALSE;
 
     /* Push undo snapshot before modifying the screen */
-    if (ctx->undoBufs) {
-        PetsciiUndoBuffer **bufs = (PetsciiUndoBuffer **)ctx->undoBufs;
-        undoBuf = bufs[proj->currentScreen];
-        if (undoBuf)
-            PetsciiUndoBuffer_Push(undoBuf, scr);
-    }
+
+    PetsciiUndoBuffer_Push(scr);
+
 
     ts     = (ToolState *)ctx->toolState;
     *colorOut   = ts ? ts->fgColor : 14;

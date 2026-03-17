@@ -44,9 +44,7 @@
 #define PCA_CursorCol    (PCA_Dummy +12) /* (WORD) col, -1=hidden     get  */
 #define PCA_CursorRow    (PCA_Dummy +13) /* (WORD) row, -1=hidden     get  */
 
-/* Undo/redo buffer for this screen (not owned by the gadget).
- * Set via OM_NEW or OM_SET to enable in-stroke undo snapshots.   */
-#define PCA_UndoBuffer   (PCA_Dummy +14) /* (PetsciiUndoBuffer *) new/set  */
+#define PCA_DUMMY   (PCA_Dummy +14) /*  something removed here  */
 
 /* Signal: tool just ended.
    - lasso released → new brush captured.

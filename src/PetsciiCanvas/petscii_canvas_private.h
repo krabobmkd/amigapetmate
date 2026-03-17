@@ -109,9 +109,6 @@ typedef struct PetsciiCanvasData {
      * overlayBuf is the temporary dest for scaling the brush preview.  */
     UBYTE            *overlayBuf;
 
-    /* Undo/redo buffer (not owned; managed by petmate.c)               */
-    PetsciiUndoBuffer *undoBuf;
-
     /* Brush buffer (owned by canvas; replaced on each lasso capture).
      * NULL means 1x1 single-char mode (brushW/H == 1).                */
     PetsciiBrush *brush;

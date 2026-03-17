@@ -27,7 +27,6 @@ struct PmActionContext {
     void *toolState;            /* ToolState * - drawing state */
     void *style;                /* PetsciiStyle * - C64 color pens */
     void *clipScreen;           /* PetsciiScreen ** - clipboard for copy/paste */
-    void *undoBufs;             /* PetsciiUndoBuffer *[PETSCII_MAX_SCREENS]  */
     void *pmenu;                /* PmMenu * - for updating menu checkmarks */
 };
 

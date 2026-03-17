@@ -4,6 +4,8 @@
 #include <exec/types.h>
 #include "petscii_types.h"
 
+ struct PetsciiUndoBuffer;
+
 /*
  * PetsciiScreen: one framebuffer of character cells.
  * Flat array storage: framebuf[row * width + col]
@@ -15,6 +17,7 @@ typedef struct PetsciiScreen {
     UBYTE backgroundColor;      /* 0-15, screen background */
     UBYTE borderColor;          /* 0-15, border color */
     UBYTE charset;              /* PETSCII_CHARSET_UPPER or _LOWER */
+    struct PetsciiUndoBuffer *undoBuf; /* NULL, inited at first edit  for managed screens. */
     char name[PETSCII_NAME_LEN];
 } PetsciiScreen;
 
