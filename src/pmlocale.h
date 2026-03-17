@@ -48,6 +48,9 @@ enum {
     MSG_SCREEN_PREV,
     MSG_SCREEN_NEXT,
 
+    MSG_SCREEN_ADD_ERROR,
+    MSG_SCREEN_D,
+
     /* Menu: View */
     MSG_MENU_VIEW,
     MSG_VIEW_TOGGLE_GRID,

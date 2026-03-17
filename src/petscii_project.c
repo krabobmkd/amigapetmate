@@ -1,11 +1,12 @@
 #include "petscii_project.h"
 #include "pmstring.h"
-
+#include "pmlocale.h"
 #include <proto/exec.h>
 #include <string.h>
 #include <stdio.h>
 
 extern void refreshUI(void);
+extern void SetStatusBarMessage(int enumMessage);
 
 PetsciiProject *PetsciiProject_Create(void)
 {
@@ -52,13 +53,17 @@ int PetsciiProject_AddScreen(PetsciiProject *proj)
     UWORD idx;
 
     if (!proj) return -1;
-    if (proj->screenCount >= PETSCII_MAX_SCREENS) return -1;
+    if (proj->screenCount >= PETSCII_MAX_SCREENS)
+    {
+        SetStatusBarMessage(MSG_SCREEN_ADD_ERROR);
+        return -1;
+    }
 
     newScr = PetsciiScreen_CreateDefault();
     if (!newScr) return -1;
 
     idx = proj->screenCount;
-    snprintf(newScr->name, PETSCII_NAME_LEN, "Screen %d", (int)(idx + 1));
+    snprintf(newScr->name, PETSCII_NAME_LEN, LOC(MSG_SCREEN_D), (int)(idx + 1));
 
     proj->screens[idx] = newScr;
     proj->screenCount++;

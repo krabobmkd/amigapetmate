@@ -43,6 +43,8 @@ struct Screen *CurrentMainScreen=NULL;
 
 int  CurrentMainScreen_PreIndexed=0;
 
+extern void RefreshAllColorGadgets();
+
 static void FreeBgBitmap(void);
 
 extern struct Library *CyberGfxBase;
@@ -532,10 +534,11 @@ the full-blown "new look" graphics. If you want the 3D embossed look,
         }
 
     }
-    /* some may need reindexation and window must be opened */
-    refreshUI();
+
     mw->fullscreen = TRUE;
 
+    /* some may need reindexation and window must be opened */
+    RefreshAllColorGadgets();
 }
 
 
@@ -657,7 +660,7 @@ void BMainWindow_SwitchToWB(struct BoopsiMainWindow *mw,Object *window_obj,struc
     ScreenToFront(CurrentMainScreen);
 
     /* some may need reindexation and window must be opened */
-    refreshUI();
+    RefreshAllColorGadgets();
 
 
 }

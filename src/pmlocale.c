@@ -67,6 +67,10 @@ static const char *defaultStrings[MSG_COUNT] = {
     "Previous Screen",
     /* MSG_SCREEN_NEXT */
     "Next Screen",
+    /* MSG_SCREEN_ADD_ERROR */
+    "Can't add more screens, limit is 64.",
+     /* MSG_SCREEN_D */
+    "Screen %d",
 
     /* MSG_MENU_VIEW */
     "View",

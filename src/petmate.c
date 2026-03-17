@@ -1444,35 +1444,35 @@ void updateCharSelectedLabel(ULONG ichar)
 
 }
 /* when color index changed, because of window/fullscreen switch or else */
-// void RefreshAllColorGadgets()
-// {
-//      if(!CurrentMainWindow) return;
+void RefreshAllColorGadgets()
+{
+     if(!CurrentMainWindow) return;
+/*re?
+    SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
+        CHSA_Dirty,TRUE,TAG_END);
 
-//     SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
-//         CHSA_Dirty,TRUE,TAG_END);
+    SetGadgetAttrs(app->carouselGadget,CurrentMainWindow,NULL,
+        SCA_Style,(ULONG)&app->style,TAG_END);
+*/
+    // SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+    //     PCA_Dirty,(ULONG)TRUE,TAG_END);
 
-//     SetGadgetAttrs(app->carouselGadget,CurrentMainWindow,NULL,
-//         SCA_Style,(ULONG)&app->style,TAG_END);
+    RefreshGList((struct Gadget *)app->mainvlayout,
+                 CurrentMainWindow, NULL, 1);
+    /* just those wouldn't refresh automatically at palette change */
 
-//     // SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
-//     //     PCA_Dirty,(ULONG)TRUE,TAG_END);
-
-//     RefreshGList((struct Gadget *)app->mainvlayout,
-//                  CurrentMainWindow, NULL, 1);
-//     /* just those wouldn't refresh automatically at palette change */
-
-//     // RefreshGList((struct Gadget *)app->colorPickerFgGadget,
-//     //              CurrentMainWindow, NULL, 1);
-
-
-//     // RefreshGList((struct Gadget *)app->toolbar.bgColorWatch,
-//     //              CurrentMainWindow, NULL, 1);
+    // RefreshGList((struct Gadget *)app->colorPickerFgGadget,
+    //              CurrentMainWindow, NULL, 1);
 
 
-//     // RefreshGList((struct Gadget *)app->toolbar.borderColorWatch,
-//     //              CurrentMainWindow, NULL, 1);
+    // RefreshGList((struct Gadget *)app->toolbar.bgColorWatch,
+    //              CurrentMainWindow, NULL, 1);
 
-// }
+
+    // RefreshGList((struct Gadget *)app->toolbar.borderColorWatch,
+    //              CurrentMainWindow, NULL, 1);
+
+}
 void UpdateCarouselThumbNail(PetsciiScreen *screen)
 {
     // LONG idx = -1;
