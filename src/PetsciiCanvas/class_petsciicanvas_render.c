@@ -768,6 +768,11 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
     if (width <= 0 || height <= 0)
         return 0;
 
+//    if()style->updateId
+
+//                        inst->screenbuf->valid = 0;
+//                        inst->scaledBufDirty   = TRUE;
+
     /* BackFill hook, tghe function that paint "EraseRect" regions
      *  SHOULD be there... sometimes it's not, but there's a GA for this
         This looks needed on OS3 if you aveer use EraseRect under GM_RENDER.
@@ -795,6 +800,7 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
 
     /* Decide: full canvas blit, or hover-only partial update? */
     needFull =  msg->gpr_Redraw ||
+                inst->screenbuf->stylesync != inst->style->updateId ||
                 !inst->screenbuf->valid   ||
                inst->scaledBufDirty      ||
                inst->refreshExtraMarge   ||
@@ -883,7 +889,7 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
         }
 
         /* Rebuild screenbuf chunky if stale */
-        if (!inst->screenbuf->valid)
+        if (!inst->screenbuf->valid || inst->screenbuf->stylesync != inst->style->updateId)
         {
             bdbprintf("PetsciiScreenBuf_RebuildFull from iirender\n");
             PetsciiScreenBuf_RebuildFull(inst->screenbuf, inst->screen, inst->style);

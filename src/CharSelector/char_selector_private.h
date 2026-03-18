@@ -61,6 +61,8 @@ typedef struct CharSelectorData {
     BOOL              refreshExtraMarge;
 
     WORD    renderType;
+
+    UWORD  stylesync; /* also full rebuild if pens changed. */
 } CharSelectorData;
 
 ULONG CharSelector_OnNew        (Class *cl, Object *o, struct opSet     *msg);

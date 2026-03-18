@@ -120,7 +120,7 @@ void PetsciiScreenBuf_RebuildFull(PetsciiScreenBuf *buf,
     }
 
     buf->valid = 1;
-
+    buf->stylesync = style->updateId;
 }
 
 void PetsciiScreenBuf_UpdateCell(PetsciiScreenBuf *buf,

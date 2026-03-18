@@ -45,9 +45,9 @@ int  CurrentMainScreen_PreIndexed=0;
 
 static void FreeBgBitmap(void);
 
-extern struct Library *CyberGfxBase;
+ void RefreshAllColorGadgets();
 
-extern void refreshUI();
+extern struct Library *CyberGfxBase;
 
 /* external window management */
 void OpenSettingsWindow()
@@ -384,6 +384,7 @@ static struct Hook patternHook={{NULL,NULL},( ULONG (*)() )&BackFillHook_Pattern
 void BMainWindow_SwitchToFullScreen(struct BoopsiMainWindow *mw,Object *window_obj,struct AppSettings *appSettings)
 {
         int x1,y1,w,h;
+        ULONG backfill;
 	struct ColorSpec colspec[16+1];
     struct Screen *myScreen;
     UWORD fakepens[1]={~0};
@@ -466,55 +467,53 @@ the full-blown "new look" graphics. If you want the 3D embossed look,
         FreeBgBitmap();
 
     /* reconfigure persistant boopsi window object while closed */
+
+
+    if(appSettings->useOneColorBg)
     {
-        ULONG lastTag,lastValue;
-        if(appSettings->useOneColorBg)
-        {
-            lastTag = WA_BackFill;
-            lastValue = (ULONG)&monoHook;
-        } else if(bgBitmap)
-        {
-            lastTag = WA_BackFill;
-            lastValue = (ULONG)&patternHook;
-        } else
-        {
-            lastTag = WA_BackFill;
-            lastValue = (ULONG)NULL; /* use the default BackFill pattern */
-        }
-        /* get screen dimension */
-        x1 =0;
-        y1 = myScreen->BarHeight;
-        w = myScreen->Width;
-        h = myScreen->Height - y1;
-
-     //   printf("fs w:%d h:%d myScreen->BarHeight:%d\n",w,h,myScreen->BarHeight);
-
-        SetAttrs(window_obj,
-            WA_CustomScreen,(ULONG)myScreen,
-            WA_Borderless, TRUE,
-            WA_SizeGadget,FALSE,
-            WA_DepthGadget,FALSE,
-            WA_CloseGadget,FALSE,
-            WA_DragBar,FALSE,
-            WA_Title,NULL,
-            WA_Flags,WFLG_ACTIVATE | WFLG_SMART_REFRESH ,
-            WA_Backdrop,TRUE,
-
-            WINDOW_IconifyGadget, FALSE,
-            WA_Top,y1+1,
-            WA_Left,x1,
-            WA_Width,w+32, /* need some more pixel at window level so the backdrop UI takes all place */
-            WA_Height,h+y1+1,
-            /* must be last */
-            lastTag,lastValue,
-            TAG_END);
+        backfill = (ULONG)&monoHook;
+    } else if(bgBitmap)
+    {
+        backfill = (ULONG)&patternHook;
+    } else
+    {
+        backfill = (ULONG)NULL; /* use the default BackFill pattern */
     }
+    /* get screen dimension */
+    x1 =0;
+    y1 = myScreen->BarHeight;
+    w = myScreen->Width;
+    h = myScreen->Height - y1;
+
+ //   printf("fs w:%d h:%d myScreen->BarHeight:%d\n",w,h,myScreen->BarHeight);
+
+    SetAttrs(window_obj,
+        WA_CustomScreen,(ULONG)myScreen,
+        WA_Borderless, TRUE,
+        WA_SizeGadget,FALSE,
+        WA_DepthGadget,FALSE,
+        WA_CloseGadget,FALSE,
+        WA_DragBar,FALSE,
+        WA_Title,NULL,
+        WA_Flags,WFLG_ACTIVATE | WFLG_SMART_REFRESH ,
+        WA_Backdrop,TRUE,
+
+        WINDOW_IconifyGadget, FALSE,
+        WA_Top,y1+1,
+        WA_Left,x1,
+        WA_Width,w+32, /* need some more pixel at window level so the backdrop UI takes all place */
+        WA_Height,h+y1+1,
+        /* must be last */
+        WA_BackFill,backfill,
+        TAG_END);
 
     /* need to reattribute pens on this screen */
     UpdatePensToCurrentMainScreen();
 
     /* re-open */
     GenericOpenWindow( mw, window_obj, appSettings );
+
+    RefreshAllColorGadgets();
 
     if(CurrentMainWindow)
     {
@@ -528,12 +527,8 @@ the full-blown "new look" graphics. If you want the 3D embossed look,
                 GA_Height,h,
                 TAG_END
                     );
-
         }
-
     }
-    /* some may need reindexation and window must be opened */
-    refreshUI();
     mw->fullscreen = TRUE;
 
 }
@@ -653,11 +648,10 @@ void BMainWindow_SwitchToWB(struct BoopsiMainWindow *mw,Object *window_obj,struc
     /* re-open */
     GenericOpenWindow( mw, window_obj, appSettings );
 
+    RefreshAllColorGadgets();
+
     /* There may exists more screens than just WB when closing fs. make sure WB the visible screen. */
     ScreenToFront(CurrentMainScreen);
-
-    /* some may need reindexation and window must be opened */
-    refreshUI();
 
 
 }

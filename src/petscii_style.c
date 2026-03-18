@@ -84,6 +84,11 @@ int PetsciiStyle_Apply(PetsciiStyle *style, struct Screen *scr)
 
     if (!style) return 0;
 
+    /* if something need to update from pens, it can check this.
+        It will change if screen pixel mode change, or palett change.
+     */
+    style->updateId++;
+
     /* Release any previously obtained pens first */
     PetsciiStyle_Release(style);
 

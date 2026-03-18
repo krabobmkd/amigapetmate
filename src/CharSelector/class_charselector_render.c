@@ -372,10 +372,11 @@ ULONG CharSelector_OnRender(Class *cl, Object *o, struct gpRender *msg)
     updateContentRect(inst, width, height);
 
     /* Rebuild native buffer if invalidated */
-    if (!inst->valid)
+    if (!inst->valid || (inst->style->updateId != inst->stylesync ) )
     {
-    bdbprintf("CharSelector_OnRender ->rebuildCbuf\n");
+        bdbprintf("CharSelector_OnRender ->rebuildCbuf\n");
         rebuildCbuf(inst);
+        inst->stylesync = inst->style->updateId;
     }
 
     /* Erase letterbox/pillarbox margins (no-op when keepRatio=FALSE) */

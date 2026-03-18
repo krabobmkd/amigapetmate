@@ -36,6 +36,8 @@ typedef struct PetsciiStyle {
     ULONG paletteRGB32[2+(C64_COLOR_COUNT*3)];
     /* the optional one for CGX WriteLUTPixelArray */
     ULONG paletteARGB[C64_COLOR_COUNT];
+
+    UWORD     updateId; /* just an increment when color index and pens change, so gadgets check synchronization. */
 } PetsciiStyle;
 
 /* Initialize style from palette ID - fills rgbcolor fields, no pens yet.

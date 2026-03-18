@@ -26,7 +26,9 @@ typedef struct PetsciiScreenBuf {
     UBYTE *chunky;  /* flat [pixH * pixW] pen indices, row-major */
     ULONG  pixW;    /* screen->width  * 8  (e.g. 320 for 40-wide) */
     ULONG  pixH;    /* screen->height * 8  (e.g. 200 for 25-tall) */
+    UWORD  stylesync; /* also full rebuild if pens changed. */
     UBYTE  valid;   /* 0 = needs full rebuild */
+    UBYTE d;
 } PetsciiScreenBuf;
 
 /* Allocate a render buffer for a screen of given character dimensions.

@@ -1409,12 +1409,13 @@ static void mlTron(PetsciiScreen *scr, UBYTE *connMap,
         alive[i]    = (cols[i] >= 0);  /* FALSE if no empty cell was found */
         if (!alive[i]) {
             aliveCnt--;
-            printf("mlTron: player %d could not find an empty start cell\n", i);
+            //printf("mlTron: player %d could not find an empty start cell\n", i);
         }
     }
+    /*
     if (aliveCnt == 0)
         printf("mlTron: no players could start — screen may be full\n");
-
+    */
     /*
      * In Tron, any cell that already has connection bits is treated as a wall:
      * the light trail itself becomes an obstacle.  connMap == 0 is the only

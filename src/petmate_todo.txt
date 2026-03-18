@@ -1,13 +1,17 @@
 ﻿
  O introduced bugs with undo while optimizing refresh
+ O loosing char value display at some point
+    O amigaguide on help key and menu.
+    O AmigaGuide documentation
+ O regreyise brush menu
 
- O test on CDTV
+ O test on CDTV -> re
  O test on AmigaGuide
  X do icon
  O test OS3.9
 
- O cybergraphics RTG blits
- O ask when quitting
+ X cybergraphics RTG blits
+ O ask when quitting -> finally no, but no esc key then
  O icons on bt,
   X 4 recent files !
  X background prefs
@@ -17,8 +21,8 @@
 X iconified icon use app icon
  O packaging:
 	O catalog for 5 languages
-    O AmigaGuide documentation
-    O amigaguide on help key and menu.
+
+
 
  X export gif/ilbm with -> lib
  X the "import image" function

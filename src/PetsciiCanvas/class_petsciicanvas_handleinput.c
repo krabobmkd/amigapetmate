@@ -458,7 +458,7 @@ ULONG PetsciiCanvas_OnGoActive(Class *cl, Object *o, struct gpInput *msg)
     return GMR_MEACTIVE;  /* stay active while over the gadget */
 }
 
-void UpdateCarouselThumbNail(PetsciiScreen    *screen);
+void UpdateCarouselThumbNail();
 /* ------------------------------------------------------------------ */
 /* GM_HANDLEINPUT - called for every event while gadget is active      */
 /* ------------------------------------------------------------------ */
@@ -748,7 +748,7 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
         inst->lastPaintCol = -1;
         inst->lastPaintRow = -1;
 
-        UpdateCarouselThumbNail(inst->screen);
+        UpdateCarouselThumbNail();
 
         isIn = isInsideRect(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y);
         return isIn ? GMR_MEACTIVE : GMR_NOREUSE;
