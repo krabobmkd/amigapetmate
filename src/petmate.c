@@ -828,9 +828,8 @@ int main(int argc, char **argv)
                                 struct Gadget *canvas = (struct Gadget *)app->canvasGadget;
                                 if((canvas->Activation & GACT_ACTIVEGADGET)==0 )
                                 {
-                                    /* even better if not activated and just redrawn
-                                     * ActivateGadget(canvas,CurrentMainWindow,NULL ); */
-                                    RefreshGList(canvas, CurrentMainWindow, NULL, 1);
+                                    /* This will make the canva receive mouse move. */
+                                     ActivateGadget(canvas,CurrentMainWindow,NULL );
                                 }
                             }
 

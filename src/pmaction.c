@@ -229,13 +229,14 @@ BOOL Action_ProjectOpen(PmActionContext *ctx)
     if (!pathbuf) return FALSE; /* user cancelled */
 
     err = PetsciiFileIO_Load(*ctx->pproject, pathbuf);
-    PmStr_Free(pathbuf);
-    SetStatusBarMessage(MSG_PETSCII_FILEIO_OK+err);
 
     if (err == PETSCII_FILEIO_OK && app) {
         AppSettings_AddRecentFile(&app->appSettings, pathbuf);
         rebuildMenuIfPossible(ctx);
     }
+    SetStatusBarMessage(MSG_PETSCII_FILEIO_OK+err);
+
+
     PmStr_Free(pathbuf);
     refreshUI();
     return TRUE;
@@ -274,7 +275,7 @@ BOOL Action_ProjectSaveAs(PmActionContext *ctx)
     if (!pathbuf) return FALSE; /* user cancelled */
 
     err = PetsciiFileIO_Save(*ctx->pproject, pathbuf);
-    PmStr_Free(pathbuf);
+
     SetStatusBarMessage(
         (err == MSG_PETSCII_FILEIO_OK)?MSG_PETSCII_FILEIO_WRITEOK:
         (MSG_PETSCII_FILEIO_OK+err)
@@ -331,16 +332,7 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
     }
     if(!app->aboutRequester) return FALSE;
 
-
-
-    SetGadgetAttrs(app->mainvlayout, CurrentMainWindow,NULL,
-                    GA_DISABLED,TRUE,TAG_END);
-
     OpenRequester(app->aboutRequester,CurrentMainWindow);
-
-
-    SetGadgetAttrs(app->mainvlayout, CurrentMainWindow,NULL,
-                    GA_DISABLED,FALSE,TAG_END);
 
     return TRUE;
 }
@@ -384,7 +376,7 @@ BOOL Action_EditUndo(PmActionContext *ctx)
     PetsciiProject     *proj;
     PetsciiScreen      *scr;
 
-    printf("Action_EditUndo\n");
+//    printf("Action_EditUndo\n");
 
     if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
 
@@ -409,7 +401,7 @@ BOOL Action_EditRedo(PmActionContext *ctx)
     PetsciiProject     *proj;
     PetsciiScreen      *scr;
 
-printf("Action_EditRedo\n");
+//printf("Action_EditRedo\n");
 
     if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
 
@@ -482,7 +474,7 @@ BOOL Action_EditClearScreen(PmActionContext *ctx)
     PetsciiProject *proj;
     PetsciiScreen  *scr;
 
- printf("Action_EditClearScreen\n");
+ //printf("Action_EditClearScreen\n");
 
     if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
 
@@ -599,32 +591,34 @@ BOOL Action_ViewToggleGrid(PmActionContext *ctx)
 
     ts = (ToolState *)ctx->toolState;
     ts->showGrid = (UBYTE)(ts->showGrid ? 0 : 1);
+
+    if(CurrentMainWindow)
+        SetGadgetAttrs(app->canvasGadget, CurrentMainWindow,NULL,
+                    PCA_ShowGrid,ts->showGrid,TAG_END);
+
     return TRUE;
 }
 
 BOOL Action_ViewCharsetUpper(PmActionContext *ctx)
 {
-    PetsciiScreen *scr;
-    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
 
-    scr = PetsciiProject_GetCurrentScreen(*ctx->pproject);
-    if (!scr) return FALSE;
+    if(CurrentMainWindow)
+        SetGadgetAttrs(
+            (struct Gadget *)app->charsetUpperBtn,
+            CurrentMainWindow, NULL,
+            GA_Selected, TRUE, TAG_END);
 
-    scr->charset = PETSCII_CHARSET_UPPER;
-    (*ctx->pproject)->modified = 1;
+
     return TRUE;
 }
 
 BOOL Action_ViewCharsetLower(PmActionContext *ctx)
 {
-    PetsciiScreen *scr;
-    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
-
-    scr = PetsciiProject_GetCurrentScreen(*ctx->pproject);
-    if (!scr) return FALSE;
-
-    scr->charset = PETSCII_CHARSET_LOWER;
-    (*ctx->pproject)->modified = 1;
+    if(CurrentMainWindow)
+        SetGadgetAttrs(
+            (struct Gadget *)app->charsetLowerBtn,
+            CurrentMainWindow, NULL,
+            GA_Selected, TRUE, TAG_END);
     return TRUE;
 }
 
@@ -1455,10 +1449,10 @@ static void mlTron(PetsciiScreen *scr, UBYTE *connMap,
                     /* Eliminated */
                     if (mlPlace(scr, connMap, col, row, prevBit[i], color))
                         filled++;
-                    if (prevBit[i] == 0)
-                        printf("mlTron: player %d eliminated immediately at (%d,%d) — all directions blocked\n", i, col, row);
-                    else
-                        printf("mlTron: player %d eliminated at (%d,%d) after %d steps\n", i, col, row, straight[i]);
+                    // if (prevBit[i] == 0)
+                    //     printf("mlTron: player %d eliminated immediately at (%d,%d) — all directions blocked\n", i, col, row);
+                    // else
+                    //     printf("mlTron: player %d eliminated at (%d,%d) after %d steps\n", i, col, row, straight[i]);
                     alive[i] = FALSE;
                     aliveCnt--;
                     continue;
@@ -1480,7 +1474,7 @@ static void mlTron(PetsciiScreen *scr, UBYTE *connMap,
         if (alive[i])
             mlPlace(scr, connMap, cols[i], rows[i], prevBit[i], color);
     }
-    printf("mlTron: done — filled=%d target=%d\n", filled, target);
+  //  printf("mlTron: done  filled=%d target=%d\n", filled, target);
 }
 
 /* Common setup / teardown shared by both Generate actions */

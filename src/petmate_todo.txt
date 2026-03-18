@@ -1,4 +1,7 @@
 ﻿
+ IA todo: prg export
+
+
 
  X introduced bugs with undo while optimizing refresh
  O loosing char value display at some point

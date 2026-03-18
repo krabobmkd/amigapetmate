@@ -72,8 +72,10 @@ int PetsciiExport_SaveSEQ(const PetsciiScreen *scr, const char *path)
     /* Worst case: 3 control bytes per cell + 2 header bytes + row CRs */
     bufSize = (LONG)scr->width * (LONG)scr->height * 4 + (LONG)scr->height + 4;
     buf = (UBYTE *)AllocVec((ULONG)bufSize, MEMF_ANY);
-    if (!buf) return PETSCII_EXPORT_ENOMEM;
 
+ printf("export seq1\n");
+    if (!buf) return PETSCII_EXPORT_ENOMEM;
+ printf("export seq2\n");
     bufLen    = 0;
     currColor = -1;
     currev    = 0;
@@ -117,13 +119,13 @@ int PetsciiExport_SaveSEQ(const PetsciiScreen *scr, const char *path)
         if (y < (int)scr->height - 1)
             buf[bufLen++] = currev ? 0x0d : 0x8d;
     }
-
+ printf("export seq3 \n");
     fp = fopen(path, "wb");
     if (!fp) {
         FreeVec(buf);
         return PETSCII_EXPORT_EOPEN;
     }
-
+ printf("export seq4 %d \n",bufLen);
     if ((int)fwrite(buf, 1, (size_t)bufLen, fp) != bufLen) {
         fclose(fp);
         FreeVec(buf);

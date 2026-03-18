@@ -239,7 +239,11 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                 break;
 
             case PCA_ShowGrid:
-                inst->showGrid = (BOOL)tag->ti_Data;
+                if(inst->showGrid != (BOOL)tag->ti_Data)
+                {
+                    inst->showGrid = (BOOL)tag->ti_Data;
+                    redraw = 1;
+                }
                 result = 1;
                 break;
 
