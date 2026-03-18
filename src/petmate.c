@@ -371,6 +371,9 @@ int main(int argc, char **argv)
 
     app->actionCtx.pmenu     = (void *)&app->mainwindow.menu;
 
+    /* Load application settings from icon tooltypes and sync to settings view */
+    AppSettings_Load(&app->appSettings);
+
     /* Initialize the BOOPSI message target model */
     if (!initMessageTargetModel()) cleanexit("Can't create BOOPSI message target");
 
@@ -683,6 +686,7 @@ int main(int argc, char **argv)
     {
         ULONG lasttag = TAG_END;
         ULONG lastValue = 0;
+        ULONG backfill = BMainWindow_GetBackFillFromSettings(&app->appSettings);
         if(AppDiskObject)
         {
             lasttag = WINDOW_Icon;
@@ -707,6 +711,7 @@ int main(int argc, char **argv)
         WINDOW_IconifyGadget, TRUE,
         WINDOW_IconTitle, (ULONG)"PetMate",
         WINDOW_AppPort, (ULONG)app->app_port,
+        WA_BackFill,backfill, /* giving it early help earlier version of layout.gadgets. Better updated onr econfiguration on recent versions, it seems */
         lasttag,lastValue,
         TAG_END);
     }
@@ -720,9 +725,7 @@ int main(int argc, char **argv)
       //  printf("Warning: Could not create Project Settings window\n");
     }
 
-    /* Load application settings from icon tooltypes and sync to settings view */
 
-    AppSettings_Load(&app->appSettings);
     PmSettingsView_SetFSModeIdLikeWorkbench(&app->settingsView,app->appSettings.screenModeIdLikeWorkbench);
     PmSettingsView_SetModeId(&app->settingsView,app->appSettings.screenModeId);
     PmSettingsView_SetUseOneColorBg(&app->settingsView,app->appSettings.useOneColorBg);
@@ -825,7 +828,9 @@ int main(int argc, char **argv)
                                 struct Gadget *canvas = (struct Gadget *)app->canvasGadget;
                                 if((canvas->Activation & GACT_ACTIVEGADGET)==0 )
                                 {
-                                    ActivateGadget(canvas,CurrentMainWindow,NULL );
+                                    /* even better if not activated and just redrawn
+                                     * ActivateGadget(canvas,CurrentMainWindow,NULL ); */
+                                    RefreshGList(canvas, CurrentMainWindow, NULL, 1);
                                 }
                             }
 
@@ -1388,18 +1393,31 @@ void updateCharSelectedLabel(ULONG ichar)
  void RefreshAllColorGadgets()
  {
       if(!CurrentMainWindow) return;
-
+/*was ok
      SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
          CHSA_Dirty,TRUE,TAG_END);
 
      SetGadgetAttrs(app->carouselGadget,CurrentMainWindow,NULL,
          SCA_Style,(ULONG)&app->style,TAG_END);
+*/
+    /* we do a full RefreshGList on main layout just after, so use SetAttrs()
+     *  and not SetGadgetAttrs) so state change without redraw
+     or it would redraw twice for nothing. */
+     SetAttrs(app->charSelectorGadget,
+         CHSA_Dirty,TRUE,TAG_END);
 
-     // SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
-     //     PCA_Dirty,(ULONG)TRUE,TAG_END);
+     SetAttrs(app->carouselGadget,
+         SCA_Style,(ULONG)&app->style,TAG_END);
 
+//      SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+//          PCA_Dirty,(ULONG)TRUE,TAG_END);
+
+    /*force whole redraw*/
      RefreshGList((struct Gadget *)app->mainvlayout,
                   CurrentMainWindow, NULL, 1);
+
+//     RefreshGList((struct Gadget *)app->mainvlayout,
+//                  CurrentMainWindow, NULL, 1);
      /* just those wouldn't refresh automatically at palette change */
 
      // RefreshGList((struct Gadget *)app->colorPickerFgGadget,

@@ -29,7 +29,7 @@
 #include <proto/requester.h>
 #include <classes/requester.h>
 #include "compilers.h"
-
+#include "bdbprintf.h"
 #include <stdio.h>
 #include <string.h>
 // This is the intuition level Window, on OS3 it's recreated when iconizing/reopening !
@@ -263,6 +263,7 @@ static void BackFillHook_MonoColor(
                   bfm->bf_Bounds.MinY,
                   bfm->bf_Bounds.MaxX,
                   bfm->bf_Bounds.MaxY);
+
 }
 static struct Hook monoHook={{NULL,NULL},( ULONG (*)() )&BackFillHook_MonoColor,NULL,NULL};
 
@@ -383,6 +384,31 @@ static void BackFillHook_Pattern(
 }
 static struct Hook patternHook={{NULL,NULL},( ULONG (*)() )&BackFillHook_Pattern,NULL,NULL};
 
+
+/* Get value for WA_BackFill and GA_BackFill, return a Layer drawing hook casted as ULONG */
+ULONG BMainWindow_GetBackFillFromSettings(struct AppSettings *appSettings)
+{
+    ULONG backfill = NULL;
+
+    /* Load pattern bitmap now that the screen is known */
+    if (!appSettings->useOneColorBg && appSettings->bgImagePath)
+        LoadBgBitmap(appSettings->bgImagePath, CurrentMainScreen);
+    else
+        FreeBgBitmap();
+
+
+    if(appSettings->useOneColorBg)
+    {
+        backfill = (ULONG)&monoHook;
+    } else if(bgBitmap)
+    {
+        backfill = (ULONG)&patternHook;
+    }  /*  else backfill NULL, that means use the default BackFill pattern */
+
+
+    return backfill;
+}
+
 void BMainWindow_SwitchToFullScreen(struct BoopsiMainWindow *mw,Object *window_obj,struct AppSettings *appSettings)
 {
         int x1,y1,w,h;
@@ -462,34 +488,14 @@ the full-blown "new look" graphics. If you want the 3D embossed look,
 
     CurrentMainScreen = myScreen;
 
-    /* Load pattern bitmap now that the screen is known */
-    if (!appSettings->useOneColorBg && appSettings->bgImagePath)
-        LoadBgBitmap(appSettings->bgImagePath, CurrentMainScreen);
-    else
-        FreeBgBitmap();
-
-    /* reconfigure persistant boopsi window object while closed */
-
-
-    if(appSettings->useOneColorBg)
-    {
- 
-        backfill = (ULONG)&monoHook;
-    } else if(bgBitmap)
-    {
-        backfill = (ULONG)&patternHook;
-    } else
-    {
-        backfill = (ULONG)NULL; /* use the default BackFill pattern */
-    }
+    backfill = BMainWindow_GetBackFillFromSettings(appSettings);
     /* get screen dimension */
     x1 =0;
     y1 = myScreen->BarHeight;
     w = myScreen->Width;
     h = myScreen->Height - y1;
 
-
-
+    /* reconfigure persistant boopsi window object while closed */
     SetAttrs(window_obj,
         WA_CustomScreen,(ULONG)myScreen,
         WA_Borderless, TRUE,
@@ -543,6 +549,7 @@ the full-blown "new look" graphics. If you want the 3D embossed look,
 
 void BMainWindow_SwitchToWB(struct BoopsiMainWindow *mw,Object *window_obj,struct AppSettings *appSettings)
 {
+    ULONG backfill;
     if(!mw || !window_obj) return;
 
     PetsciiStyle_Release(&app->style );
@@ -584,67 +591,47 @@ void BMainWindow_SwitchToWB(struct BoopsiMainWindow *mw,Object *window_obj,struc
     //    );
     UpdatePensToCurrentMainScreen();
 
-    /* Load pattern bitmap now that the screen is known */
-    if (!appSettings->useOneColorBg && appSettings->bgImagePath)
-        LoadBgBitmap(appSettings->bgImagePath, CurrentMainScreen);
-    else
-        FreeBgBitmap();
+    backfill = BMainWindow_GetBackFillFromSettings(appSettings);
 
+    int x1,y1,w,h;
+    /* if dimension has been kept by settings or screen switch, recover them */
+    if(mw->width>0)
     {
-        ULONG lastTag,lastValue;
-        if(appSettings->useOneColorBg)
-        {
-            lastTag = WA_BackFill;
-            lastValue = (ULONG)&monoHook;
-        } else if(bgBitmap)
-        {
-            lastTag = WA_BackFill;
-            lastValue = (ULONG)&patternHook;
-        } else
-        {
-            lastTag = WA_BackFill;
-            lastValue = (ULONG)NULL; /* use the default BackFill pattern */
-        }
-
-        int x1,y1,w,h;
-        /* if dimension has been kept by settings or screen switch, recover them */
-        if(mw->width>0)
-        {
-            x1 = mw->left;
-            y1 = mw->top;
-            w = mw->width;
-            h = mw->height;
-        } else
-        {
-            /* else some default */
-            x1 = 40;
-            y1 = 40;
-            w = 320;
-            h= 240;
-        }
-
-        /* reconfigure persistant boopsi window object while closed */
-        SetAttrs(window_obj,
-            WA_CustomScreen,(ULONG)mw->lockedScreen,
-            WA_Borderless, FALSE,
-            WA_Backdrop,FALSE,
-            WA_Flags,WFLG_ACTIVATE | WFLG_SMART_REFRESH,
-
-           // WA_Flags, WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET | WFLG_SIZEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH,
-            WA_DragBar,TRUE,
-            WA_SizeGadget,TRUE,
-            WA_DepthGadget,TRUE,
-            WA_CloseGadget,TRUE,
-            WA_ReportMouse, TRUE,
-            WA_Title,(ULONG)&mw->title[0],
-            WINDOW_IconifyGadget, TRUE,
-            WA_Top,y1,
-            WA_Left,x1,
-            WA_Width,w,
-            WA_Height,h,
-            lastTag,lastValue,
-            TAG_END);
+        x1 = mw->left;
+        y1 = mw->top;
+        w = mw->width;
+        h = mw->height;
+    } else
+    {
+        /* else some default */
+        x1 = 40;
+        y1 = 40;
+        w = 320;
+        h= 240;
     }
+
+    /* reconfigure persistant boopsi window object while closed */
+    SetAttrs(window_obj,
+        WA_CustomScreen,(ULONG)mw->lockedScreen,
+        WA_Borderless, FALSE,
+        WA_Backdrop,FALSE,
+        WA_Flags,WFLG_ACTIVATE | WFLG_SMART_REFRESH,
+
+       // WA_Flags, WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET | WFLG_SIZEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH,
+        WA_DragBar,TRUE,
+        WA_SizeGadget,TRUE,
+        WA_DepthGadget,TRUE,
+        WA_CloseGadget,TRUE,
+        WA_ReportMouse, TRUE,
+        WA_Title,(ULONG)&mw->title[0],
+        WINDOW_IconifyGadget, TRUE,
+        WA_Top,y1,
+        WA_Left,x1,
+        WA_Width,w,
+        WA_Height,h,
+        WA_BackFill,backfill,
+        TAG_END);
+
 
     mw->fullscreen = FALSE;
 

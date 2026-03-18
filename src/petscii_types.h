@@ -35,7 +35,7 @@ typedef struct PetsciiPixel {
 #define PETSCII_CHARSET_SIZE 2048
 
 /* Maximum number of screens in a project */
-#define PETSCII_MAX_SCREENS 4
+#define PETSCII_MAX_SCREENS 64
 
 /* Maximum screen name length */
 #define PETSCII_NAME_LEN 64

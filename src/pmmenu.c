@@ -12,6 +12,7 @@
 #include <proto/gadtools.h>
 #include <libraries/gadtools.h>
 #include "PetsciiCanvas/petscii_canvas.h"  /* PCA_Brush, PCA_BrushRemoved */
+#include "petmate.h"
 
 extern struct Library *GadToolsBase;
 void cleanexit(const char *pmessage);
@@ -232,6 +233,9 @@ BOOL PmMenu_Create(PmMenu *pm, struct Screen *screen, struct Window *window,
         return FALSE;
     }
 
+    PmMenu_UpdateBrushMenu(&app->mainwindow.menu,
+        CurrentMainWindow, app->canvasGadget);
+
     if (!LayoutMenus(pm->menu, pm->visualInfo,
                      GTMN_NewLookMenus, TRUE,
                      TAG_END)) {
@@ -373,7 +377,7 @@ void PmMenu_UpdateBrushMenu(PmMenu *pm, struct Window *window, Object *canvasGad
         if (!item) continue;
         if (GTMENUITEM_USERDATA(item) != (APTR)ACTION_BRUSH_FLIP_X) continue;
 
-        /* Found it — update menu title and every item atomically.
+        /* Found it update menu title and every item atomically.
          * ClearMenuStrip/ResetMenuStrip is required while modifying flags
          * on a menu already attached to a window. */
         ClearMenuStrip(window);

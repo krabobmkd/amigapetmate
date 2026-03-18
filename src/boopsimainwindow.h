@@ -58,6 +58,9 @@ void BMainWindow_GetWindowPos(struct BoopsiMainWindow *mw,Object *window_obj);
 /* at iconify or quitting */
 void BMainWindow_Close(struct BoopsiMainWindow *mw,Object *window_obj, int iconify);
 
+/* Get value for WA_BackFill and GA_BackFill, return a Layer drawing hook casted as ULONG */
+ULONG BMainWindow_GetBackFillFromSettings(struct AppSettings *appSettings);
+
 /* Intuition level Window */
 extern struct Window *CurrentMainWindow;
 

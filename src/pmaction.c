@@ -80,7 +80,7 @@ static ULONG pmRand(ULONG n)
 // }
 
 
-//extern void RefreshAllColorGadgets();
+extern void RefreshAllColorGadgets();
 static void rebuildMenuIfPossible(PmActionContext *ctx);
 /* - - - Apply a new palette to the style and update the menu checkmark - - - */
 
@@ -100,8 +100,7 @@ void PmAction_ApplyPalette(PmActionContext *ctx, UBYTE paletteID)
     if (sty) {
         PetsciiStyle_Init(sty, paletteID);
         PetsciiStyle_Apply(sty, CurrentMainScreen);
-        //RefreshAllColorGadgets();
-        refreshUI();
+        RefreshAllColorGadgets();
     }
 
     if (ctx->pmenu && CurrentMainWindow) {
@@ -1064,14 +1063,14 @@ BOOL Action_GenerateRandomFromBrush(PmActionContext *ctx)
 static UBYTE charlinelinks[16]={
 	32, // (empty char)
 	33, // CLINK_UP  (terminate line)
-	32, // CLINK_DOWN (terminate line)
+	58, // CLINK_DOWN (terminate line)
 	66, // CLINK_UP|CLINK_DOWN
-	32, // CLINK_LEFT (terminate line)
+	45, // CLINK_LEFT (terminate line)
 	75, // CLINK_LEFT|CLINK_UP
 	73, // CLINK_LEFT|CLINK_DOWN
 	115, // CLINK_LEFT|CLINK_UP|CLINK_DOWN
 
-	32, // CLINK_RIGHT (terminate line)
+	45, // CLINK_RIGHT (terminate line)
 	74, // CLINK_RIGHT|CLINK_UP
 	85, // CLINK_RIGHT|CCLINK_DOWN
 	107, // CLINK_RIGHT|CCLINK_UP|CLINK_DOWN
@@ -1354,7 +1353,7 @@ static void mlFractal(PetsciiScreen *scr, UBYTE *connMap,
 }
 
 /* ----------------------------------------------------------------------- *
- * Algorithm D — Tron light-cycle trajectories (Action_GenerateTronLines)  *
+ * Algorithm D Tron light-cycle trajectories (Action_GenerateTronLines)  *
  *                                                                          *
  * Four players start from the four screen corners heading inward.          *
  * Each moves straight and turns 90 degrees (left or right) after a random  *
