@@ -1,0 +1,871 @@
+@database PetMate.guide
+@master PetMate.guide
+@width 72
+
+@node MAIN "PetMate for AmigaOS - User Guide"
+
+@{b}PetMate for AmigaOS 3.x@{ub}
+@{b}PETSCII Art Editor@{ub}
+
+                        User Manual
+
+  PetMate is a PETSCII art editor for AmigaOS 3.x, ported from the
+  original open-source Petmate project. It lets you create and edit
+  character-based artwork using the Commodore 64 PETSCII character
+  set, with export to multiple formats including native C64 programs.
+
+  @{" Introduction        " link INTRO}       What is PetMate?
+  @{" Interface Overview  " link INTERFACE}   The main window layout
+  @{" Drawing Tools       " link TOOLS}       The five drawing modes
+  @{" Color Palettes      " link PALETTES}    C64 color palette options
+  @{" Brush Operations    " link BRUSH}       Lasso, transform, and use
+  @{" Screen Management   " link SCREENS}     Working with multiple screens
+  @{" Generate Menu       " link GENERATE}    Procedural content generation
+  @{" Menus Reference     " link MENUS}       Complete menu reference
+  @{" Keyboard Shortcuts  " link KEYS}        All keyboard shortcuts
+  @{" Export Formats      " link EXPORT}      Exporting your artwork
+  @{" Import              " link IMPORT}      Importing images
+  @{" File Format         " link FORMAT}      The .petmate project format
+  @{" Credits             " link CREDITS}     Authors and licenses
+
+@endnode
+
+
+@node INTRO "Introduction"
+
+@{b}Introduction@{ub}
+
+  PetMate is a PETSCII art editor running natively on AmigaOS 3.x.
+  PETSCII (PET Standard Code of Information Interchange) is the
+  character set used by Commodore 8-bit computers, most famously
+  the Commodore 64.
+
+  The original Petmate was written in TypeScript/React for desktop
+  operating systems. This Amiga port is written in C89 using the
+  BOOPSI and ReAction GUI toolkits native to AmigaOS.
+
+  @{b}Features at a glance:@{ub}
+
+    - Five drawing tools: Draw, Colorize, CharDraw, Brush, Text
+    - Full 16-color C64 palette with four palette variants
+    - Lasso brush with rotate and mirror transforms
+    - Up to 64 screens per project
+    - Undo / Redo
+    - Procedural generation: Random Brush, Magic Line, Tron Lines
+    - Export to IFF ILBM, GIF, C64 BASIC, ASM, and PRG files
+    - Import images and convert them to PETSCII
+    - Project files in .petmate JSON format (cross-platform)
+
+  @{" Back to Contents " link MAIN}
+
+@endnode
+
+
+@node INTERFACE "Interface Overview"
+
+@{b}Interface Overview@{ub}
+
+  The main window is divided into several areas:
+
+  @{b}Canvas (center)@{ub}
+    The main editing area showing the current screen. Each cell
+    displays a PETSCII character with its foreground color on the
+    current background color. Click or drag to draw.
+
+  @{b}Left Toolbar@{ub}
+    Vertical strip of tool buttons along the left edge:
+
+      Draw      - Select the Draw tool (F1)
+      Colorize  - Select the Colorize tool (F2)
+      CharDraw  - Select the CharDraw tool (F3)
+      Brush     - Select the Lasso Brush tool (F4)
+      Text      - Select the Text tool (F5)
+      Undo      - Undo last change
+      Redo      - Redo last undone change
+      Clear     - Clear the current screen
+
+  @{b}Color Picker@{ub}
+    Displays all 16 C64 colors from the active palette. Click a
+    color to select it as the active foreground color. A separate
+    indicator shows the current background color.
+
+  @{b}Character Selector@{ub}
+    A 16x16 grid showing all 256 PETSCII characters from the
+    active charset (upper or lower). Click a character to select
+    it as the active drawing character.
+
+  @{b}Screen Carousel@{ub}
+    A vertical strip of thumbnail previews, one per screen in the
+    project. Click a thumbnail to switch to that screen. The
+    current screen is highlighted.
+
+  @{b}Status Bar@{ub}
+    Displays feedback messages and operation status at the bottom
+    of the window.
+
+  @{b}Grid Overlay@{ub}
+    An optional pixel grid can be toggled on/off to help with
+    precise character placement (View menu or G key).
+
+  @{" Back to Contents " link MAIN}
+
+@endnode
+
+
+@node TOOLS "Drawing Tools"
+
+@{b}Drawing Tools@{ub}
+
+  PetMate has five drawing tools selected via the Edit menu or
+  function keys. The active tool determines what happens when you
+  click or drag on the canvas.
+
+  ---------------------------------------------------------------
+
+  @{b}Draw  (F1)@{ub}
+
+    The standard drawing tool. Clicking a canvas cell places the
+    currently selected character AND applies the currently selected
+    foreground color. Both character and color are changed.
+
+    This is the most commonly used tool for building PETSCII art
+    from scratch.
+
+  ---------------------------------------------------------------
+
+  @{b}Colorize  (F2)@{ub}
+
+    Applies the current foreground color to cells without changing
+    the character already in those cells. Use this to repaint
+    areas of the canvas with a different color while preserving
+    the characters.
+
+  ---------------------------------------------------------------
+
+  @{b}CharDraw  (F3)@{ub}
+
+    Places the currently selected character without changing the
+    existing color of the cell. The character is updated but the
+    foreground color of each cell is kept. Useful for laying out
+    structure while preserving a color scheme.
+
+  ---------------------------------------------------------------
+
+  @{b}Lasso Brush  (F4)@{ub}
+
+    Click and drag to select a rectangular region of the canvas.
+    The selection becomes the active @{"brush" link BRUSH}. Once a brush is
+    captured, clicking elsewhere on the canvas stamps a copy of
+    the brush at that position.
+
+    While a brush is active, the Brush menu becomes available,
+    offering flip and rotate transforms.
+
+  ---------------------------------------------------------------
+
+  @{b}Text  (F5)@{ub}
+
+    Places the cursor on the canvas and allows direct keyboard
+    text entry. Characters typed are placed using the current
+    foreground color. The cursor advances automatically after
+    each character.
+
+  ---------------------------------------------------------------
+
+  @{" Brush Operations " link BRUSH}
+  @{" Back to Contents " link MAIN}
+
+@endnode
+
+
+@node BRUSH "Brush Operations"
+
+@{b}Brush Operations@{ub}
+
+  A brush is a rectangular block of PETSCII cells captured from
+  the canvas using the Lasso Brush tool (F4). It remembers both
+  the characters and the colors of the captured region.
+
+  @{b}Capturing a Brush@{ub}
+
+    1. Select the Lasso Brush tool (F4 or Edit > Draw 4).
+    2. Click and drag on the canvas to draw a selection rectangle.
+    3. Release the mouse button. The selected area is now the
+       active brush.
+
+  @{b}Stamping a Brush@{ub}
+
+    With an active brush, click anywhere on the canvas to stamp
+    a copy of the brush at that position. The brush respects the
+    active drawing tool:
+
+      Draw mode     - places characters AND colors from brush
+      Colorize mode - places colors only from brush
+      CharDraw mode - places characters only from brush
+
+  @{b}Brush Transforms@{ub}
+
+    Once a brush is captured the Brush menu becomes enabled.
+    The following transforms are available:
+
+      @{b}Flip X@{ub}       Mirror the brush horizontally (left becomes right)
+      @{b}Flip Y@{ub}       Mirror the brush vertically (top becomes bottom)
+      @{b}Rotate 90 CW@{ub}  Rotate the brush 90 degrees clockwise
+      @{b}Rotate 180@{ub}   Rotate the brush 180 degrees
+      @{b}Rotate 90 CCW@{ub} Rotate the brush 90 degrees counter-clockwise
+
+    Note: rotations also remap characters to their correct
+    orientation equivalents (e.g. a corner piece facing one
+    direction is swapped for the matching corner facing the
+    rotated direction).
+
+  @{b}Random Brush Fill@{ub}
+
+    Generate > Random Brush fills the entire screen with randomly
+    selected cells from the active brush. If no brush is active,
+    diagonal half-block characters are used instead. The fill
+    respects the current drawing tool mode.
+
+  @{" Drawing Tools    " link TOOLS}
+  @{" Back to Contents " link MAIN}
+
+@endnode
+
+
+@node PALETTES "Color Palettes"
+
+@{b}Color Palettes@{ub}
+
+  The C64 has a fixed set of 16 colors. Different emulators and
+  hardware revisions render these colors slightly differently.
+  PetMate offers four palette variants that correspond to popular
+  reference standards.
+
+  Select a palette from the Palette menu. The active palette is
+  shown with a checkmark.
+
+  ---------------------------------------------------------------
+
+  @{b}Petmate@{ub}  (default)
+
+    The default palette used by the original Petmate editor.
+    A well-balanced general-purpose C64 palette.
+
+  @{b}Colodore@{ub}
+
+    The Colodore palette, widely regarded as a physically accurate
+    model of the C64's VIC-II color output based on measurement.
+
+  @{b}Pepto@{ub}
+
+    The Pepto palette, another measurement-based palette by Tobias
+    Gubber, commonly used as a reference in emulation.
+
+  @{b}VICE@{ub}
+
+    The palette used by the VICE Commodore emulator.
+
+  ---------------------------------------------------------------
+
+  @{b}The 16 C64 Colors@{ub}
+
+    Index  Name
+    -----  ----------
+      0    Black
+      1    White
+      2    Red
+      3    Cyan
+      4    Purple
+      5    Green
+      6    Blue
+      7    Yellow
+      8    Orange
+      9    Brown
+     10    Light Red
+     11    Dark Grey
+     12    Grey
+     13    Light Green
+     14    Light Blue
+     15    Light Grey
+
+  Each character cell has an independent foreground color. The
+  background color and border color are shared across the screen.
+
+  @{" Back to Contents " link MAIN}
+
+@endnode
+
+
+@node SCREENS "Screen Management"
+
+@{b}Screen Management@{ub}
+
+  A PetMate project can contain up to 64 screens. Each screen is
+  an independent 40x25 character canvas with its own background
+  color, border color, and character set selection.
+
+  Screens are managed from the Screen menu and the on-screen
+  carousel.
+
+  @{b}Navigating Screens@{ub}
+
+    Previous Screen   [ key or Screen > Previous Screen
+    Next Screen       ] key or Screen > Next Screen
+
+    Clicking a thumbnail in the screen carousel also navigates
+    directly to that screen.
+
+  @{b}Adding and Removing Screens@{ub}
+
+    Add Screen      Appends a new blank screen after the current one.
+    Clone Screen    Appends a copy of the current screen.
+    Remove Screen   Deletes the current screen. Cannot remove the
+                    last remaining screen in a project.
+
+  @{b}Copy and Paste Screens@{ub}
+
+    Edit > Copy Screen   Copies the entire current screen to an
+                         internal clipboard.
+    Edit > Paste Screen  Replaces the current screen with the
+                         clipboard contents.
+
+  @{b}Shifting Screen Content@{ub}
+
+    The content of the canvas can be shifted one character at a
+    time in any direction. Cells that move off one edge wrap
+    around to the opposite edge.
+
+    Edit > Shift Left
+    Edit > Shift Right
+    Edit > Shift Up
+    Edit > Shift Down
+
+  @{" Back to Contents " link MAIN}
+
+@endnode
+
+
+@node GENERATE "Generate Menu"
+
+@{b}Generate Menu@{ub}
+
+  The Generate menu provides three procedural content generators
+  that fill the current screen with algorithmically created
+  patterns. They are useful as starting points for artwork or to
+  quickly fill backgrounds.
+
+  ---------------------------------------------------------------
+
+  @{b}Random Brush@{ub}
+
+    Fills the entire screen with randomly selected cells drawn
+    from the active brush. The fill mode follows the active tool:
+
+      Draw      - places random characters AND colors from brush
+      Colorize  - places random colors only from brush
+      CharDraw  - places random characters only from brush
+
+    If no brush is captured, the fill uses a random selection of
+    diagonal half-block characters.
+
+  ---------------------------------------------------------------
+
+  @{b}Magic Line@{ub}
+
+    Draws continuous worm-like paths across the screen using
+    PETSCII line-drawing characters. Three algorithms are cycled
+    through on successive invocations:
+
+      @{b}Algorithm A - Random Worm@{ub}
+        A worm walks across the screen, changing direction
+        approximately 20% of the time. Creates flowing, organic
+        line traces.
+
+      @{b}Algorithm B - Reconnecting Worm@{ub}
+        Similar to Algorithm A but with a homing bias: 40% of
+        steps are influenced toward the starting position. Creates
+        closed loops and figure-of-eight patterns.
+
+      @{b}Algorithm C - Fractal Quad-Cross@{ub}
+        A recursive fractal algorithm that generates symmetric
+        cross and branching patterns.
+
+    Junction characters are automatically selected to correctly
+    represent corners, T-junctions, and straight segments.
+
+  ---------------------------------------------------------------
+
+  @{b}Tron Lines@{ub}
+
+    Inspired by the light cycles from the film Tron. Four
+    players begin at random positions on the screen and travel
+    in straight lines, turning 90 degrees at random intervals
+    of 2 to 7 steps. A player is eliminated when it has no
+    free cells to move into.
+
+    Crossing paths automatically generate the correct junction
+    characters where lines intersect.
+
+  ---------------------------------------------------------------
+
+  @{" Back to Contents " link MAIN}
+
+@endnode
+
+
+@node MENUS "Menus Reference"
+
+@{b}Menus Reference@{ub}
+
+  @{" Project Menu  " link MENU_PROJECT}
+  @{" Edit Menu     " link MENU_EDIT}
+  @{" Screen Menu   " link MENU_SCREEN}
+  @{" View Menu     " link MENU_VIEW}
+  @{" Generate Menu " link MENU_GENERATE}
+  @{" Brush Menu    " link MENU_BRUSH}
+  @{" Palette Menu  " link MENU_PALETTE}
+
+  @{" Back to Contents " link MAIN}
+
+@endnode
+
+
+@node MENU_PROJECT "Project Menu"
+
+@{b}Project Menu@{ub}
+
+  @{b}New@{ub}  (Ctrl+N)
+    Close the current project and start a new blank project with
+    a single empty screen. Unsaved changes are discarded.
+
+  @{b}Open...@{ub}  (Ctrl+O)
+    Open a .petmate project file using the system file requester.
+
+  @{b}Save@{ub}  (Ctrl+S)
+    Save the project to its current file path. If the project has
+    not been saved before, prompts for a file name.
+
+  @{b}Save As...@{ub}  (Ctrl+A)
+    Save the project to a new file path chosen via the file
+    requester.
+
+  @{b}Open Recent@{ub}
+    Submenu listing the four most recently opened project files.
+    Click an entry to open that file directly.
+
+  @{b}Export As@{ub}
+    Submenu for exporting the current screen. See @{"Export Formats" link EXPORT}.
+
+  @{b}Import@{ub}
+    Submenu for importing external files. See @{"Import" link IMPORT}.
+
+  @{b}Iconify@{ub}
+    Minimise the application window to an AppIcon on the Workbench.
+
+  @{b}About@{ub}
+    Display version and copyright information.
+
+  @{b}Quit@{ub}  (Q)
+    Exit PetMate.
+
+  @{" Back to Menus " link MENUS}
+
+@endnode
+
+
+@node MENU_EDIT "Edit Menu"
+
+@{b}Edit Menu@{ub}
+
+  @{b}Draw 1@{ub}  (F1)
+    Activate the Draw tool. Places characters and colors.
+
+  @{b}Draw 2@{ub}  (F2)
+    Activate the Colorize tool. Changes colors only.
+
+  @{b}Draw 3@{ub}  (F3)
+    Activate the CharDraw tool. Places characters only.
+
+  @{b}Draw 4@{ub}  (F4)
+    Activate the Lasso Brush tool. Capture and stamp brushes.
+
+  @{b}Draw 5@{ub}  (F5)
+    Activate the Text tool. Type text directly onto the canvas.
+
+  @{b}Undo@{ub}  (Z)
+    Undo the last edit operation. PetMate maintains a circular
+    buffer of screen snapshots.
+
+  @{b}Redo@{ub}  (Y)
+    Redo the last undone operation.
+
+  @{b}Copy Screen@{ub}
+    Copy the entire current screen to the internal clipboard.
+
+  @{b}Paste Screen@{ub}
+    Replace the current screen with the contents of the internal
+    clipboard.
+
+  @{b}Clear Screen@{ub}
+    Fill the entire screen with the current border color, removing
+    all characters and resetting cell colors.
+
+  @{b}Shift Left@{ub}
+    Shift all screen content one character to the left. Content
+    that moves off the left edge wraps to the right.
+
+  @{b}Shift Right@{ub}
+    Shift all screen content one character to the right.
+
+  @{b}Shift Up@{ub}
+    Shift all screen content one character upward. Content that
+    moves off the top wraps to the bottom.
+
+  @{b}Shift Down@{ub}
+    Shift all screen content one character downward.
+
+  @{" Back to Menus " link MENUS}
+
+@endnode
+
+
+@node MENU_SCREEN "Screen Menu"
+
+@{b}Screen Menu@{ub}
+
+  @{b}Add Screen@{ub}
+    Append a new blank screen to the project after the current
+    screen and navigate to it.
+
+  @{b}Clone Screen@{ub}
+    Append an exact copy of the current screen and navigate to it.
+
+  @{b}Remove Screen@{ub}
+    Delete the current screen from the project. This action cannot
+    be performed if the project contains only one screen.
+
+  @{b}Previous Screen@{ub}  ([)
+    Navigate to the preceding screen in the project.
+
+  @{b}Next Screen@{ub}  (])
+    Navigate to the following screen in the project.
+
+  @{" Back to Menus " link MENUS}
+
+@endnode
+
+
+@node MENU_VIEW "View Menu"
+
+@{b}View Menu@{ub}
+
+  @{b}Toggle Grid@{ub}  (G)
+    Show or hide a pixel grid overlay on the canvas. The grid
+    draws lines around each character cell boundary to assist
+    with precise alignment.
+
+  @{b}Charset Upper@{ub}
+    Switch the character selector and canvas rendering to the
+    PETSCII uppercase character set.
+
+  @{b}Charset Lower@{ub}
+    Switch to the PETSCII lowercase character set.
+
+  @{b}Toggle Full Screen@{ub}  (F10)
+    Toggle between windowed and full-screen display modes.
+
+  @{b}Open Settings@{ub}  (P)
+    Open the project settings window where screen dimensions and
+    other project-level properties can be configured.
+
+  @{" Back to Menus " link MENUS}
+
+@endnode
+
+
+@node MENU_GENERATE "Generate Menu"
+
+@{b}Generate Menu@{ub}
+
+  See the @{"Generate" link GENERATE} section for full descriptions.
+
+  @{b}Random Brush@{ub}
+    Fill the screen with random cells drawn from the active brush.
+
+  @{b}Magic Line@{ub}
+    Draw algorithmic worm-path line art across the screen.
+
+  @{b}Tron Lines@{ub}
+    Generate Tron-style light-cycle corridor patterns.
+
+  @{" Back to Menus " link MENUS}
+
+@endnode
+
+
+@node MENU_BRUSH "Brush Menu"
+
+@{b}Brush Menu@{ub}
+
+  The Brush menu is only active when a brush has been captured
+  with the Lasso Brush tool. See @{"Brush Operations" link BRUSH}.
+
+  @{b}Flip X@{ub}
+    Mirror the active brush horizontally (left-right).
+
+  @{b}Flip Y@{ub}
+    Mirror the active brush vertically (top-bottom).
+
+  @{b}Rotate 90 CW@{ub}
+    Rotate the active brush 90 degrees clockwise.
+
+  @{b}Rotate 180@{ub}
+    Rotate the active brush 180 degrees.
+
+  @{b}Rotate 90 CCW@{ub}
+    Rotate the active brush 90 degrees counter-clockwise.
+
+  @{" Back to Menus " link MENUS}
+
+@endnode
+
+
+@node MENU_PALETTE "Palette Menu"
+
+@{b}Palette Menu@{ub}
+
+  Select the active C64 color palette. A checkmark indicates the
+  currently active palette. See @{"Color Palettes" link PALETTES} for details.
+
+  @{b}Petmate@{ub}     The original Petmate palette (default)
+  @{b}Colodore@{ub}    Measurement-based physically accurate palette
+  @{b}Pepto@{ub}       Pepto's measurement-based reference palette
+  @{b}VICE@{ub}        The palette used by the VICE emulator
+
+  @{" Back to Menus " link MENUS}
+
+@endnode
+
+
+@node KEYS "Keyboard Shortcuts"
+
+@{b}Keyboard Shortcuts@{ub}
+
+  @{b}File Operations@{ub}
+
+    Ctrl+N    New project
+    Ctrl+O    Open project
+    Ctrl+S    Save project
+    Ctrl+A    Save As
+    Q         Quit
+
+  @{b}Drawing Tools@{ub}
+
+    F1        Draw tool
+    F2        Colorize tool
+    F3        CharDraw tool
+    F4        Lasso Brush tool
+    F5        Text tool
+
+  @{b}Editing@{ub}
+
+    Z         Undo
+    Y         Redo
+
+  @{b}Screen Navigation@{ub}
+
+    [         Previous screen
+    ]         Next screen
+
+  @{b}View@{ub}
+
+    G         Toggle grid overlay
+    P         Open settings
+    F10       Toggle full screen
+
+  @{" Back to Contents " link MAIN}
+
+@endnode
+
+
+@node EXPORT "Export Formats"
+
+@{b}Export Formats@{ub}
+
+  PetMate can export the current screen to several formats via
+  Project > Export As. A file requester will ask for the output
+  file path and name.
+
+  ---------------------------------------------------------------
+
+  @{b}IFF ILBM  (.ilbm)@{ub}
+
+    Exports as an Amiga IFF ILBM image file with 4 bitplanes
+    (16 colors). The CMAP chunk contains the active palette
+    colors. The image is 320x200 pixels (or 384x272 with the
+    optional C64 border). This format can be opened directly by
+    most Amiga image viewers and paint programs.
+
+  ---------------------------------------------------------------
+
+  @{b}GIF  (.gif)@{ub}
+
+    Exports as a GIF87a image with a 16-color global color map
+    matching the active palette. The image is 320x200 pixels
+    (or 384x272 with the C64 border). Suitable for sharing on
+    modern systems.
+
+  ---------------------------------------------------------------
+
+  @{b}BASIC  (.bas)@{ub}
+
+    Exports a BASIC source text file containing DATA statements
+    with the screen codes and color values for each row of the
+    screen. The file can be loaded into a C64 and used in a
+    BASIC program with POKE statements to display the image.
+
+  ---------------------------------------------------------------
+
+  @{b}ASM  (.asm)@{ub}
+
+    Exports an ACME assembler source file with @{b}!byte@{ub} directives
+    and labels. The data is laid out as screen character data
+    and color RAM data, ready for inclusion in a 6510 assembly
+    project.
+
+  ---------------------------------------------------------------
+
+  @{b}PRG BASIC  (.prg)@{ub}
+
+    Exports a ready-to-run Commodore 64 program file. The PRG
+    contains a minimal BASIC stub (SYS) that jumps to machine
+    code which copies the screen and color data to the C64
+    display memory, then stops. Load and RUN it on a real C64
+    or in an emulator.
+
+  ---------------------------------------------------------------
+
+  @{b}PRG ASM  (.prg)@{ub}
+
+    Exports a ready-to-run Commodore 64 program file with a
+    pure machine code loader (no BASIC). The PRG copies the
+    screen and color RAM data to the C64 display memory.
+
+  ---------------------------------------------------------------
+
+  @{b}Image dimensions@{ub}
+
+    Standard:  320 x 200 pixels  (40 x 25 characters at 8x8)
+    Bordered:  384 x 272 pixels  (with 8-pixel C64 border strips)
+
+  @{" Import          " link IMPORT}
+  @{" Back to Contents " link MAIN}
+
+@endnode
+
+
+@node IMPORT "Import"
+
+@{b}Import@{ub}
+
+  PetMate can import an existing image and automatically convert
+  it to a PETSCII representation.
+
+  @{b}Project > Import > Image@{ub}
+
+    Opens a file requester. Select an image file to import.
+
+    @{b}Supported image formats:@{ub}
+      PNG, GIF, BMP, IFF, ILBM, JPG, JPEG
+
+    The importer uses the Amiga picture.datatype system to load
+    the image. This requires datatypes.library version 40 or
+    higher (AmigaOS 3.5 or later, or an equivalent third-party
+    datatype installation).
+
+    @{b}Supported input dimensions:@{ub}
+      320 x 200  (borderless C64 screen)
+      384 x 272  (C64 screen with 8-pixel border)
+
+    @{b}Conversion process:@{ub}
+
+      1. The image is loaded via picture.datatype.
+      2. The image is quantised to the 16-color C64 palette.
+      3. All 16 possible background colors are tried in turn to
+         find the combination that best reproduces the original
+         image in PETSCII.
+      4. The resulting 40x25 screen is inserted as the current
+         screen.
+
+    The quality of the conversion depends strongly on whether
+    the source image was originally created as PETSCII art or
+    is a screenshot of C64 output. Photographic images will
+    produce approximate results.
+
+  @{" Export Formats  " link EXPORT}
+  @{" Back to Contents " link MAIN}
+
+@endnode
+
+
+@node FORMAT "File Format"
+
+@{b}File Format@{ub}
+
+  PetMate projects are saved as @{b}.petmate@{ub} files. These are plain
+  JSON text files compatible with the original Petmate editor on
+  Windows, macOS, and Linux.
+
+  @{b}Contents of a .petmate file:@{ub}
+
+    - All screens in the project (up to 64)
+    - For each screen: the character code and color for every
+      cell, plus background color, border color, and charset
+    - The active palette selection
+    - Project metadata
+
+  @{b}Screen dimensions:@{ub}
+
+    The default screen size is 40 x 25 characters (the standard
+    C64 text screen). The settings window allows other dimensions
+    up to 80 x 50 characters for non-standard use.
+
+  Because the format is plain JSON it can be inspected and edited
+  with any text editor, and projects created on any platform can
+  be opened on the Amiga without conversion.
+
+  @{" Back to Contents " link MAIN}
+
+@endnode
+
+
+@node CREDITS "Credits"
+
+@{b}Credits@{ub}
+
+  @{b}PetMate for AmigaOS@{ub}
+    Amiga port in C89 with BOOPSI and ReAction.
+
+  @{b}Original Petmate@{ub}
+    Written in TypeScript/React by Hannu Hartikainen (nurpax)
+    https://github.com/nurpax/petmate
+
+  @{b}Petmate 9@{ub}
+    Extended version by wbochar
+    https://github.com/wbochar/petmate9
+
+  @{b}Third-party libraries:@{ub}
+    cJSON   - JSON parser (Amiga fork)
+    giflib  - GIF image writing
+
+  @{b}Palette references:@{ub}
+    Colodore palette by pepto & others
+    Pepto palette by Tobias Gubber
+    VICE palette from the VICE emulator project
+
+  This software is released under the terms of its open-source
+  license. See the LICENSE file in the distribution for details.
+
+  @{" Back to Contents " link MAIN}
+
+@endnode
