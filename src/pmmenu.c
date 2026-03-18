@@ -104,7 +104,10 @@ static void buildMenuTemplate(const AppSettings *as)
         BAR(NM_SUB);
         ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_BAS);
         ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_ASM);
-        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_SEQ);
+/*doesnt work        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_SEQ); */
+        BAR(NM_SUB);
+        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_PRG_BAS);
+        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_PRG_ASM);
     ADD(NM_ITEM, (STRPTR)"Import", 0, 0, 0, 0);
         ADD(NM_SUB, NULL, 0, 0, 0, ACTION_IMPORT_IMAGE);
     BAR(NM_ITEM);

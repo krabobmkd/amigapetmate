@@ -172,6 +172,11 @@ static const char *defaultStrings[MSG_COUNT] = {
     /* MSG_EXPORT_SEQ */
     "Export as SEQ (.seq)...",
 
+    /* MSG_EXPORT_PRG_BAS */
+    "Export PRG with BASIC (.prg)...",
+    /* MSG_EXPORT_PRG_ASM */
+    "Export PRG from ASM (.prg)...",
+
     /*  */
     "Export IFF image (.ilbm)...",
     /*  */

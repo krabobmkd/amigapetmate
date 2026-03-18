@@ -37,4 +37,20 @@ int PetsciiExport_SaveASM(const PetsciiScreen *scr, const char *path);
  */
 int PetsciiExport_SaveSEQ(const PetsciiScreen *scr, const char *path);
 
+/*
+ * Export as a standalone C64 PRG binary (.prg).
+ * Self-contained executable: BASIC SYS stub + 6510 loader machine code +
+ * inline screen data.  Only standard 40x25 screens are supported.
+ * Returns PETSCII_EXPORT_EOPEN if the screen is not 40x25.
+ */
+int PetsciiExport_SavePrgASM(const PetsciiScreen *scr, const char *path);
+
+/*
+ * Export as a C64 BASIC PRG binary (.prg).
+ * Produces a tokenized C64 BASIC 2.0 program (load address $0801) that
+ * POKEs colors, then READs screen codes and color values from DATA lines.
+ * Works with any screen dimensions (variables match totalCells).
+ */
+int PetsciiExport_SavePrgBAS(const PetsciiScreen *scr, const char *path);
+
 #endif /* PETSCII_EXPORT_H */

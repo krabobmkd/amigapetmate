@@ -100,6 +100,8 @@ set(PETMATE_EXPORT_SOURCES
     petscii_export_bas.c
     petscii_export_asm.c
     petscii_export_seq.c
+    petscii_export_prg_asm.c
+    petscii_export_prg_bas.c
     petscii_export_ilbm.c
     petscii_export_gif.c
 #does not work    petscii_export_datatype.c

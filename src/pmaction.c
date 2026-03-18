@@ -267,6 +267,7 @@ BOOL Action_ProjectSave(PmActionContext *ctx)
 BOOL Action_ProjectSaveAs(PmActionContext *ctx)
 {
     char *pathbuf;
+    char *actualPath;
     int   err;
 
     if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
@@ -274,7 +275,11 @@ BOOL Action_ProjectSaveAs(PmActionContext *ctx)
     pathbuf = aslFileRequest(TRUE);
     if (!pathbuf) return FALSE; /* user cancelled */
 
-    err = PetsciiFileIO_Save(*ctx->pproject, pathbuf);
+    actualPath = PmStr_WithExt(pathbuf, ".petmate");
+    if (!actualPath) return PETSCII_FILEIO_EALLOC;
+
+
+    err = PetsciiFileIO_Save(*ctx->pproject, actualPath);
 
     SetStatusBarMessage(
         (err == MSG_PETSCII_FILEIO_OK)?MSG_PETSCII_FILEIO_WRITEOK:
@@ -282,9 +287,10 @@ BOOL Action_ProjectSaveAs(PmActionContext *ctx)
         );
 
     if (err == PETSCII_FILEIO_OK && app) {
-        AppSettings_AddRecentFile(&app->appSettings, pathbuf);
+        AppSettings_AddRecentFile(&app->appSettings, actualPath);
         rebuildMenuIfPossible(ctx);
     }
+    PmStr_Free(actualPath);
     PmStr_Free(pathbuf);
     return TRUE;
 }
@@ -792,6 +798,55 @@ BOOL Action_ExportSEQ(PmActionContext *ctx)
     SetStatusBarMessage(ok ? MSG_PETSCII_FILEIO_WRITEOK : MSG_PETSCII_FILEIO_EWRITE);
     return ok;
 }
+
+BOOL Action_ExportPrgBAS(PmActionContext *ctx)
+{
+    char          *rawpath;
+    char          *pathbuf;
+    PetsciiScreen *scr;
+    BOOL           ok;
+
+    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+    scr = PetsciiProject_GetCurrentScreen(*ctx->pproject);
+    if (!scr) return FALSE;
+
+    rawpath = aslExportRequest("Export PRG with BASIC (.prg)", "#?.prg");
+    if (!rawpath) return FALSE;
+
+    pathbuf = PmStr_WithExt(rawpath, ".prg");
+    PmStr_Free(rawpath);
+    if (!pathbuf) return FALSE;
+
+    ok = (BOOL)(PetsciiExport_SavePrgBAS(scr, pathbuf) == PETSCII_EXPORT_OK);
+    PmStr_Free(pathbuf);
+    SetStatusBarMessage(ok ? MSG_PETSCII_FILEIO_WRITEOK : MSG_PETSCII_FILEIO_EWRITE);
+    return ok;
+}
+
+BOOL Action_ExportPrgASM(PmActionContext *ctx)
+{
+    char          *rawpath;
+    char          *pathbuf;
+    PetsciiScreen *scr;
+    BOOL           ok;
+
+    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+    scr = PetsciiProject_GetCurrentScreen(*ctx->pproject);
+    if (!scr) return FALSE;
+
+    rawpath = aslExportRequest("Export PRG from ASM (.prg)", "#?.prg");
+    if (!rawpath) return FALSE;
+
+    pathbuf = PmStr_WithExt(rawpath, ".prg");
+    PmStr_Free(rawpath);
+    if (!pathbuf) return FALSE;
+
+    ok = (BOOL)(PetsciiExport_SavePrgASM(scr, pathbuf) == PETSCII_EXPORT_OK);
+    PmStr_Free(pathbuf);
+    SetStatusBarMessage(ok ? MSG_PETSCII_FILEIO_WRITEOK : MSG_PETSCII_FILEIO_EWRITE);
+    return ok;
+}
+
 extern struct Library *DataTypesBase;
 int PetsciiExport_SaveDatatype(const PetsciiScreen *scr, const char *filename, int exportDTFenum);
 
@@ -1076,7 +1131,7 @@ static UBYTE charlinelinks[16]={
 
 
 /* =======================================================================
- * Magic Line — common infrastructure
+ * Magic Line ï¿½ common infrastructure
  *
  * connMap: a UBYTE array parallel to scr->framebuf.
  *   0x00        cell is empty (code==32), available for drawing.
@@ -1119,7 +1174,7 @@ static BOOL mlPlace(PetsciiScreen *scr, UBYTE *connMap,
 }
 
 /* ----------------------------------------------------------------------- *
- * Algorithm A — Random worm walk                                           *
+ * Algorithm A ï¿½ Random worm walk                                           *
  *                                                                          *
  * Multiple short worms start at random empty cells and wander freely,     *
  * changing direction ~20% of the time.  A new worm is spawned whenever    *
@@ -1176,7 +1231,7 @@ static void mlWalkRandom(PetsciiScreen *scr, UBYTE *connMap,
 }
 
 /* ----------------------------------------------------------------------- *
- * Algorithm B — Reconnecting worm walk                                    *
+ * Algorithm B ï¿½ Reconnecting worm walk                                    *
  *                                                                          *
  * Same as A but 40% of steps bias the direction toward the worm's own     *
  * start cell, encouraging closed loops.  When the worm reaches start      *
@@ -1265,7 +1320,7 @@ static void mlWalkReconnect(PetsciiScreen *scr, UBYTE *connMap,
 }
 
 /* ----------------------------------------------------------------------- *
- * Algorithm C — Recursive fractal quad-cross                              *
+ * Algorithm C ï¿½ Recursive fractal quad-cross                              *
  *                                                                          *
  * Draws a cross at the midpoint of a rectangle, then recurses on the four *
  * quadrants in shuffled order.  Recursion depth is derived from            *
@@ -1399,7 +1454,7 @@ static void mlTron(PetsciiScreen *scr, UBYTE *connMap,
     }
     /*
     if (aliveCnt == 0)
-        printf("mlTron: no players could start — screen may be full\n");
+        printf("mlTron: no players could start ï¿½ screen may be full\n");
     */
     /*
      * In Tron, any cell that already has connection bits is treated as a wall:
@@ -1450,7 +1505,7 @@ static void mlTron(PetsciiScreen *scr, UBYTE *connMap,
                     if (mlPlace(scr, connMap, col, row, prevBit[i], color))
                         filled++;
                     // if (prevBit[i] == 0)
-                    //     printf("mlTron: player %d eliminated immediately at (%d,%d) — all directions blocked\n", i, col, row);
+                    //     printf("mlTron: player %d eliminated immediately at (%d,%d) ï¿½ all directions blocked\n", i, col, row);
                     // else
                     //     printf("mlTron: player %d eliminated at (%d,%d) after %d steps\n", i, col, row, straight[i]);
                     alive[i] = FALSE;
@@ -1523,9 +1578,9 @@ static void mlRunFinish(PetsciiProject *proj, UBYTE *connMap)
  * Action_GenerateMagicLine
  *
  * Picks one of three line-generation algorithms at random:
- *   0 — Random worm walk    (mlWalkRandom,    50% fill)
- *   1 — Reconnecting worms  (mlWalkReconnect, 40% fill)
- *   2 — Fractal quad-cross  (mlFractal,       60% fill)
+ *   0 ï¿½ Random worm walk    (mlWalkRandom,    50% fill)
+ *   1 ï¿½ Reconnecting worms  (mlWalkReconnect, 40% fill)
+ *   2 ï¿½ Fractal quad-cross  (mlFractal,       60% fill)
  * ----------------------------------------------------------------------- */
 BOOL Action_GenerateMagicLine(PmActionContext *ctx)
 {
@@ -1666,14 +1721,19 @@ static PmAction actionTable[ACTION_COUNT] = {
     {Action_ExportBAS, MSG_EXPORT_BAS, NULL, 0, 0},
     /* 33 ACTION_EXPORT_ASM */
     {Action_ExportASM, MSG_EXPORT_ASM, NULL, 0, 0},
-    /* 34 ACTION_EXPORT_SEQ */
+    /* ACTION_EXPORT_SEQ */
     {Action_ExportSEQ, MSG_EXPORT_SEQ, NULL, 0, 0},
 
-    /* 32 ACTION_EXPORT_BAS */
+    /* ACTION_EXPORT_PRG_BAS */
+    {Action_ExportPrgBAS, MSG_EXPORT_PRG_BAS, NULL, 0, 0},
+    /* ACTION_EXPORT_PRG_ASM */
+    {Action_ExportPrgASM, MSG_EXPORT_PRG_ASM, NULL, 0, 0},
+
+    /* ACTION_EXPORT_IFF_ILBM */
     {Action_ExportIFFILBM, MSG_EXPORT_IFF, NULL, 0, 0},
-    /* 33 ACTION_EXPORT_ASM */
+    /* ACTION_EXPORT_GIF */
     {Action_ExportGif, MSG_EXPORT_GIF, NULL, 0, 0},
-    /* 34 ACTION_EXPORT_SEQ */
+    /* ACTION_EXPORT_PNG */
     {Action_ExportPng, MSG_EXPORT_PNG, NULL, 0, 0},
 
     /* ACTION_IMPORT_IMAGE */
