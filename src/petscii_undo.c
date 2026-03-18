@@ -23,7 +23,7 @@
  */
 
 #include "petscii_undo.h"
-
+#include "petscii_screen.h"
 #include <string.h>
 #include <proto/exec.h>
 
@@ -110,13 +110,20 @@ void PetsciiUndoBuffer_Destroy(PetsciiUndoBuffer *buf)
 /* PetsciiUndoBuffer_Push                                              */
 /* ------------------------------------------------------------------ */
 
-void PetsciiUndoBuffer_Push(PetsciiUndoBuffer *buf,
-                             const PetsciiScreen *current)
+void PetsciiUndoBuffer_Push(PetsciiScreen *current)
 {
     UBYTE new_slot;
     UBYTE i;
+    PetsciiUndoBuffer *buf;
+    if ( !current) return;
 
-    if (!buf || !current) return;
+    if(!current->undoBuf)
+    {
+        current->undoBuf = PetsciiUndoBuffer_Create();
+    }
+    buf = current->undoBuf;
+    if(!buf) return;
+
 
     /* Discard all redo snapshots (branching: new stroke kills redo history) */
     if (buf->redos > 0) {
@@ -155,12 +162,13 @@ void PetsciiUndoBuffer_Push(PetsciiUndoBuffer *buf,
 /* PetsciiUndoBuffer_Undo                                              */
 /* ------------------------------------------------------------------ */
 
-BOOL PetsciiUndoBuffer_Undo(PetsciiUndoBuffer *buf, PetsciiScreen *current)
+BOOL PetsciiUndoBuffer_Undo( PetsciiScreen *current)
 {
     UBYTE undo_slot;
-
-    if (!buf || !current) return FALSE;
-    if (buf->undos == 0) return FALSE;
+    PetsciiUndoBuffer *buf;
+    if ( !current) return FALSE;
+    buf = current->undoBuf ;
+    if (!buf || buf->undos == 0) return FALSE;
 
     /* Newest undo snapshot is at (start + undos - 1) */
     undo_slot = (UBYTE)((buf->start + buf->undos - 1) % PETSCII_UNDO_LEVELS);
@@ -179,12 +187,13 @@ BOOL PetsciiUndoBuffer_Undo(PetsciiUndoBuffer *buf, PetsciiScreen *current)
 /* PetsciiUndoBuffer_Redo                                              */
 /* ------------------------------------------------------------------ */
 
-BOOL PetsciiUndoBuffer_Redo(PetsciiUndoBuffer *buf, PetsciiScreen *current)
+BOOL PetsciiUndoBuffer_Redo(PetsciiScreen *current)
 {
     UBYTE redo_slot;
-
-    if (!buf || !current) return FALSE;
-    if (buf->redos == 0) return FALSE;
+    PetsciiUndoBuffer *buf;
+    if ( !current) return FALSE;
+    buf = current->undoBuf ;
+    if (!buf || buf->redos == 0) return FALSE;
 
     /* Most-recently-undone redo snapshot is at (start + undos) */
     redo_slot = (UBYTE)((buf->start + buf->undos) % PETSCII_UNDO_LEVELS);

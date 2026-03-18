@@ -86,8 +86,6 @@ struct App {
 
     Object *aboutRequester; /* allocated once when asked first */
 
-    /* Phase 8 */
-    PetsciiUndoBuffer *undoBufs[PETSCII_MAX_SCREENS]; /* one per screen slot */
 
     /* Application-level settings (temp dir, recent files) */
     AppSettings appSettings;

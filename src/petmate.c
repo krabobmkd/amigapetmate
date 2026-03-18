@@ -151,7 +151,6 @@ void cleanexit(const char *pmessage);
 void exitclose(void);
 
 void refreshUI(void);
-static void rebuildUndoBuffers(void);
 
 void cleanexit(const char *pmessage)
 {
@@ -190,7 +189,7 @@ void refreshUI_Apply(void)
     SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
         PCA_Screen,   (ULONG)scr,
         PCA_ShowGrid, (ULONG)(BOOL)app->toolState.showGrid,
-        PCA_UndoBuffer,(ULONG)app->undoBufs[app->project->currentScreen],
+
         PCA_Dirty,    (ULONG)TRUE,
         TAG_END);
 
@@ -242,34 +241,6 @@ void refreshUI_Apply(void)
 
 }
 
-/*
- * rebuildUndoBuffers - destroy all undo history and create fresh empty
- * buffers for every screen currently in the project.
- * Call after screen management operations (add/clone/remove) where
- * screen slot indices may shift, making old history invalid.
- */
-static void rebuildUndoBuffers(void)
-{
-    UWORD i;
-
-    if (!app) return;
-
-    /* Destroy all existing buffers */
-    for (i = 0; i < PETSCII_MAX_SCREENS; i++) {
-        if (app->undoBufs[i]) {
-            PetsciiUndoBuffer_Destroy(app->undoBufs[i]);
-            app->undoBufs[i] = NULL;
-        }
-    }
-
-    if (!app->project) return;
-
-    /* Create fresh empty buffers for each active screen */
-    for (i = 0; i < app->project->screenCount; i++) {
-        app->undoBufs[i] = PetsciiUndoBuffer_Create();
-        /* NULL is acceptable - undo simply won't work for that screen */
-    }
-}
 
 void SetStatusBarMessage(int enumMessage)
 {
@@ -392,15 +363,12 @@ int main(int argc, char **argv)
     /* Initialize action system (localizes action names) */
     PmAction_Init();
 
-    /* Create initial undo buffers (one per screen in the fresh project) */
-    rebuildUndoBuffers();
-
     /* Set up action context */
     app->actionCtx.pproject  = &app->project;
     app->actionCtx.toolState = (void *)&app->toolState;
     app->actionCtx.style     = (void *)&app->style;
     app->actionCtx.clipScreen = (void *)&g_clipScreen;
-    app->actionCtx.undoBufs  = (void *)app->undoBufs;
+
     app->actionCtx.pmenu     = (void *)&app->mainwindow.menu;
 
     /* Initialize the BOOPSI message target model */
@@ -417,7 +385,6 @@ int main(int argc, char **argv)
         !ColorSwatch_Init() ||
         !LayoutWithPopup_Init()
             )  cleanexit("Can't create CharLayout class");
-
 
 
     /* Create canvas gadget for the main editing area */
@@ -437,7 +404,7 @@ int main(int argc, char **argv)
         PCA_SelectedChar,(ULONG)app->toolState.selectedChar,
         PCA_FgColor,     (ULONG)app->toolState.fgColor,
         PCA_BgColor,     (ULONG)app->toolState.bgColor,
-        PCA_UndoBuffer,  (ULONG)app->undoBufs[0],
+
         TAG_END);
     if (!app->canvasGadget) cleanexit("Can't create canvas gadget");
 
@@ -893,30 +860,15 @@ int main(int argc, char **argv)
                                     actionID == ACTION_EDIT_SHIFT_DOWN   ||
                                     actionID == ACTION_EDIT_PASTE_SCREEN) {
                                     PetsciiScreen *mscr =
-                                        PetsciiProject_GetCurrentScreen(
-                                            app->project);
-                                    if (mscr &&
-                                        app->undoBufs[app->project->currentScreen]) {
-                                        PetsciiUndoBuffer_Push(
-                                            app->undoBufs[app->project->currentScreen],
-                                            mscr);
-                                    }
+
+                                        PetsciiProject_GetCurrentScreen(app->project);
+                                    PetsciiUndoBuffer_Push(mscr);
+
                                 }
 
                                 PmAction_Execute((ULONG)actionID,
                                                  &app->actionCtx);
-                                /* Screen management and project load/new
-                                 * change slot indices; rebuild undo history */
-                                if (actionID == ACTION_SCREEN_ADD    ||
-                                    actionID == ACTION_SCREEN_CLONE  ||
-                                    actionID == ACTION_SCREEN_REMOVE ||
-                                    actionID == ACTION_PROJECT_NEW   ||
-                                    actionID == ACTION_PROJECT_OPEN) {
-                                    rebuildUndoBuffers();
-                                }
-                                /* Sync all gadgets with project state */
 
-                               /*not here ! refreshUI(); */
                             }
                         }
                         break;
@@ -1126,6 +1078,7 @@ int main(int argc, char **argv)
                                                 TAG_END);
 
                                         }
+
                                         UpdateCarouselThumbNail();
 
                                      }
@@ -1275,12 +1228,10 @@ int main(int argc, char **argv)
                                     /* Snapshot before clear so it's undoable */
                                     PetsciiScreen *clrScr =
                                         PetsciiProject_GetCurrentScreen(app->project);
-                                    if (clrScr &&
-                                        app->undoBufs[app->project->currentScreen]) {
-                                        PetsciiUndoBuffer_Push(
-                                            app->undoBufs[app->project->currentScreen],
-                                            clrScr);
-                                    }
+
+
+                                        PetsciiUndoBuffer_Push(clrScr);
+
                                     PmAction_Execute(ACTION_EDIT_CLEAR_SCREEN,
                                                      &app->actionCtx);
 
@@ -1325,16 +1276,6 @@ void exitclose(void)
         AppSettings_Save(&app->appSettings);
         AppSettings_Close(&app->appSettings);
 
-        /* Destroy undo buffers (before project, as buffers clone screens) */
-        {
-            UWORD i;
-            for (i = 0; i < PETSCII_MAX_SCREENS; i++) {
-                if (app->undoBufs[i]) {
-                    PetsciiUndoBuffer_Destroy(app->undoBufs[i]);
-                    app->undoBufs[i] = NULL;
-                }
-            }
-        }
 
         /* Destroy project */
         if (app->project) {

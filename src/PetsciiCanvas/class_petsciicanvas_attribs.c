@@ -85,12 +85,6 @@ ULONG PetsciiCanvas_OnNew(Class *cl, Object *o, struct opSet *msg)
     inst->scaledBufDirty = TRUE;
     inst->overlayBuf     = NULL;
 
-    /* Undo buffer (optional, not owned) */
-    {
-        struct TagItem *undoTag = FindTagItem(PCA_UndoBuffer, msg->ops_AttrList);
-        inst->undoBuf = undoTag ? (PetsciiUndoBuffer *)undoTag->ti_Data : NULL;
-    }
-
     /* Brush (owned; starts NULL = 1x1 single-char mode) */
     inst->brush              = NULL;
     inst->isLassoing         = FALSE;
@@ -206,6 +200,7 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
             if((PetsciiScreen *)tag->ti_Data != inst->screen)
             {
                 inst->screen = (PetsciiScreen *)tag->ti_Data;
+
                 if (inst->screenbuf && inst->screen) {
                     /* If character dimensions changed, recreate buffer */
                     newPixW = (ULONG)inst->screen->width  * 8;
@@ -344,13 +339,6 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                         }
                     }
                 }
-                result = 1;
-                break;
-
-
-
-            case PCA_UndoBuffer:
-                inst->undoBuf = (PetsciiUndoBuffer *)(void *)tag->ti_Data;
                 result = 1;
                 break;
 

@@ -43,6 +43,8 @@ struct Screen *CurrentMainScreen=NULL;
 
 int  CurrentMainScreen_PreIndexed=0;
 
+extern void RefreshAllColorGadgets();
+
 static void FreeBgBitmap(void);
 
  void RefreshAllColorGadgets();
@@ -471,6 +473,7 @@ the full-blown "new look" graphics. If you want the 3D embossed look,
 
     if(appSettings->useOneColorBg)
     {
+ 
         backfill = (ULONG)&monoHook;
     } else if(bgBitmap)
     {
@@ -485,7 +488,7 @@ the full-blown "new look" graphics. If you want the 3D embossed look,
     w = myScreen->Width;
     h = myScreen->Height - y1;
 
- //   printf("fs w:%d h:%d myScreen->BarHeight:%d\n",w,h,myScreen->BarHeight);
+
 
     SetAttrs(window_obj,
         WA_CustomScreen,(ULONG)myScreen,
@@ -513,7 +516,6 @@ the full-blown "new look" graphics. If you want the 3D embossed look,
     /* re-open */
     GenericOpenWindow( mw, window_obj, appSettings );
 
-    RefreshAllColorGadgets();
 
     if(CurrentMainWindow)
     {
@@ -531,6 +533,8 @@ the full-blown "new look" graphics. If you want the 3D embossed look,
     }
     mw->fullscreen = TRUE;
 
+    /* some may need reindexation and window must be opened */
+    RefreshAllColorGadgets();
 }
 
 
@@ -652,6 +656,5 @@ void BMainWindow_SwitchToWB(struct BoopsiMainWindow *mw,Object *window_obj,struc
 
     /* There may exists more screens than just WB when closing fs. make sure WB the visible screen. */
     ScreenToFront(CurrentMainScreen);
-
 
 }

@@ -27,12 +27,13 @@
  */
 
 #include <exec/types.h>
-#include "petscii_screen.h"
+//#include "petscii_screen.h"
+struct PetsciiScreen;
 
-#define PETSCII_UNDO_LEVELS 32
+#define PETSCII_UNDO_LEVELS 16
 
 typedef struct PetsciiUndoBuffer {
-    PetsciiScreen *slots[PETSCII_UNDO_LEVELS]; /* circular ring of snapshots */
+    struct PetsciiScreen *slots[PETSCII_UNDO_LEVELS]; /* circular ring of snapshots */
     UBYTE          start;   /* ring index of oldest undo entry              */
     UBYTE          undos;   /* undo steps available  (0 = nothing to undo)  */
     UBYTE          redos;   /* redo steps available  (0 = nothing to redo)  */
@@ -48,19 +49,18 @@ void PetsciiUndoBuffer_Destroy(PetsciiUndoBuffer *buf);
 /* Push a snapshot of current onto the undo stack.
  * Call this BEFORE making changes to the screen.
  * Discards any pending redo history (branch rule). */
-void PetsciiUndoBuffer_Push(PetsciiUndoBuffer *buf,
-                             const PetsciiScreen *current);
+void PetsciiUndoBuffer_Push(struct PetsciiScreen *current);
 
 /* Undo one step: swap the current screen data with the most recent
  * snapshot.  Returns TRUE if an undo was available, FALSE if not. */
-BOOL PetsciiUndoBuffer_Undo(PetsciiUndoBuffer *buf, PetsciiScreen *current);
+BOOL PetsciiUndoBuffer_Undo(struct PetsciiScreen *current);
 
 /* Redo one step: restore the most recently undone state.
  * Returns TRUE if a redo was available, FALSE if not. */
-BOOL PetsciiUndoBuffer_Redo(PetsciiUndoBuffer *buf, PetsciiScreen *current);
+BOOL PetsciiUndoBuffer_Redo(struct PetsciiScreen *current);
 
 /* Query availability */
-#define PetsciiUndoBuffer_CanUndo(buf) ((buf) && (buf)->undos > 0)
-#define PetsciiUndoBuffer_CanRedo(buf) ((buf) && (buf)->redos > 0)
+#define PetsciiUndoBuffer_CanUndo(screen) (screen && screen->undoBuf && screen->undoBuf->undos > 0)
+#define PetsciiUndoBuffer_CanRedo(screen) (screen && screen->undoBuf && screen->undoBuf->redos > 0)
 
 #endif /* PETSCII_UNDO_H */

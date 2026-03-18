@@ -77,10 +77,13 @@ PetsciiScreen *PetsciiScreen_Clone(const PetsciiScreen *src)
 
     return dst;
 }
+void PetsciiUndoBuffer_Destroy(struct PetsciiUndoBuffer *buf);
 /* also used to flush undo stack */
 void PetsciiScreen_Destroy(PetsciiScreen *scr)
 {
     if (!scr) return;
+    if(scr->undoBuf) PetsciiUndoBuffer_Destroy(scr->undoBuf);
+
     if (scr->framebuf) FreeVec(scr->framebuf);
     FreeVec(scr);
 
