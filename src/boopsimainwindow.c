@@ -5,7 +5,7 @@
 #include <proto/alib.h>
 #include <proto/graphics.h>
 #include <proto/datatypes.h>
-
+#include <proto/amigaguide.h>
 #include <proto/cybergraphics.h>
 #include <cybergraphics/cybergraphics.h>
 
@@ -68,6 +68,14 @@ void CloseSettingsWindow()
         AppSettings_Save(&app->appSettings);
         PmSettingsView_Close(&app->settingsView);
     }
+    /* also close help subwindow */
+#ifdef HELP_USE_AGLIB
+    if(app->amigaGuideHandle )
+    {
+        CloseAmigaGuide(app->amigaGuideHandle);
+        app->amigaGuideHandle = NULL;
+    }
+#endif
     /* would close requester, but ther'es nio method for this
      if(app->aboutRequester)
      {

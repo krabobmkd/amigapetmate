@@ -164,6 +164,11 @@ enum {
     MSG_SETTINGS_DESCRIPTIONCL,
     MSG_SETTINGS_FULLSCREENDISPLAYMODE,
 
+
+    /* Help */
+    MSG_MENU_HELP,
+    MSG_HELPERROR_CANTFIND,
+
     /* Must be last */
     MSG_COUNT
 };

@@ -1,38 +1,47 @@
 ﻿
- IA todo: prg export
+
+ O remove bdb
+ O do gcc2.95 makefile
+ O inverseRect ?
 
 
+ O ask when quitting -> finally no, but no esc key then
 
- X introduced bugs with undo while optimizing refresh
- O loosing char value display at some point
+ O packaging:
+	O catalog for 5 languages
+    O installer ?
+
  O amigaguide on help key and menu.
  O AmigaGuide documentation
+   O have copyright
+
+ -  icons on bt, ->no
+ - loosing char value display at some point -> not seen again
+
  X regreyise brush menu
 
  O test on CDTV -> re
 
  X do icon
  O test OS3.9
- O test Amiga C64 emulators -> VICE looks cool
-    O seq
-    O basic
-    O prg
- O inverseRect
- O do gcc2.95 makefile
+ X test Amiga C64 emulators -> VICE looks cool
+    X seq
+    X basic
+    X prg
 
- O make direct export to export prg binarily, do not use asm.
+
+
+ X make direct export to export prg binarily, do not use asm.
 
  X cybergraphics RTG blits
- O ask when quitting -> finally no, but no esc key then
- O icons on bt,
+
   X 4 recent files !
  X background prefs
 
  O installer ?
  O have example files
 X iconified icon use app icon
- O packaging:
-	O catalog for 5 languages
+
 
 
 

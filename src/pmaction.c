@@ -24,6 +24,9 @@
 #include <proto/asl.h>
 #include <libraries/asl.h>
 
+#include <proto/amigaguide.h>
+#include <libraries/amigaguide.h>
+
 #include <proto/requester.h>
 #include <classes/requester.h>
 
@@ -312,7 +315,8 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
         app->aboutRequester = NewObject( REQUESTER_GetClass(), NULL,
 			REQ_Image,REQIMAGE_INFO,
 			REQ_BodyText,(ULONG)
-"\33b\33uAmiga PetMate - C64 PETSCII Art Editor \33n - port v0.1\n\n"
+"\33b\33uAmiga PetMate - C64 PETSCII Art Editor \33n - v" PETMATE_VERSION
+"\n\n"
 "\33cThis is all about drawing with the character sets that were\n"
 "integrated with old Commodore 8 Bit machines, the first of\n"
 "which was the \"PET\", hence the name PETSCII in regard to ASCII.\n\n"
@@ -339,6 +343,47 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
     if(!app->aboutRequester) return FALSE;
 
     OpenRequester(app->aboutRequester,CurrentMainWindow);
+
+    return TRUE;
+}
+extern struct Library *AmigaGuideBase;
+BOOL Action_ProjectHelp(PmActionContext *ctx)
+{
+    printf("Action_ProjectHelp\n");
+
+    SystemTagList("Multiview PetMate.guide",TAG_END);
+
+#ifdef HELP_USE_AGLIB
+    if(!AmigaGuideBase)
+    {
+        AmigaGuideBase = OpenLibrary("amigaguide.library", 39);
+    }
+    if(!AmigaGuideBase) return FALSE;
+
+    printf("lib ok\n");
+
+
+    app->nAmigaGuide.nag_Name = "PetMate.guide";
+    app->nAmigaGuide.nag_Screen = CurrentMainScreen;
+
+    /* we'll choose the "async" path, need to force close when switching screen
+        will return NULL if file not found
+    */
+    if(!app->amigaGuideHandle) /* could already be opened !*/
+    {
+        app->amigaGuideHandle = OpenAmigaGuideAsync(&app->nAmigaGuide, TAG_END); /* struct must be persistent */
+    }
+
+
+    printf("OpenAmigaGuideAsyncA %08x\n",(int)app->amigaGuideHandle);
+
+    if(!app->amigaGuideHandle)
+    {
+        SetStatusBarMessage(MSG_HELPERROR_CANTFIND);
+    }
+#endif
+    /* force one main loop turn to wait for ag signal */
+   // if (myTask) Signal(myTask, SIGBREAKF_CTRL_F);
 
     return TRUE;
 }
@@ -1645,6 +1690,7 @@ static PmAction actionTable[ACTION_COUNT] = {
     {Action_ProjectIconify,    MSG_MENU_ICONIFY,  NULL, 0, 0},
     /* 4  ACTION_PROJECT_ABOUT */
     {Action_ProjectAbout,    MSG_MENU_ABOUT,  NULL, 0, 0},
+    {Action_ProjectHelp,    MSG_MENU_HELP,  NULL, 0, 0}, // rawkey is 0x5F
     /* 5  ACTION_PROJECT_QUIT */
     {Action_ProjectQuit,     MSG_MENU_QUIT,   NULL, 0x45, 0}, /* ESC raw key */
 

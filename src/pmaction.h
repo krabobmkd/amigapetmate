@@ -48,6 +48,7 @@ enum {
     ACTION_PROJECT_SAVEAS,
     ACTION_PROJECT_ICONIFY,
     ACTION_PROJECT_ABOUT,
+    ACTION_PROJECT_HELP,
     ACTION_PROJECT_QUIT,
 
     /* Edit */
@@ -196,5 +197,7 @@ BOOL Action_OpenRecent1(PmActionContext *ctx);
 BOOL Action_OpenRecent2(PmActionContext *ctx);
 BOOL Action_OpenRecent3(PmActionContext *ctx);
 BOOL Action_GenerateTronLines(PmActionContext *ctx);
+
+BOOL Action_ProjectHelp(PmActionContext *ctx);
 
 #endif /* PMACTION_H */

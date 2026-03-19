@@ -18,6 +18,7 @@
 #include <proto/utility.h>
 #include <proto/dos.h>
 #include <proto/icon.h>
+#include <proto/amigaguide.h>
 #include <proto/locale.h>
 #include <libraries/locale.h>
 
@@ -86,7 +87,7 @@
 struct Task *myTask = NULL;
 
 
-const char *pVersion = "$VER: Petmate 0.8";
+const char *pVersion = "$VER: PetMate " PETMATE_VERSION;
 
 /* Library bases */
 struct IntuitionBase   *IntuitionBase = NULL;
@@ -96,9 +97,14 @@ struct Library         *LayersBase    = NULL;
 struct Library         *IconBase      = NULL;
 struct Library         *AslBase       = NULL;
 struct Library         *GadToolsBase  = NULL;
-struct LocaleBase      *LocaleBase    = NULL; /* optional */
+/* libraries we consider optional and accept NULL values */
+struct LocaleBase      *LocaleBase    = NULL;
 struct Library         *DataTypesBase = NULL;
 struct Library          *CyberGfxBase = NULL;
+#ifdef HELP_USE_AGLIB
+struct Library          *AmigaGuideBase = NULL;
+#endif
+
 /* BOOPSI class bases */
 struct Library *WindowBase = NULL;
 struct Library *LayoutBase = NULL;
@@ -178,7 +184,7 @@ void refreshUI_Apply(void)
 
     if (!app || !app->project) return;
 
- bdbprintf("refreshUI_Apply\n");
+// bdbprintf("refreshUI_Apply\n");
 
     scr = PetsciiProject_GetCurrentScreen(app->project);
     if (!scr) return;
@@ -319,6 +325,7 @@ int main(int argc, char **argv)
     /* optional libs, can return NULL */
     DataTypesBase = OpenLibrary("datatypes.library",39);
     CyberGfxBase  = OpenLibrary("cybergraphics.library", 1);
+    /* at first need ! AmigaGuideBase = OpenLibrary("amigaguide.library", 39); */
 
     /* Open locale.library (optional - soft failure) */
     LocaleBase = (struct LocaleBase *)OpenLibrary("locale.library", 38);
@@ -746,15 +753,24 @@ int main(int argc, char **argv)
 
         while (ok)
         {
+        #ifdef HELP_USE_AGLIB
+            struct AmigaGuideMsg *agm;
+        #endif
+            ULONG aGuideSignal = 0;
+
             ULONG result, waitedSignals, currentSignals, settingsSig;
 
             flushbdbprint();
+        #ifdef HELP_USE_AGLIB
+            aGuideSignal = (app->amigaGuideHandle)?(AmigaGuideSignal(app->amigaGuideHandle)):0;
+        #endif
 
             settingsSig = PmSettingsView_GetSignalMask(&app->settingsView);
 
             waitedSignals = winsignal |
                 settingsSig |
                 (1L << app->app_port->mp_SigBit) |
+                aGuideSignal |
                 SIGBREAKF_CTRL_C |
                 SIGBREAKF_CTRL_F;
 
@@ -767,6 +783,37 @@ int main(int argc, char **argv)
 
             /* exit app at any moment from Ctrl-C signal, atexit() magic does anything needed. */
             if(currentSignals & SIGBREAKF_CTRL_C) exit(0);
+
+
+            /* Process AmigaGuide messages */
+            #ifdef HELP_USE_AGLIB
+            if (currentSignals & aGuideSignal)
+            {
+                /* process amigaguide messages */
+                while (agm = GetAmigaGuideMsg (app->amigaGuideHandle))
+                {
+                /* check message types */
+                switch (agm->agm_Type)
+                {
+                    case ShutdownMsgID:
+                     printf("aguide down\n");
+                        //app->ai_AmigaGuide = NULL;
+                    break;
+                        case ToolStatusID:
+                        if (agm->agm_Pri_Ret)
+                            printf("aguide ToolStatusID:%d\n", (agm->agm_Sec_Ret));
+                        break;
+
+                    default:
+                    break;
+                }
+ printf("aguide signal %d\n",agm->agm_Type);
+                /* Reply to the message */
+                ReplyAmigaGuideMsg (agm);
+                }
+            }
+            #endif
+
 
             while ((result = DoMethod(app->window_obj, WM_HANDLEINPUT, NULL))
                    != WMHI_LASTMSG)
@@ -788,7 +835,8 @@ int main(int argc, char **argv)
                         {
                             /* F10 */
                             case 0x59: BMainWindow_Toggle(&app->mainwindow,app->window_obj,&app->appSettings); break;
-                            case 0x45:  ok = FALSE; break; /* ESC key to quit */
+                          //no, use close bt or amiga+Q  case 0x45:  ok = FALSE; break; /* ESC key to quit */
+                            case 0x5F: Action_ProjectHelp(&app->actionCtx); break;
                             default:
                             break;
                         }
@@ -1359,6 +1407,7 @@ void exitclose(void)
 
     if(CyberGfxBase) CloseLibrary(CyberGfxBase);
     if(DataTypesBase) CloseLibrary(DataTypesBase);
+    if(AmigaGuideBase) CloseLibrary(AmigaGuideBase);
 
     /* Close all other libraries in reverse order */
     {

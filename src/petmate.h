@@ -9,6 +9,7 @@
 #include <exec/types.h>
 #include <exec/ports.h>
 #include <intuition/classusr.h>
+#include <libraries/amigaguide.h>
 
 #include "petscii_types.h"
 #include "petscii_project.h"
@@ -20,6 +21,11 @@
 #include "pmsettingsview.h"
 #include "pmtoolbar.h"
 #include "screen_carousel.h"
+
+//#define HELP_USE_AGLIB 1
+//#define HELP_USE_DATATYPE_AND_WINDOW 1
+
+#define PETMATE_VERSION "0.8"
 
 /* Current tool state */
 
@@ -86,6 +92,15 @@ struct App {
 
     Object *aboutRequester; /* allocated once when asked first */
 
+#ifdef HELP_USE_AGLIB
+    /* amigaguide for help */
+    struct NewAmigaGuide nAmigaGuide;
+    void    *amigaGuideHandle;
+#endif
+#ifdef HELP_USE_DATATYPE_AND_WINDOW
+    Object         *help_winObj;           /* BOOPSI window object (persistent) */
+    struct Window  *help_window;              /* Intuition window (NULL when hidden) */
+#endif
 
     /* Application-level settings (temp dir, recent files) */
     AppSettings appSettings;

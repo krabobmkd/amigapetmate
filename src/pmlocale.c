@@ -227,7 +227,10 @@ static const char *defaultStrings[MSG_COUNT] = {
     "Choose...",
     "Screen Mode:",
     "Description:",
-    "Full Screen display mode:"
+    "Full Screen display mode:",
+
+    "Help...",
+    "Can't find PROGDIR:PetMate.guide"
 
 };
 
