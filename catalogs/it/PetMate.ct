@@ -1,0 +1,331 @@
+## version $VER: PetMate.catalog 1.0 (01.01.2026)
+## language italiano
+## codeset 0
+
+; Italian translation of PetMate - Amiga PETSCII Art Editor
+; Non-ASCII characters use \xNN (ISO 8859-1) escapes for portability.
+
+MSG_WINDOW_TITLE
+PetMate
+
+MSG_ABOUT_TITLE
+Informazioni su PetMate
+
+MSG_ABOUT_TEXT
+PetMate - Editor d'arte PETSCII C64
+Versione Amiga v0.1
+
+MSG_MENU_PROJECT
+Progetto
+
+MSG_FILE_NEW
+Nuovo
+
+MSG_FILE_OPEN
+Apri...
+
+MSG_FILE_SAVEAS
+Salva come...
+
+MSG_FILE_SAVE
+Salva
+
+MSG_MENU_ICONIFY
+Minimizza
+
+MSG_MENU_ABOUT
+Informazioni
+
+MSG_MENU_QUIT
+Esci
+
+MSG_MENU_EDIT
+Modifica
+
+MSG_EDIT_UNDO
+Annulla
+
+MSG_EDIT_REDO
+Ripristina
+
+MSG_EDIT_COPY_SCREEN
+Copia schermata
+
+MSG_EDIT_PASTE_SCREEN
+Incolla schermata
+
+MSG_EDIT_CLEAR_SCREEN
+Cancella schermata
+
+MSG_EDIT_SHIFT_LEFT
+Sposta a sinistra
+
+MSG_EDIT_SHIFT_RIGHT
+Sposta a destra
+
+MSG_EDIT_SHIFT_UP
+Sposta in su
+
+MSG_EDIT_SHIFT_DOWN
+Sposta in gi\xf9
+
+MSG_MENU_SCREEN
+Schermata
+
+MSG_SCREEN_ADD
+Aggiungi schermata
+
+MSG_SCREEN_CLONE
+Clona schermata
+
+MSG_SCREEN_REMOVE
+Rimuovi schermata
+
+MSG_SCREEN_PREV
+Schermata precedente
+
+MSG_SCREEN_NEXT
+Schermata successiva
+
+MSG_SCREEN_ADD_ERROR
+Impossibile aggiungere schermate, limite: 64.
+
+MSG_SCREEN_D
+Schermata %d
+
+MSG_MENU_VIEW
+Visualizza
+
+MSG_VIEW_TOGGLE_GRID
+Mostra/nascondi griglia
+
+MSG_VIEW_CHARSET_UPPER
+Set caratteri maiuscolo
+
+MSG_VIEW_CHARSET_LOWER
+Set caratteri minuscolo
+
+MSG_TOGGLE_FULLSCREEN
+Schermo intero
+
+MSG_MENU_PALETTE
+Tavolozza
+
+MSG_PALETTE_PETMATE
+PetMate
+
+MSG_PALETTE_COLODORE
+Colodore
+
+MSG_PALETTE_PEPTO
+Pepto
+
+MSG_PALETTE_VICE
+VICE
+
+MSG_MENU_BRUSH
+Pennello
+
+MSG_BRUSH_FLIP_X
+Capovolgi orizzontalmente
+
+MSG_BRUSH_FLIP_Y
+Capovolgi verticalmente
+
+MSG_BRUSH_ROT90CW
+Ruota 90\xb0 in senso orario
+
+MSG_BRUSH_ROT180
+Ruota 180\xb0
+
+MSG_BRUSH_ROT90CCW
+Ruota 90\xb0 in senso antiorario
+
+MSG_LABEL_DRAWCOLOR
+Colore di disegno
+
+MSG_LABEL_BACKGROUNDCOLOR
+Colore di sfondo
+
+MSG_LABEL_BORDERCOLOR
+Colore bordo
+
+MSG_STATUS_READY
+Pronto
+
+MSG_STATUS_LOADING
+Caricamento...
+
+MSG_STATUS_SAVING
+Salvataggio...
+
+MSG_STATUS_ERROR
+Errore
+
+MSG_ERROR_OPENFILE
+Impossibile aprire il file
+
+MSG_ERROR_SAVEFILE
+Impossibile salvare il file
+
+MSG_ERROR_NOMEMORY
+Memoria insufficiente
+
+MSG_ERROR_INVALIDFILE
+Formato file non valido
+
+MSG_PETSCII_FILEIO_OK
+Progetto letto con successo.
+
+MSG_PETSCII_FILEIO_EOPEN
+Impossibile aprire il file.
+
+MSG_PETSCII_FILEIO_EREAD
+Errore di lettura del file.
+
+MSG_PETSCII_FILEIO_EPARSE
+Errore di analisi JSON.
+
+MSG_PETSCII_FILEIO_EFORMAT
+Formato file JSON inatteso.
+
+MSG_PETSCII_FILEIO_EALLOC
+Memoria insufficiente.
+
+MSG_PETSCII_FILEIO_EWRITE
+Errore di scrittura del file.
+
+MSG_PETSCII_FILEIO_NEED_DT
+L'esportazione immagine richiede la libreria datatype
+
+MSG_PETSCII_FILEIO_WRITEOK
+File salvato.
+
+MSG_TOOL_DRAW
+Car. e Colore
+
+MSG_TOOL_COLORIZE
+Solo colore
+
+MSG_TOOL_CHARDRAW
+Solo carattere
+
+MSG_TOOL_BRUSH
+Pennello
+
+MSG_TOOL_TEXT
+Testo
+
+MSG_BTN_CLEAR
+Cancella
+
+MSG_BTN_CHARSET_UPPER
+Maiusc.
+
+MSG_BTN_CHARSET_LOWER
+Minusc.
+
+MSG_SETTINGS
+Impostazioni
+
+MSG_EXPORT_BAS
+Esporta come BASIC (.bas)...
+
+MSG_EXPORT_ASM
+Esporta come ASM (.asm)...
+
+MSG_EXPORT_SEQ
+Esporta come SEQ (.seq)...
+
+MSG_EXPORT_PRG_BAS
+Esporta PRG con BASIC (.prg)...
+
+MSG_EXPORT_PRG_ASM
+Esporta PRG da ASM (.prg)...
+
+MSG_EXPORT_IFF
+Esporta immagine IFF (.ilbm)...
+
+MSG_EXPORT_GIF
+Esporta immagine GIF (.gif)...
+
+MSG_EXPORT_PNG
+Esporta immagine PNG (.png)...
+
+MSG_IMPORT_IMAGE
+Importa immagine...
+
+MSG_IMPORT_NOMATCH
+Nessuna corrispondenza PETSCII trovata (verifica dimensioni e tavolozza).
+
+MSG_MENU_GENERATE
+Genera
+
+MSG_GENERATE_RANDOM_BRUSH
+Casuale da pennello
+
+MSG_GENERATE_MAGIC_LINE
+Linea magica
+
+MSG_GENERATE_TRON_LINES
+Linee Tron
+
+MSG_STATUS_DRAW
+Disegna carattere e colore.
+
+MSG_STATUS_COLORIZE
+Modalit\xe0 colorazione.
+
+MSG_STATUS_CHARDRAW
+Modalit\xe0 disegno carattere.
+
+MSG_STATUS_START_LASSO
+Usa il lazo per selezionare un pennello.
+
+MSG_STATUS_TEXT
+Posiziona il cursore e digita il testo.
+
+MSG_SETTINGS_UI_BG_GROUP
+Sfondo UI (chiudi/apri o F10 necessario)
+
+MSG_SETTINGS_USEONECLORBG
+Usa un colore per lo sfondo
+
+MSG_SETTINGS_BGIMAGE_LABEL
+Immagine di sfondo:
+
+MSG_SETTINGS_CHOOSE_BGIMAGE
+Scegli...
+
+MSG_SETTINGS_BGIMAGE_TITLE
+Scegli immagine di sfondo
+
+MSG_SETTINGS_BGIMAGE_NONE
+(nessuna)
+
+MSG_SETTINGS_REMOVEBGIMAGE
+Rimuovi
+
+MSG_MENU_OPEN_RECENT
+Apri recente
+
+MSG_SETTINGS_FSUSEWBMODE
+Schermo intero: clone modalit\xe0 WB
+
+MSG_SETTINGS_CHOOSEDOTS
+Scegli...
+
+MSG_SETTINGS_SCREENMODECL
+Modalit\xe0 schermo:
+
+MSG_SETTINGS_DESCRIPTIONCL
+Descrizione:
+
+MSG_SETTINGS_FULLSCREENDISPLAYMODE
+Modalit\xe0 visualizzazione schermo intero:
+
+MSG_MENU_HELP
+Guida...
+
+MSG_HELPERROR_CANTFIND
+Impossibile trovare PROGDIR:PetMate.guide

@@ -33,6 +33,7 @@
 
 #include "boopsimainwindow.h"
 #include "pmsettingsview.h"
+#include "pmhelpview.h"
 #include "pmmenu.h"
 #include "petscii_canvas.h"  /* PCA_TransformBrush, PCA_Brush, BRUSH_TRANSFORM_* */
 #include "petscii_brush.h"   /* PetsciiBrush */
@@ -346,45 +347,12 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
 
     return TRUE;
 }
-extern struct Library *AmigaGuideBase;
 BOOL Action_ProjectHelp(PmActionContext *ctx)
 {
-    printf("Action_ProjectHelp\n");
+    (void)ctx;
 
-    SystemTagList("Multiview PetMate.guide",TAG_END);
-
-#ifdef HELP_USE_AGLIB
-    if(!AmigaGuideBase)
-    {
-        AmigaGuideBase = OpenLibrary("amigaguide.library", 39);
-    }
-    if(!AmigaGuideBase) return FALSE;
-
-    printf("lib ok\n");
-
-
-    app->nAmigaGuide.nag_Name = "PetMate.guide";
-    app->nAmigaGuide.nag_Screen = CurrentMainScreen;
-
-    /* we'll choose the "async" path, need to force close when switching screen
-        will return NULL if file not found
-    */
-    if(!app->amigaGuideHandle) /* could already be opened !*/
-    {
-        app->amigaGuideHandle = OpenAmigaGuideAsync(&app->nAmigaGuide, TAG_END); /* struct must be persistent */
-    }
-
-
-    printf("OpenAmigaGuideAsyncA %08x\n",(int)app->amigaGuideHandle);
-
-    if(!app->amigaGuideHandle)
-    {
-        SetStatusBarMessage(MSG_HELPERROR_CANTFIND);
-    }
-#endif
-    /* force one main loop turn to wait for ag signal */
-   // if (myTask) Signal(myTask, SIGBREAKF_CTRL_F);
-
+    SystemTagList("multiview PetMate.guide",TAG_END);
+/*    PmHelpView_Open(&app->helpView);*/
     return TRUE;
 }
 

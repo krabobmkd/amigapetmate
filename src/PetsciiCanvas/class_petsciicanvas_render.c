@@ -662,7 +662,9 @@ ULONG PetsciiCanvas_OnDomain(Class *cl, Object *o, struct gpDomain *msg)
     // Adjust based on gpd_Which
     switch (msg->gpd_Which) {
         case GDOMAIN_MINIMUM:
-
+        /* really need less for OCS modes */
+    domain->Width = 42*4;  // Nominal width
+    domain->Height = 27*4;  // Nominal height
             break;
         case GDOMAIN_MAXIMUM:
             domain->Width *= 6;

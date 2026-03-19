@@ -1,0 +1,154 @@
+; PetMate Installer Script
+; For use with the standard Amiga 'Installer' tool.
+;
+; IMPORTANT - FILE ENCODING:
+;   This script must be saved in ISO 8859-1 (Latin-1) encoding because
+;   the Amiga locale directory names contain non-ASCII characters
+;   (français, español) which must be exact Latin-1 bytes.
+;
+;   If this file was edited on Linux/Mac (UTF-8), convert before use:
+;     iconv -f UTF-8 -t ISO-8859-1 Install > Install.tmp && mv Install.tmp Install
+;
+; Catalog files must be pre-compiled with FlexCat before running this installer:
+;   cd catalogs && make all
+;
+
+(set #app-name    "PetMate")
+(set #app-version "v0.1")
+(set #app-default "Work:PetMate")
+
+; ---------------------------------------------------------------------------
+; Welcome
+; ---------------------------------------------------------------------------
+(message
+    (cat
+        "Welcome to the " #app-name " " #app-version " installer!\n\n"
+        "PetMate is a C64 PETSCII art editor for the Amiga.\n\n"
+        "Click Proceed to install."
+    )
+    (all)
+)
+
+; ---------------------------------------------------------------------------
+; Choose destination drawer
+; ---------------------------------------------------------------------------
+(set #dest
+    (askdir
+        (prompt
+            (cat "Where would you like to install " #app-name "?")
+        )
+        (help
+            (cat
+                #app-name " will be installed into the drawer you choose.\n\n"
+                "The drawer will be created if it does not already exist.\n\n"
+                "Default: " #app-default
+            )
+        )
+        (default #app-default)
+        (newpath)
+    )
+)
+
+(complete 10)
+
+; ---------------------------------------------------------------------------
+; Choose language catalog
+; ---------------------------------------------------------------------------
+(set #lang
+    (askchoice
+        (prompt "Which language would you like for the interface?")
+        (help
+            (cat
+                "Choose the language for the PetMate menus and messages.\n\n"
+                "English is built into the program and needs no extra file.\n\n"
+                "All other languages require a compiled .catalog file.\n"
+                "Build them first with: cd catalogs && make all"
+            )
+        )
+        (choices
+            "English (built-in)"
+            "Français"
+            "Deutsch"
+            "Español"
+            "Italiano"
+        )
+        (default 0)
+    )
+)
+
+(complete 20)
+
+; ---------------------------------------------------------------------------
+; Copy main program files
+; ---------------------------------------------------------------------------
+(working (cat "Copying " #app-name " program files..."))
+
+(copyfile "PetMate"
+    (tackon #dest "PetMate")
+    (infos)
+    (confirm)
+)
+
+(complete 40)
+
+(copyfile "PetMate.guide"
+    (tackon #dest "PetMate.guide")
+    (confirm)
+)
+
+(complete 60)
+
+; ---------------------------------------------------------------------------
+; Install language catalog (if not English)
+; ---------------------------------------------------------------------------
+(if (= #lang 0)
+    (working "English selected — no catalog file needed.")
+    (
+        (set #cat-src
+            (select #lang
+                ""
+                "catalogs/fr/PetMate.catalog"
+                "catalogs/de/PetMate.catalog"
+                "catalogs/es/PetMate.catalog"
+                "catalogs/it/PetMate.catalog"
+            )
+        )
+        ; NOTE: The directory names below contain Latin-1 characters.
+        ; français  : 'ç' = 0xE7
+        ; español   : 'ñ' = 0xF1
+        ; If this file is UTF-8, those bytes will be wrong on Amiga.
+        ; Convert the whole file to Latin-1 (see header note).
+        (set #cat-dir
+            (select #lang
+                ""
+                "LOCALE:Catalogs/français"
+                "LOCALE:Catalogs/deutsch"
+                "LOCALE:Catalogs/español"
+                "LOCALE:Catalogs/italiano"
+            )
+        )
+        (working (cat "Installing catalog to " #cat-dir "..."))
+        (makedir #cat-dir
+            (infos)
+        )
+        (copyfile #cat-src
+            (tackon #cat-dir "PetMate.catalog")
+            (confirm)
+        )
+    )
+)
+
+(complete 100)
+
+; ---------------------------------------------------------------------------
+; Done
+; ---------------------------------------------------------------------------
+(exit
+    (cat
+        #app-name " has been successfully installed!\n\n"
+        "Location : " #dest "\n\n"
+        "You can start PetMate by double-clicking its icon in that drawer.\n\n"
+        "Enjoy!"
+    )
+    (quiet)
+)

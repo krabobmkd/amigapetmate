@@ -19,6 +19,7 @@
 #include "appsettings.h"
 #include "boopsimainwindow.h"
 #include "pmsettingsview.h"
+#include "pmhelpview.h"
 #include "pmtoolbar.h"
 #include "screen_carousel.h"
 
@@ -48,6 +49,7 @@ struct App {
     BoopsiMainWindow mainwindow;
 
     PmSettingsView settingsView; /* Project Settings window */
+    //PmHelpView     helpView;     /* Help window (PetMate.guide via datatype) */
 
     Object *mainvlayout;
 

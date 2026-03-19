@@ -63,6 +63,7 @@
 #include "boopsimessage.h"
 #include "boopsimainwindow.h"
 #include "pmsettingsview.h"
+#include "pmhelpview.h"
 #include "appsettings.h"
 
 #include "petscii_canvas.h"
@@ -365,7 +366,7 @@ int main(int argc, char **argv)
     if (!app->project) cleanexit("Can't create project");
 
     /* Initialize locale (no catalog for now - English built-in) */
-    PmLocale_Init(NULL, 0);
+    PmLocale_Init("PetMate.ct", 0);
 
     /* Initialize action system (localizes action names) */
     PmAction_Init();
@@ -732,6 +733,9 @@ int main(int argc, char **argv)
       //  printf("Warning: Could not create Project Settings window\n");
     }
 
+    /* Initialize Help window (loads PetMate.guide via datatypes) */
+   /* PmHelpView_Init(&app->helpView, "PetMate Help", "PROGDIR:PetMate.guide");
+*/
 
     PmSettingsView_SetFSModeIdLikeWorkbench(&app->settingsView,app->appSettings.screenModeIdLikeWorkbench);
     PmSettingsView_SetModeId(&app->settingsView,app->appSettings.screenModeId);
@@ -758,7 +762,7 @@ int main(int argc, char **argv)
         #endif
             ULONG aGuideSignal = 0;
 
-            ULONG result, waitedSignals, currentSignals, settingsSig;
+            ULONG result, waitedSignals, currentSignals, settingsSig, helpSig;
 
             flushbdbprint();
         #ifdef HELP_USE_AGLIB
@@ -766,9 +770,11 @@ int main(int argc, char **argv)
         #endif
 
             settingsSig = PmSettingsView_GetSignalMask(&app->settingsView);
+           /* helpSig     = PmHelpView_GetSignalMask(&app->helpView);*/
 
             waitedSignals = winsignal |
                 settingsSig |
+           //     helpSig |
                 (1L << app->app_port->mp_SigBit) |
                 aGuideSignal |
                 SIGBREAKF_CTRL_C |
@@ -780,6 +786,11 @@ int main(int argc, char **argv)
             if (settingsSig && (currentSignals & settingsSig)) {
                 PmSettingsView_HandleInput(&app->settingsView);
             }
+
+            /* Handle help window input when its signal fires */
+            // if (helpSig && (currentSignals & helpSig)) {
+            //     PmHelpView_HandleInput(&app->helpView);
+            // }
 
             /* exit app at any moment from Ctrl-C signal, atexit() magic does anything needed. */
             if(currentSignals & SIGBREAKF_CTRL_C) exit(0);
@@ -1337,6 +1348,7 @@ void exitclose(void)
 
 
         PmSettingsView_Dispose(&app->settingsView);
+        /*PmHelpView_Dispose(&app->helpView);*/
 
         if(app->aboutRequester)
         {

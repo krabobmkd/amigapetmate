@@ -1,0 +1,331 @@
+## version $VER: PetMate.catalog 1.0 (01.01.2026)
+## language espa\xf1ol
+## codeset 0
+
+; Spanish translation of PetMate - Amiga PETSCII Art Editor
+; Non-ASCII characters use \xNN (ISO 8859-1) escapes for portability.
+
+MSG_WINDOW_TITLE
+PetMate
+
+MSG_ABOUT_TITLE
+Acerca de PetMate
+
+MSG_ABOUT_TEXT
+PetMate - Editor de arte PETSCII C64
+Versi\xf3n Amiga v0.1
+
+MSG_MENU_PROJECT
+Proyecto
+
+MSG_FILE_NEW
+Nuevo
+
+MSG_FILE_OPEN
+Abrir...
+
+MSG_FILE_SAVEAS
+Guardar como...
+
+MSG_FILE_SAVE
+Guardar
+
+MSG_MENU_ICONIFY
+Convertir en icono
+
+MSG_MENU_ABOUT
+Acerca de
+
+MSG_MENU_QUIT
+Salir
+
+MSG_MENU_EDIT
+Editar
+
+MSG_EDIT_UNDO
+Deshacer
+
+MSG_EDIT_REDO
+Rehacer
+
+MSG_EDIT_COPY_SCREEN
+Copiar pantalla
+
+MSG_EDIT_PASTE_SCREEN
+Pegar pantalla
+
+MSG_EDIT_CLEAR_SCREEN
+Limpiar pantalla
+
+MSG_EDIT_SHIFT_LEFT
+Desplazar a la izquierda
+
+MSG_EDIT_SHIFT_RIGHT
+Desplazar a la derecha
+
+MSG_EDIT_SHIFT_UP
+Desplazar hacia arriba
+
+MSG_EDIT_SHIFT_DOWN
+Desplazar hacia abajo
+
+MSG_MENU_SCREEN
+Pantalla
+
+MSG_SCREEN_ADD
+A\xf1adir pantalla
+
+MSG_SCREEN_CLONE
+Clonar pantalla
+
+MSG_SCREEN_REMOVE
+Eliminar pantalla
+
+MSG_SCREEN_PREV
+Pantalla anterior
+
+MSG_SCREEN_NEXT
+Pantalla siguiente
+
+MSG_SCREEN_ADD_ERROR
+No se pueden a\xf1adir m\xe1s pantallas, l\xedmite: 64.
+
+MSG_SCREEN_D
+Pantalla %d
+
+MSG_MENU_VIEW
+Ver
+
+MSG_VIEW_TOGGLE_GRID
+Activar/desactivar cuadr\xedcula
+
+MSG_VIEW_CHARSET_UPPER
+Juego de caracteres may\xfasculas
+
+MSG_VIEW_CHARSET_LOWER
+Juego de caracteres min\xfasculas
+
+MSG_TOGGLE_FULLSCREEN
+Pantalla completa
+
+MSG_MENU_PALETTE
+Paleta
+
+MSG_PALETTE_PETMATE
+PetMate
+
+MSG_PALETTE_COLODORE
+Colodore
+
+MSG_PALETTE_PEPTO
+Pepto
+
+MSG_PALETTE_VICE
+VICE
+
+MSG_MENU_BRUSH
+Pincel
+
+MSG_BRUSH_FLIP_X
+Voltear horizontalmente
+
+MSG_BRUSH_FLIP_Y
+Voltear verticalmente
+
+MSG_BRUSH_ROT90CW
+Rotar 90\xb0 en sentido horario
+
+MSG_BRUSH_ROT180
+Rotar 180\xb0
+
+MSG_BRUSH_ROT90CCW
+Rotar 90\xb0 en sentido antihorario
+
+MSG_LABEL_DRAWCOLOR
+Color de dibujo
+
+MSG_LABEL_BACKGROUNDCOLOR
+Color de fondo
+
+MSG_LABEL_BORDERCOLOR
+Color de borde
+
+MSG_STATUS_READY
+Listo
+
+MSG_STATUS_LOADING
+Cargando...
+
+MSG_STATUS_SAVING
+Guardando...
+
+MSG_STATUS_ERROR
+Error
+
+MSG_ERROR_OPENFILE
+No se puede abrir el archivo
+
+MSG_ERROR_SAVEFILE
+No se puede guardar el archivo
+
+MSG_ERROR_NOMEMORY
+Memoria insuficiente
+
+MSG_ERROR_INVALIDFILE
+Formato de archivo no v\xe1lido
+
+MSG_PETSCII_FILEIO_OK
+Proyecto le\xeddo correctamente.
+
+MSG_PETSCII_FILEIO_EOPEN
+No se puede abrir el archivo.
+
+MSG_PETSCII_FILEIO_EREAD
+Error de lectura del archivo.
+
+MSG_PETSCII_FILEIO_EPARSE
+Error de an\xe1lisis JSON.
+
+MSG_PETSCII_FILEIO_EFORMAT
+Formato de archivo JSON inesperado.
+
+MSG_PETSCII_FILEIO_EALLOC
+Memoria insuficiente.
+
+MSG_PETSCII_FILEIO_EWRITE
+Error de escritura del archivo.
+
+MSG_PETSCII_FILEIO_NEED_DT
+La exportaci\xf3n de imagen requiere la biblioteca datatype
+
+MSG_PETSCII_FILEIO_WRITEOK
+Archivo guardado.
+
+MSG_TOOL_DRAW
+Car. y Color
+
+MSG_TOOL_COLORIZE
+Solo color
+
+MSG_TOOL_CHARDRAW
+Solo car\xe1cter
+
+MSG_TOOL_BRUSH
+Pincel
+
+MSG_TOOL_TEXT
+Texto
+
+MSG_BTN_CLEAR
+Borrar
+
+MSG_BTN_CHARSET_UPPER
+May.
+
+MSG_BTN_CHARSET_LOWER
+Min.
+
+MSG_SETTINGS
+Ajustes
+
+MSG_EXPORT_BAS
+Exportar como BASIC (.bas)...
+
+MSG_EXPORT_ASM
+Exportar como ASM (.asm)...
+
+MSG_EXPORT_SEQ
+Exportar como SEQ (.seq)...
+
+MSG_EXPORT_PRG_BAS
+Exportar PRG con BASIC (.prg)...
+
+MSG_EXPORT_PRG_ASM
+Exportar PRG desde ASM (.prg)...
+
+MSG_EXPORT_IFF
+Exportar imagen IFF (.ilbm)...
+
+MSG_EXPORT_GIF
+Exportar imagen GIF (.gif)...
+
+MSG_EXPORT_PNG
+Exportar imagen PNG (.png)...
+
+MSG_IMPORT_IMAGE
+Importar imagen...
+
+MSG_IMPORT_NOMATCH
+No se encontr\xf3 correspondencia PETSCII (compruebe tama\xf1o y paleta).
+
+MSG_MENU_GENERATE
+Generar
+
+MSG_GENERATE_RANDOM_BRUSH
+Aleatorio desde pincel
+
+MSG_GENERATE_MAGIC_LINE
+L\xednea m\xe1gica
+
+MSG_GENERATE_TRON_LINES
+L\xedneas Tron
+
+MSG_STATUS_DRAW
+Dibujar car\xe1cter y color.
+
+MSG_STATUS_COLORIZE
+Modo colorizaci\xf3n.
+
+MSG_STATUS_CHARDRAW
+Modo dibujo de car\xe1cter.
+
+MSG_STATUS_START_LASSO
+Use el lazo para seleccionar un pincel.
+
+MSG_STATUS_TEXT
+Posicione el cursor y escriba texto.
+
+MSG_SETTINGS_UI_BG_GROUP
+Fondo de UI (cerrar/abrir o F10 necesario)
+
+MSG_SETTINGS_USEONECLORBG
+Usar un color para el fondo
+
+MSG_SETTINGS_BGIMAGE_LABEL
+Imagen de fondo:
+
+MSG_SETTINGS_CHOOSE_BGIMAGE
+Elegir...
+
+MSG_SETTINGS_BGIMAGE_TITLE
+Elegir imagen de fondo
+
+MSG_SETTINGS_BGIMAGE_NONE
+(ninguna)
+
+MSG_SETTINGS_REMOVEBGIMAGE
+Eliminar
+
+MSG_MENU_OPEN_RECENT
+Abrir reciente
+
+MSG_SETTINGS_FSUSEWBMODE
+Pantalla completa: clonar modo WB
+
+MSG_SETTINGS_CHOOSEDOTS
+Elegir...
+
+MSG_SETTINGS_SCREENMODECL
+Modo de pantalla:
+
+MSG_SETTINGS_DESCRIPTIONCL
+Descripci\xf3n:
+
+MSG_SETTINGS_FULLSCREENDISPLAYMODE
+Modo de visualizaci\xf3n a pantalla completa:
+
+MSG_MENU_HELP
+Ayuda...
+
+MSG_HELPERROR_CANTFIND
+No se puede encontrar PROGDIR:PetMate.guide
