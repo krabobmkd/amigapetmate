@@ -7,6 +7,8 @@
 
 #include "appsettings.h"
 #include "tooltypepref.h"
+#include "petscii_palette.h"
+#include "petscii_types.h"
 #include "petmate.h"
 #include <stdio.h>
 static char *StrDup(const char *s)
@@ -27,6 +29,7 @@ static char *StrDup(const char *s)
 #define TT_SCREENMODEID  "SCREENMODEID"  /* 8 hex digits, e.g. "00029000" */
 #define TT_USEONECLORBG  "USEONECLORBG"  /* "1" or "0" */
 #define TT_BGIMAGE       "BGIMAGE"       /* absolute image file path */
+#define TT_PALETTE       "PALETTE"
 
 void AppSettings_Load(AppSettings *as)
 {
@@ -54,6 +57,15 @@ void AppSettings_Load(AppSettings *as)
         unsigned long parsed = 0;
         sscanf(val, "%lX", &parsed);
         as->screenModeId = (ULONG)parsed;
+    }
+
+    val = ToolTypePrefs_Get(TT_PALETTE);
+
+    as->currentPalette = PALETTE_PETMATE;
+    if (val && val[0] != '\0') {
+        if(strcmp(val,c64PaletteNames[PALETTE_COLODORE])==0) as->currentPalette = PALETTE_COLODORE;
+        else if(strcmp(val,c64PaletteNames[PALETTE_PEPTO])==0) as->currentPalette = PALETTE_PEPTO;
+        else if(strcmp(val,c64PaletteNames[PALETTE_VICE])==0) as->currentPalette = PALETTE_VICE;
     }
 
     /* Load UI background settings */
@@ -119,6 +131,13 @@ void AppSettings_Save(AppSettings *as)
         ToolTypePrefs_Set(TT_SCREENMODEID, hexbuf);
     }
 
+
+    if(as->currentPalette == PALETTE_PETMATE)
+    {
+        ToolTypePrefs_Remove(TT_PALETTE);
+    } else if(as->currentPalette<PALETTE_COUNT) {
+        ToolTypePrefs_Set( TT_PALETTE, c64PaletteNames[as->currentPalette] );
+    }
 
     /* Save UI background settings */
     if( as->useOneColorBg)

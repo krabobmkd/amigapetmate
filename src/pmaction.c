@@ -98,7 +98,7 @@ void PmAction_ApplyPalette(PmActionContext *ctx, UBYTE paletteID)
     proj = *ctx->pproject;
     sty  = (PetsciiStyle *)ctx->style;
 
-    proj->currentPalette = paletteID;
+    app->appSettings.currentPalette = paletteID;
     proj->modified = 1;
 
     if (sty) {

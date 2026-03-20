@@ -3,27 +3,29 @@
  O remove bdb
  O do gcc2.95 makefile
  O inverseRect ?
+ X height space in settings window
+ O test OS3.9
 
+ X test on CDTV -> re ->dosnt work
 
  O ask when quitting -> finally no, but no esc key then
 
  O packaging:
 	O catalog for 5 languages
     O installer ?
+ O have example files
 
  O amigaguide on help key and menu.
  O AmigaGuide documentation
-   O have copyright
+   O have krb
 
  -  icons on bt, ->no
  - loosing char value display at some point -> not seen again
 
  X regreyise brush menu
 
- O test on CDTV -> re
-
  X do icon
- O test OS3.9
+
  X test Amiga C64 emulators -> VICE looks cool
     X seq
     X basic
@@ -38,8 +40,6 @@
   X 4 recent files !
  X background prefs
 
- O installer ?
- O have example files
 X iconified icon use app icon
 
 

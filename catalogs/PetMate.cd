@@ -6,373 +6,238 @@
 ;   FlexCat PetMate.cd <lang>/PetMate.ct CATALOG=<lang>/PetMate.catalog
 ;
 ; Install binary catalog to:
-;   LOCALE:Catalogs/<language>/PetMate.catalog
-
-; --- Window / General ---
-
-MSG_WINDOW_TITLE (0//)
-PetMate
-
-MSG_ABOUT_TITLE (1//)
+;   LOCALE:Catalogs/<language>/PetMate.catalogMSG_WINDOW_TITLE (0//)
+PetMateMSG_ABOUT_TITLE (1//)
 About PetMate
-
 MSG_ABOUT_TEXT (2//)
-PetMate - C64 PETSCII Art Editor
-Amiga port v0.1
-
+PetMate - C64 PETSCII Art Editor nAmiga port v0.1
 ; --- Menu: Project ---
-
 MSG_MENU_PROJECT (3//)
 Project
-
 MSG_FILE_NEW (4//)
 New
-
-MSG_FILE_OPEN (5//)
+NewMSG_FILE_OPEN (5//)
 Open...
-
 MSG_FILE_SAVEAS (6//)
 Save As...
-
 MSG_FILE_SAVE (7//)
 Save
-
 MSG_MENU_ICONIFY (8//)
 Iconify
-
 MSG_MENU_ABOUT (9//)
 About
-
 MSG_MENU_QUIT (10//)
-Quit
-
-; --- Menu: Edit ---
-
+Quit; --- Menu: Edit ---
 MSG_MENU_EDIT (11//)
 Edit
-
 MSG_EDIT_UNDO (12//)
 Undo
-
 MSG_EDIT_REDO (13//)
 Redo
-
 MSG_EDIT_COPY_SCREEN (14//)
 Copy Screen
-
 MSG_EDIT_PASTE_SCREEN (15//)
 Paste Screen
-
 MSG_EDIT_CLEAR_SCREEN (16//)
 Clear Screen
-
 MSG_EDIT_SHIFT_LEFT (17//)
 Shift Left
-
 MSG_EDIT_SHIFT_RIGHT (18//)
 Shift Right
-
 MSG_EDIT_SHIFT_UP (19//)
 Shift Up
-
 MSG_EDIT_SHIFT_DOWN (20//)
 Shift Down
-
 ; --- Menu: Screen ---
-
 MSG_MENU_SCREEN (21//)
 Screen
-
 MSG_SCREEN_ADD (22//)
 Add Screen
-
 MSG_SCREEN_CLONE (23//)
 Clone Screen
-
 MSG_SCREEN_REMOVE (24//)
 Remove Screen
-
 MSG_SCREEN_PREV (25//)
 Previous Screen
-
 MSG_SCREEN_NEXT (26//)
 Next Screen
-
 MSG_SCREEN_ADD_ERROR (27//)
 Can't add more screens, limit is 64.
-
 MSG_SCREEN_D (28//)
 Screen %d
-
 ; --- Menu: View ---
-
 MSG_MENU_VIEW (29//)
 View
-
 MSG_VIEW_TOGGLE_GRID (30//)
 Toggle Grid
-
 MSG_VIEW_CHARSET_UPPER (31//)
 Uppercase Charset
-
 MSG_VIEW_CHARSET_LOWER (32//)
 Lowercase Charset
-
 MSG_TOGGLE_FULLSCREEN (33//)
 Toggle Full Screen
-
 ; --- Menu: Palette ---
-
 MSG_MENU_PALETTE (34//)
 Palette
-
 MSG_PALETTE_PETMATE (35//)
 PetMate
-
 MSG_PALETTE_COLODORE (36//)
 Colodore
-
 MSG_PALETTE_PEPTO (37//)
 Pepto
-
 MSG_PALETTE_VICE (38//)
 VICE
-
 ; --- Menu: Brush ---
-
 MSG_MENU_BRUSH (39//)
 Brush
-
 MSG_BRUSH_FLIP_X (40//)
 Flip Horizontally
-
 MSG_BRUSH_FLIP_Y (41//)
 Flip Vertically
-
 MSG_BRUSH_ROT90CW (42//)
 Rotate 90\xb0 CW
-
 MSG_BRUSH_ROT180 (43//)
 Rotate 180\xb0
-
 MSG_BRUSH_ROT90CCW (44//)
 Rotate 90\xb0 CCW
-
 ; --- Labels ---
-
 MSG_LABEL_DRAWCOLOR (45//)
 Draw Color
-
 MSG_LABEL_BACKGROUNDCOLOR (46//)
 Background Color
-
 MSG_LABEL_BORDERCOLOR (47//)
 Border Color
-
 ; --- Status messages ---
-
 MSG_STATUS_READY (48//)
 Ready
-
 MSG_STATUS_LOADING (49//)
 Loading...
-
 MSG_STATUS_SAVING (50//)
 Saving...
-
 MSG_STATUS_ERROR (51//)
 Error
-
 ; --- Error messages ---
-
 MSG_ERROR_OPENFILE (52//)
 Cannot open file
-
 MSG_ERROR_SAVEFILE (53//)
 Cannot save file
-
 MSG_ERROR_NOMEMORY (54//)
 Out of memory
-
 MSG_ERROR_INVALIDFILE (55//)
 Invalid file format
-
 ; --- File I/O status (order matches petscii_fileio.h enum) ---
-
 MSG_PETSCII_FILEIO_OK (56//)
 Project read OK.
-
 MSG_PETSCII_FILEIO_EOPEN (57//)
 Cannot open file.
-
 MSG_PETSCII_FILEIO_EREAD (58//)
 File read error.
-
 MSG_PETSCII_FILEIO_EPARSE (59//)
 JSON parse error.
-
 MSG_PETSCII_FILEIO_EFORMAT (60//)
 Unexpected json file format.
-
 MSG_PETSCII_FILEIO_EALLOC (61//)
 Out of memory.
-
 MSG_PETSCII_FILEIO_EWRITE (62//)
 File write error.
-
 MSG_PETSCII_FILEIO_NEED_DT (63//)
 Image export need datatype library
-
 MSG_PETSCII_FILEIO_WRITEOK (64//)
 File written.
-
 ; --- Toolbar tool labels ---
-
 MSG_TOOL_DRAW (65//)
 Char & Color
-
 MSG_TOOL_COLORIZE (66//)
 Color only
-
 MSG_TOOL_CHARDRAW (67//)
 Char only
-
 MSG_TOOL_BRUSH (68//)
 Brush
-
 MSG_TOOL_TEXT (69//)
 Text
-
 ; --- Button labels ---
-
 MSG_BTN_CLEAR (70//)
 Clear
-
 MSG_BTN_CHARSET_UPPER (71//)
 Upper
-
 MSG_BTN_CHARSET_LOWER (72//)
 Lower
-
 ; --- Settings ---
-
 MSG_SETTINGS (73//)
 Settings
-
 ; --- Export actions ---
-
 MSG_EXPORT_BAS (74//)
 Export as BASIC (.bas)...
-
 MSG_EXPORT_ASM (75//)
 Export as ASM (.asm)...
-
 MSG_EXPORT_SEQ (76//)
 Export as SEQ (.seq)...
-
 MSG_EXPORT_PRG_BAS (77//)
 Export PRG with BASIC (.prg)...
-
 MSG_EXPORT_PRG_ASM (78//)
 Export PRG from ASM (.prg)...
-
 MSG_EXPORT_IFF (79//)
 Export IFF image (.ilbm)...
-
 MSG_EXPORT_GIF (80//)
 Export GIF image (.gif)...
-
 MSG_EXPORT_PNG (81//)
 Export PNG image (.png)...
-
 ; --- Import ---
-
 MSG_IMPORT_IMAGE (82//)
 Import Image...
-
 MSG_IMPORT_NOMATCH (83//)
 No PETSCII match found (check size and palette).
-
 ; --- Menu: Generate ---
-
 MSG_MENU_GENERATE (84//)
 Generate
-
 MSG_GENERATE_RANDOM_BRUSH (85//)
 Random From Brush
-
 MSG_GENERATE_MAGIC_LINE (86//)
 Magic Line
-
 MSG_GENERATE_TRON_LINES (87//)
 Tron Lines
-
 ; --- Status bar per-tool messages ---
-
 MSG_STATUS_DRAW (88//)
 Draw char and Color.
-
 MSG_STATUS_COLORIZE (89//)
 Colorize mode.
-
 MSG_STATUS_CHARDRAW (90//)
 Draw char mode.
-
 MSG_STATUS_START_LASSO (91//)
 Use the lasso to detour a brush.
-
 MSG_STATUS_TEXT (92//)
 Set cursor position and type text.
-
 ; --- Settings window - UI Background group ---
-
 MSG_SETTINGS_UI_BG_GROUP (93//)
 UI Background (need close/Open or F10)
-
 MSG_SETTINGS_USEONECLORBG (94//)
 Use one color for background
-
 MSG_SETTINGS_BGIMAGE_LABEL (95//)
 Background Image:
-
 MSG_SETTINGS_CHOOSE_BGIMAGE (96//)
 Choose...
-
 MSG_SETTINGS_BGIMAGE_TITLE (97//)
 Choose background image
-
 MSG_SETTINGS_BGIMAGE_NONE (98//)
 (none)
-
 MSG_SETTINGS_REMOVEBGIMAGE (99//)
 Remove
-
 ; --- Recent files ---
-
 MSG_MENU_OPEN_RECENT (100//)
 Open Recent
-
 ; --- Settings window - Full screen group ---
-
 MSG_SETTINGS_FSUSEWBMODE (101//)
 Full Screen clone WB Mode
-
 MSG_SETTINGS_CHOOSEDOTS (102//)
 Choose...
-
 MSG_SETTINGS_SCREENMODECL (103//)
 Screen Mode:
-
 MSG_SETTINGS_DESCRIPTIONCL (104//)
 Description:
-
 MSG_SETTINGS_FULLSCREENDISPLAYMODE (105//)
 Full Screen display mode:
-
 ; --- Help ---
-
 MSG_MENU_HELP (106//)
 Help...
-
 MSG_HELPERROR_CANTFIND (107//)
 Can't find PROGDIR:PetMate.guide

@@ -14,7 +14,7 @@ typedef struct PetsciiProject {
     UWORD currentScreen;        /* index of currently displayed screen */
     char *filepath; /* last saved/loaded path (AllocVec'd, NULL if unset) */
     UBYTE modified;             /* dirty flag: non-zero if unsaved changes */
-    UBYTE currentPalette;       /* palette index 0-3 */
+   /*moved to settings UBYTE currentPalette; */       /* palette index 0-3 */
 } PetsciiProject;
 
 /* Create a new empty project (with one default screen) */

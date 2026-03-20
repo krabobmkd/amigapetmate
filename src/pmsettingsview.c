@@ -237,6 +237,7 @@ BOOL PmSettingsView_Init(PmSettingsView *psv, const char *title)
     Object *useOneColorBgLabel;
     Object *bgImageLabel;
     Object *bgImageRow;
+    Object *spacer;
 
     if (!psv) return FALSE;
 
@@ -313,6 +314,7 @@ BOOL PmSettingsView_Init(PmSettingsView *psv, const char *title)
                             LAYOUT_Orientation, LAYOUT_ORIENT_VERT,
                             LAYOUT_BevelStyle,  BVS_GROUP,
                             LAYOUT_Label,       (ULONG)LOC(MSG_SETTINGS_FULLSCREENDISPLAYMODE),
+                            LAYOUT_BackFill, NULL, /* remove optional background image so better read */
                             LAYOUT_SpaceOuter,  TRUE,
                             LAYOUT_SpaceInner,  TRUE,
 
@@ -394,6 +396,7 @@ BOOL PmSettingsView_Init(PmSettingsView *psv, const char *title)
     psv->bgLayout = NewObject(LAYOUT_GetClass(), NULL,
                         LAYOUT_Orientation, LAYOUT_ORIENT_VERT,
                         LAYOUT_BevelStyle,  BVS_GROUP,
+                        LAYOUT_BackFill, NULL, /* remove optional background image so better read */
                         LAYOUT_Label,       (ULONG)LOC(MSG_SETTINGS_UI_BG_GROUP),
                         LAYOUT_SpaceOuter,  TRUE,
                         LAYOUT_SpaceInner,  TRUE,
@@ -409,6 +412,14 @@ BOOL PmSettingsView_Init(PmSettingsView *psv, const char *title)
                         TAG_END);
     if (!psv->bgLayout) return FALSE;
 
+//    spacer = (Object *)NewObject(BUTTON_GetClass(), NULL,
+//        GA_ReadOnly, TRUE,
+//        BUTTON_BevelStyle, BVS_NONE,
+//        BUTTON_Transparent, TRUE,
+//       // GA_Text,"",
+//        TAG_END);
+
+
     /* --- Main top-level layout --- */
     psv->mainLayout = NewObject(LAYOUT_GetClass(), NULL,
                           LAYOUT_DeferLayout,   TRUE,
@@ -423,6 +434,9 @@ BOOL PmSettingsView_Init(PmSettingsView *psv, const char *title)
                           LAYOUT_AddChild,      (ULONG)psv->bgLayout,
                           CHILD_WeightedHeight, 0,
 
+//                          LAYOUT_AddChild,      (ULONG)spacer,
+//                          CHILD_WeightedHeight, 1,
+
                           TAG_END);
     if (!psv->mainLayout) {
         DisposeObject(psv->bgLayout);
@@ -436,8 +450,9 @@ BOOL PmSettingsView_Init(PmSettingsView *psv, const char *title)
     psv->windowObj = NewObject(WINDOW_GetClass(), NULL,
                          WA_Left,   100,
                          WA_Top,    60,
+/* not specifying size make it ideal size from the layout.
                          WA_Width,  420,
-                         WA_Height, 270,
+                         WA_Height, 270,*/
                          WA_IDCMP,  IDCMP_CLOSEWINDOW | IDCMP_GADGETUP | IDCMP_RAWKEY,
                          WA_Flags,  WFLG_DRAGBAR | WFLG_DEPTHGADGET |
                                     WFLG_CLOSEGADGET | WFLG_ACTIVATE |

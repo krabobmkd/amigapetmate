@@ -27,7 +27,6 @@ PetsciiProject *PetsciiProject_Create(void)
     proj->currentScreen = 0;
     proj->filepath = NULL;
     proj->modified = 0;
-    proj->currentPalette = 0;
 
     return proj;
 }

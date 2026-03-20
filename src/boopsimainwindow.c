@@ -211,7 +211,7 @@ void GenericOpenWindow(BoopsiMainWindow *mw,Object *window_obj,struct AppSetting
     /* Sync palette checkmark with the current project palette */
     if (app && app->project) {
         PmMenu_UpdatePaletteCheck(&mw->menu, CurrentMainWindow,
-                                  (UBYTE)app->project->currentPalette);
+                                  (UBYTE)app->appSettings.currentPalette);
     }
 
     /* Rebuild menus with recent files from loaded settings */

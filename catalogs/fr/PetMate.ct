@@ -1,23 +1,17 @@
 ## version $VER: PetMate.catalog 1.0 (01.01.2026)
 ## language fran\xe7ais
 ## codeset 0
-
 ; French translation of PetMate - Amiga PETSCII Art Editor
 ; Non-ASCII characters use \xNN (ISO 8859-1) escapes for portability.
-
 MSG_WINDOW_TITLE
 PetMate
-
 MSG_ABOUT_TITLE
 \xc0 propos de PetMate
-
 MSG_ABOUT_TEXT
 PetMate - \xc9diteur d'art PETSCII C64
 Portage Amiga v0.1
-
 MSG_MENU_PROJECT
 Projet
-
 MSG_FILE_NEW
 Nouveau
 

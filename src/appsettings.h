@@ -26,6 +26,7 @@ typedef struct AppSettings {
     int   useOneColorBg;  /* TRUE = use solid UI background color, no image   */
     char *bgImagePath;    /* AllocVec'd path to background image, NULL = none */
 
+    ULONG currentPalette;
 } AppSettings;
 
 /* Load settings from icon tooltypes. Calls ToolTypePrefs_Init internally. */
