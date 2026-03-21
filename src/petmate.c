@@ -841,7 +841,7 @@ int main(int argc, char **argv)
                     {
                         /* keys managed at mainwindow level */
                         ULONG key = (result & WMHI_KEYMASK);
-                        if(key>=0x50 && key<=0x54)
+                        if(key>=0x50 && key<=0x55)
                         {
                             setTool( TOOL_DRAW + key - 0x50);
                         } else

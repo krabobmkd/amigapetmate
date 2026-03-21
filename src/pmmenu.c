@@ -161,7 +161,7 @@ static void buildMenuTemplate(const AppSettings *as)
     /* - - - Generate - - - */
     ADD(NM_TITLE, NULL, 0, 0, 0, (APTR)MSG_MENU_GENERATE);
         ADD(NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_GENERATE_RANDOM_BRUSH);
-        ADD(NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_GENERATE_MAGIC_LINE);
+/*removed because ugly        ADD(NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_GENERATE_MAGIC_LINE);*/
         ADD(NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_GENERATE_TRON_LINES);
 
     /* - - - Brush - - - */
