@@ -27,9 +27,10 @@
 #define GAD_TOOL_CHARDRAW       12
 #define GAD_TOOL_BRUSH          13
 #define GAD_TOOL_TEXT           14
+#define GAD_TOOL_REVERSE        15
 
 #define GAD_TOOL_FIRST          GAD_TOOL_DRAW
-#define GAD_TOOL_LAST           GAD_TOOL_TEXT
+#define GAD_TOOL_LAST           GAD_TOOL_REVERSE
 
 /* Toolbar action buttons */
 #define GAD_TOOL_UNDO           20

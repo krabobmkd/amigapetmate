@@ -90,7 +90,7 @@ void UpdatePensToCurrentMainScreen()
     if(!app || !CurrentMainScreen) return;
 
     /* maybe need to resynchronize palette from palette id */
-    PetsciiStyle_Init(&app->style,app->style.paletteId);
+    PetsciiStyle_Init(&app->style,app->appSettings.currentPalette);
 
     /* Open fonts from specifications, and may remap pens */
     PetsciiStyle_Apply(&app->style, CurrentMainScreen );
@@ -462,7 +462,7 @@ the full-blown "new look" graphics. If you want the 3D embossed look,
      * so the RGB32 table is updated, and given at screen init.
     */
     CurrentMainScreen_PreIndexed = 1;
-    PetsciiStyle_Init(&app->style,app->style.paletteId);  /* maybe need to resynchronize palette from palette id */
+    PetsciiStyle_Init(&app->style,app->appSettings.currentPalette);  /* maybe need to resynchronize palette from palette id */
     PetsciiStyle_Apply(&app->style, /*CurrentMainScreen*/NULL );  /* in that case create palette and set pen index */
 
     /* Use the user-configured mode ID when available, otherwise inherit WB. */

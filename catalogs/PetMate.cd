@@ -241,3 +241,8 @@ MSG_MENU_HELP (106//)
 Help...
 MSG_HELPERROR_CANTFIND (107//)
 Can't find PROGDIR:PetMate.guide
+; --- Reverse tool ---
+MSG_TOOL_REVERSE (108//)
+Reverse
+MSG_STATUS_REVERSE (109//)
+Lasso a selection to reverse chars (XOR 128).

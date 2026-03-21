@@ -1,331 +1,226 @@
 ## version $VER: PetMate.catalog 1.0 (01.01.2026)
 ## language deutsch
 ## codeset 0
-
 ; German translation of PetMate - Amiga PETSCII Art Editor
 ; Non-ASCII characters use \xNN (ISO 8859-1) escapes for portability.
-
 MSG_WINDOW_TITLE
 PetMate
-
 MSG_ABOUT_TITLE
 \xdcber PetMate
-
 MSG_ABOUT_TEXT
 PetMate - C64 PETSCII-Kunst-Editor
 Amiga-Portierung v0.1
-
 MSG_MENU_PROJECT
 Projekt
-
 MSG_FILE_NEW
 Neu
-
 MSG_FILE_OPEN
 \xd6ffnen...
-
 MSG_FILE_SAVEAS
 Speichern unter...
-
 MSG_FILE_SAVE
 Speichern
-
 MSG_MENU_ICONIFY
 Auf Symbol verkleinern
-
 MSG_MENU_ABOUT
 \xdcber
-
 MSG_MENU_QUIT
 Beenden
-
 MSG_MENU_EDIT
 Bearbeiten
-
 MSG_EDIT_UNDO
 R\xfckg\xe4ngig
-
 MSG_EDIT_REDO
 Wiederherstellen
-
 MSG_EDIT_COPY_SCREEN
 Bildschirm kopieren
-
 MSG_EDIT_PASTE_SCREEN
 Bildschirm einf\xfcgen
-
 MSG_EDIT_CLEAR_SCREEN
 Bildschirm l\xf6schen
-
 MSG_EDIT_SHIFT_LEFT
 Nach links verschieben
-
 MSG_EDIT_SHIFT_RIGHT
 Nach rechts verschieben
-
 MSG_EDIT_SHIFT_UP
 Nach oben verschieben
-
 MSG_EDIT_SHIFT_DOWN
 Nach unten verschieben
-
 MSG_MENU_SCREEN
 Bildschirm
-
 MSG_SCREEN_ADD
 Bildschirm hinzuf\xfcgen
-
 MSG_SCREEN_CLONE
 Bildschirm klonen
-
 MSG_SCREEN_REMOVE
 Bildschirm entfernen
-
 MSG_SCREEN_PREV
 Vorheriger Bildschirm
-
 MSG_SCREEN_NEXT
 N\xe4chster Bildschirm
-
 MSG_SCREEN_ADD_ERROR
 Keine weiteren Bildschirme m\xf6glich, Limit: 64.
-
 MSG_SCREEN_D
 Bildschirm %d
-
 MSG_MENU_VIEW
 Ansicht
-
 MSG_VIEW_TOGGLE_GRID
 Raster umschalten
-
 MSG_VIEW_CHARSET_UPPER
 Gro\xdfbuchstaben-Zeichensatz
-
 MSG_VIEW_CHARSET_LOWER
 Kleinbuchstaben-Zeichensatz
-
 MSG_TOGGLE_FULLSCREEN
 Vollbild umschalten
-
 MSG_MENU_PALETTE
 Farbpalette
-
 MSG_PALETTE_PETMATE
 PetMate
-
 MSG_PALETTE_COLODORE
 Colodore
-
 MSG_PALETTE_PEPTO
 Pepto
-
 MSG_PALETTE_VICE
 VICE
-
 MSG_MENU_BRUSH
 Pinsel
-
 MSG_BRUSH_FLIP_X
 Horizontal spiegeln
-
 MSG_BRUSH_FLIP_Y
 Vertikal spiegeln
-
 MSG_BRUSH_ROT90CW
 90\xb0 im Uhrzeigersinn drehen
-
 MSG_BRUSH_ROT180
 180\xb0 drehen
-
 MSG_BRUSH_ROT90CCW
 90\xb0 gegen Uhrzeigersinn drehen
-
 MSG_LABEL_DRAWCOLOR
 Zeichenfarbe
-
 MSG_LABEL_BACKGROUNDCOLOR
 Hintergrundfarbe
-
 MSG_LABEL_BORDERCOLOR
 Rahmenfarbe
-
 MSG_STATUS_READY
 Bereit
-
 MSG_STATUS_LOADING
 Lade...
-
 MSG_STATUS_SAVING
 Speichere...
-
 MSG_STATUS_ERROR
 Fehler
-
 MSG_ERROR_OPENFILE
 Datei kann nicht ge\xf6ffnet werden
-
 MSG_ERROR_SAVEFILE
 Datei kann nicht gespeichert werden
-
 MSG_ERROR_NOMEMORY
 Kein Arbeitsspeicher
-
 MSG_ERROR_INVALIDFILE
 Ung\xfcltiges Dateiformat
-
 MSG_PETSCII_FILEIO_OK
 Projekt erfolgreich geladen.
-
 MSG_PETSCII_FILEIO_EOPEN
 Datei kann nicht ge\xf6ffnet werden.
-
 MSG_PETSCII_FILEIO_EREAD
 Lesefehler.
-
 MSG_PETSCII_FILEIO_EPARSE
 JSON-Analysefehler.
-
 MSG_PETSCII_FILEIO_EFORMAT
 Unerwartetes JSON-Dateiformat.
-
 MSG_PETSCII_FILEIO_EALLOC
 Kein Arbeitsspeicher.
-
 MSG_PETSCII_FILEIO_EWRITE
 Schreibfehler.
-
 MSG_PETSCII_FILEIO_NEED_DT
 Bildexport ben\xf6tigt Datatype-Bibliothek
-
 MSG_PETSCII_FILEIO_WRITEOK
 Datei gespeichert.
-
 MSG_TOOL_DRAW
 Zeichen & Farbe
-
 MSG_TOOL_COLORIZE
 Nur Farbe
-
 MSG_TOOL_CHARDRAW
 Nur Zeichen
-
 MSG_TOOL_BRUSH
 Pinsel
-
 MSG_TOOL_TEXT
 Text
-
 MSG_BTN_CLEAR
 L\xf6schen
-
 MSG_BTN_CHARSET_UPPER
 Gro\xdf
-
 MSG_BTN_CHARSET_LOWER
 Klein
-
 MSG_SETTINGS
 Einstellungen
-
 MSG_EXPORT_BAS
 Als BASIC exportieren (.bas)...
-
 MSG_EXPORT_ASM
 Als ASM exportieren (.asm)...
-
 MSG_EXPORT_SEQ
 Als SEQ exportieren (.seq)...
-
 MSG_EXPORT_PRG_BAS
 PRG mit BASIC exportieren (.prg)...
-
 MSG_EXPORT_PRG_ASM
 PRG aus ASM exportieren (.prg)...
-
 MSG_EXPORT_IFF
 IFF-Bild exportieren (.ilbm)...
-
 MSG_EXPORT_GIF
 GIF-Bild exportieren (.gif)...
-
 MSG_EXPORT_PNG
 PNG-Bild exportieren (.png)...
-
 MSG_IMPORT_IMAGE
 Bild importieren...
-
 MSG_IMPORT_NOMATCH
 Keine PETSCII-Entsprechung gefunden (Gr\xf6\xdfe und Palette pr\xfcfen).
-
 MSG_MENU_GENERATE
 Generieren
-
 MSG_GENERATE_RANDOM_BRUSH
 Zuf\xe4llig aus Pinsel
-
 MSG_GENERATE_MAGIC_LINE
 Magische Linie
-
 MSG_GENERATE_TRON_LINES
 Tron-Linien
-
 MSG_STATUS_DRAW
 Zeichen und Farbe zeichnen.
-
 MSG_STATUS_COLORIZE
 Einf\xe4rbemodus.
-
 MSG_STATUS_CHARDRAW
 Zeichen-Zeichenmodus.
-
 MSG_STATUS_START_LASSO
 Lasso zum Erstellen eines Pinsels verwenden.
-
 MSG_STATUS_TEXT
 Cursor positionieren und Text eingeben.
-
 MSG_SETTINGS_UI_BG_GROUP
 UI-Hintergrund (Schlie\xdfen/\xd6ffnen oder F10 n\xf6tig)
-
 MSG_SETTINGS_USEONECLORBG
 Einfarbigen Hintergrund verwenden
-
 MSG_SETTINGS_BGIMAGE_LABEL
 Hintergrundbild:
-
 MSG_SETTINGS_CHOOSE_BGIMAGE
 Ausw\xe4hlen...
-
 MSG_SETTINGS_BGIMAGE_TITLE
 Hintergrundbild ausw\xe4hlen
-
 MSG_SETTINGS_BGIMAGE_NONE
 (keins)
-
 MSG_SETTINGS_REMOVEBGIMAGE
 Entfernen
-
 MSG_MENU_OPEN_RECENT
 Zuletzt ge\xf6ffnet
-
 MSG_SETTINGS_FSUSEWBMODE
 Vollbild: WB-Modus klonen
-
 MSG_SETTINGS_CHOOSEDOTS
 Ausw\xe4hlen...
-
 MSG_SETTINGS_SCREENMODECL
 Bildschirmmodus:
-
 MSG_SETTINGS_DESCRIPTIONCL
 Beschreibung:
-
 MSG_SETTINGS_FULLSCREENDISPLAYMODE
 Vollbild-Anzeigemodus:
-
 MSG_MENU_HELP
 Hilfe...
-
 MSG_HELPERROR_CANTFIND
 PROGDIR:PetMate.guide nicht gefunden
+MSG_TOOL_REVERSE
+Umkehren
+MSG_STATUS_REVERSE
+Lasso zum Umkehren der Zeichen (XOR 128).

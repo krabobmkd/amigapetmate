@@ -47,6 +47,7 @@ enum PetsciiTool {
     TOOL_CHARDRAW,      /* Place selected char, keep existing color */
     TOOL_LASSOBRUSH,         /* Paint with captured brush selection */
     TOOL_TEXT,          /* Type text with keyboard */
+    TOOL_REVERSE,       /* Lasso-select and XOR 128 char codes (invert) */
     TOOL_COUNT
 };
 

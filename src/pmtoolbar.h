@@ -18,12 +18,12 @@
 struct PetsciiStyle;
 
 /* Number of mutually-exclusive tool buttons */
-#define TOOLBAR_TOOL_COUNT 5
+#define TOOLBAR_TOOL_COUNT 6
 
 typedef struct PmToolbar {
     Object *layout;                      /* outer VLayout (place in main layout) */
     Object *layoutUndoRedo;
-    Object *toolBtns[TOOLBAR_TOOL_COUNT]; /* Draw/Colorize/CharDraw/Brush/Text   */
+    Object *toolBtns[TOOLBAR_TOOL_COUNT]; /* Draw/Colorize/CharDraw/Brush/Text/Reverse */
     Object *undoBtn;
     Object *redoBtn;
     Object *clearBtn;

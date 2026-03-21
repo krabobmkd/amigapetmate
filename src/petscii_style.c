@@ -66,8 +66,6 @@ void PetsciiStyle_Init(PetsciiStyle *style, UBYTE paletteID)
     if (!style) return;
     if (paletteID >= PALETTE_COUNT) paletteID = PALETTE_PETMATE;
 
-    style->paletteId = paletteID;
-
     for (i = 0; i < C64_COLOR_COUNT; i++) {
         style->c64pens[i].rgbcolor  = c64Palettes[paletteID][i];
         style->c64pens[i].pen       = 1;  /* pen 1 is always a safe fallback */

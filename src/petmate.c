@@ -283,8 +283,11 @@ void setTool(ULONG newTool)
     PmToolbar_SetActiveTool(&app->toolbar, newTool,
                         CurrentMainWindow);
 
-    /* the localization enum follow the tool enum order: */
-    SetStatusBarMessage(MSG_STATUS_DRAW+newTool);
+    /* the localization enum follow the tool enum order (TOOL_REVERSE is separate): */
+    if (newTool == TOOL_REVERSE)
+        SetStatusBarMessage(MSG_STATUS_REVERSE);
+    else
+        SetStatusBarMessage(MSG_STATUS_DRAW+newTool);
 
 }
 
@@ -1070,7 +1073,7 @@ int main(int argc, char **argv)
                                     SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
                                         PCA_SelectedChar, newChar,
                                         TAG_END);
-                                    /* to be clear, set draw if was brush in tool */
+                                    /* to be clear, set draw if was brush/lasso tool */
                                     if(app->toolState.currentTool == TOOL_LASSOBRUSH ||
                                        app->toolState.currentTool == TOOL_TEXT )
                                     {

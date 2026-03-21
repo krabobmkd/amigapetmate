@@ -230,7 +230,12 @@ static const char *defaultStrings[MSG_COUNT] = {
     "Full Screen display mode:",
 
     "Help...",
-    "Can't find PROGDIR:PetMate.guide"
+    "Can't find PROGDIR:PetMate.guide",
+
+    /* MSG_TOOL_REVERSE */
+    "Reverse",
+    /* MSG_STATUS_REVERSE */
+    "Lasso a selection to reverse chars (XOR 128)."
 
 };
 

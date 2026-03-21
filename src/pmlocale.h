@@ -169,6 +169,10 @@ enum {
     MSG_MENU_HELP,
     MSG_HELPERROR_CANTFIND,
 
+    /* Reverse tool */
+    MSG_TOOL_REVERSE,
+    MSG_STATUS_REVERSE,
+
     /* Must be last */
     MSG_COUNT
 };

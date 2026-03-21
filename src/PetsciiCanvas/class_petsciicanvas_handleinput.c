@@ -383,10 +383,11 @@ ULONG PetsciiCanvas_OnGoActive(Class *cl, Object *o, struct gpInput *msg)
         return GMR_MEACTIVE;
     }
 
-    if (inst->currentTool == TOOL_LASSOBRUSH) {
-        /* ---- TOOL_BRUSH click ---------------------------------------- */
+    if (inst->currentTool == TOOL_LASSOBRUSH ||
+        inst->currentTool == TOOL_REVERSE) {
+        /* ---- TOOL_BRUSH / TOOL_REVERSE click ------------------------- */
         if (isClick) {
-            if (!inst->brush) {
+            if (!inst->brush || inst->currentTool == TOOL_REVERSE) {
                 /* Sub-state A → B: start lasso selection */
                 inst->isLassoing    = TRUE;
                 inst->lassoStartCol = (col >= 0) ? col : 0;
@@ -683,6 +684,51 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
         //NO if (inst->currentTool == TOOL_TEXT)
         //     return GMR_MEACTIVE;
 
+        if (inst->currentTool == TOOL_REVERSE && inst->isLassoing) {
+            /* Finalize lasso: invert (XOR 128) all chars in the rectangle */
+            WORD col1, row1, col2, row2;
+            WORD c, r;
+
+            col1 = (inst->lassoStartCol < inst->lassoEndCol)
+                   ? inst->lassoStartCol : inst->lassoEndCol;
+            row1 = (inst->lassoStartRow < inst->lassoEndRow)
+                   ? inst->lassoStartRow : inst->lassoEndRow;
+            col2 = (inst->lassoStartCol > inst->lassoEndCol)
+                   ? inst->lassoStartCol : inst->lassoEndCol;
+            row2 = (inst->lassoStartRow > inst->lassoEndRow)
+                   ? inst->lassoStartRow : inst->lassoEndRow;
+
+            if (inst->screen) {
+                PetsciiUndoBuffer_Push(inst->screen);
+                for (r = row1; r <= row2; r++) {
+                    for (c = col1; c <= col2; c++) {
+                        PetsciiPixel px = PetsciiScreen_GetPixel(
+                                            inst->screen, (UWORD)c, (UWORD)r);
+                        PetsciiScreen_SetCode(inst->screen, (UWORD)c, (UWORD)r,
+                                              (UBYTE)(px.code ^ 0x80));
+                        PetsciiScreenBuf_UpdateCell(inst->screenbuf,
+                                                    inst->screen, inst->style,
+                                                    (UWORD)c, (UWORD)r);
+                    }
+                }
+                inst->scaledBufDirty = TRUE;
+            }
+
+            inst->isLassoing   = FALSE;
+            inst->isDrawing    = FALSE;
+            inst->lastPaintCol = -1;
+            inst->lastPaintRow = -1;
+
+            mouseToCell(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y,
+                        &inst->cursorCol, &inst->cursorRow);
+
+            renderSelf(cl, o, msg->gpi_GInfo);
+            UpdateCarouselThumbNail();
+
+            isIn = isInsideRect(inst, msg->gpi_Mouse.X, msg->gpi_Mouse.Y);
+            return isIn ? GMR_MEACTIVE : GMR_NOREUSE;
+        }
+
         if (inst->currentTool == TOOL_LASSOBRUSH && inst->isLassoing) {
             /* Finalize lasso: capture the selected rectangle into brush */
             WORD col1, row1, col2, row2;
@@ -778,9 +824,10 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
             renderSelf(cl, o, msg->gpi_GInfo);
             return GMR_MEACTIVE;
         } else
-        if (inst->currentTool == TOOL_LASSOBRUSH) {
+        if (inst->currentTool == TOOL_LASSOBRUSH ||
+            inst->currentTool == TOOL_REVERSE) {
 
-            if (/*!inst->brush &&*/ !inst->isLassoing) {
+            if (!inst->isLassoing) {
                 /* Sub-state A → B: start new lasso */
                 inst->isLassoing    = TRUE;
                 inst->lassoStartCol = (col >= 0) ? col : 0;
@@ -859,7 +906,8 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
             }
 
 
-        if (inst->currentTool == TOOL_LASSOBRUSH) {
+        if (inst->currentTool == TOOL_LASSOBRUSH ||
+            inst->currentTool == TOOL_REVERSE) {
 
             if (inst->isLassoing) {
                 /* Update lasso end as mouse moves */

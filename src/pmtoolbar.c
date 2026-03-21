@@ -89,6 +89,8 @@ int PmToolbar_Create(PmToolbar *tb,struct PetsciiStyle  *style)
                                            LOC(MSG_TOOL_BRUSH),    FALSE);
     tb->toolBtns[TOOL_TEXT]     = makeBtnSwitch( GAD_TOOL_TEXT,
                                            LOC(MSG_TOOL_TEXT),     FALSE);
+    tb->toolBtns[TOOL_REVERSE]  = makeBtnSwitch( GAD_TOOL_REVERSE,
+                                           LOC(MSG_TOOL_REVERSE),  FALSE);
 
     /* Action buttons */
     tb->bgColorWatch = NewObject(ColorSwatchClass, NULL,
@@ -132,6 +134,8 @@ int PmToolbar_Create(PmToolbar *tb,struct PetsciiStyle  *style)
         LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_LASSOBRUSH],
             CHILD_WeightedWidth, 1,
         LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_TEXT],
+            CHILD_WeightedWidth, 1,
+        LAYOUT_AddChild, (ULONG)tb->toolBtns[TOOL_REVERSE],
             CHILD_WeightedWidth, 1,
         LAYOUT_AddChild, (ULONG)spacers[1],
             CHILD_WeightedWidth, 1,

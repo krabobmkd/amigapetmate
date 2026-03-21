@@ -30,7 +30,7 @@ typedef struct {
 typedef struct PetsciiStyle {
     ManagedColor c64pens[C64_COLOR_COUNT]; /* One pen per C64 color index */
     struct Screen *screen;                  /* Screen pens were obtained from -> dangerous to retain screen, it can switch */
-    int     paletteId; /* managed preference, as enum in palette.*/
+   /*moved, it's in settings int     paletteId; */ /* managed preference, as enum in palette.*/
 
      /* the graphics LoadRGB32() format, used for fullscreen 16c mode */
     ULONG paletteRGB32[2+(C64_COLOR_COUNT*3)];
