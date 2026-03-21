@@ -261,7 +261,7 @@ BOOL Action_ProjectSave(PmActionContext *ctx)
     err = PetsciiFileIO_Save(proj, proj->filepath);
 
      SetStatusBarMessage(
-         (err == MSG_PETSCII_FILEIO_OK)?MSG_PETSCII_FILEIO_WRITEOK:
+         (err == PETSCII_FILEIO_OK)?MSG_PETSCII_FILEIO_WRITEOK:
          (MSG_PETSCII_FILEIO_OK+err)
          );
 
@@ -286,7 +286,7 @@ BOOL Action_ProjectSaveAs(PmActionContext *ctx)
     err = PetsciiFileIO_Save(*ctx->pproject, actualPath);
 
     SetStatusBarMessage(
-        (err == MSG_PETSCII_FILEIO_OK)?MSG_PETSCII_FILEIO_WRITEOK:
+        (err == PETSCII_FILEIO_OK)?MSG_PETSCII_FILEIO_WRITEOK:
         (MSG_PETSCII_FILEIO_OK+err)
         );
 
@@ -315,6 +315,7 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
     {
         app->aboutRequester = NewObject( REQUESTER_GetClass(), NULL,
 			REQ_Image,REQIMAGE_INFO,
+#ifdef ABOUTTEXTFROMSOURCE
 			REQ_BodyText,(ULONG)
 "\33b\33uAmiga PetMate - C64 PETSCII Art Editor \33n - v" PETMATE_VERSION
 "\n\n"
@@ -333,10 +334,11 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
 "\33c\33bwbochar https://github.com/wbochar/petmate9\33n\n\n"
 "\33cThis is also a project made to explore Intuition BOOPSI and\n"
 "wouldn't exist without the Official Amiga developer forum:\n"
-"https://developer.amigaos3.net/forum"
+"https://developer.amigaos3.net/forum",
+#else
+			REQ_BodyText,(ULONG)LOC(MSG_ABOUT_TEXT),
+#endif
 
-
-			,
             REQ_TitleText,(ULONG)"About Amiga PetMate",
 			REQ_GadgetText,(ULONG)"_Ok",
             TAG_END);

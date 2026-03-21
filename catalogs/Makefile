@@ -25,7 +25,9 @@ CATALOGS = \
 	fr/PetMate.catalog \
 	de/PetMate.catalog \
 	es/PetMate.catalog \
-	it/PetMate.catalog
+	it/PetMate.catalog \
+	da/PetMate.catalog \
+	pl/PetMate.catalog
 
 all: $(CATALOGS)
 
@@ -41,6 +43,11 @@ es/PetMate.catalog: $(CD) es/PetMate.ct
 it/PetMate.catalog: $(CD) it/PetMate.ct
 	$(FLEXCAT) $(CD) it/PetMate.ct CATALOG=$@
 
+da/PetMate.catalog: $(CD) da/PetMate.ct
+	$(FLEXCAT) $(CD) da/PetMate.ct CATALOG=$@
+
+pl/PetMate.catalog: $(CD) pl/PetMate.ct
+	$(FLEXCAT) $(CD) pl/PetMate.ct CATALOG=$@
 # Install to Amiga LOCALE: assign (run on Amiga only)
 install: all
 	copy fr/PetMate.catalog LOCALE:Catalogs/fran\xe7ais/PetMate.catalog
@@ -53,3 +60,6 @@ clean:
 	-delete de/PetMate.catalog
 	-delete es/PetMate.catalog
 	-delete it/PetMate.catalog
+	-delete da/PetMate.catalog
+	-delete pl/PetMate.catalog	
+	

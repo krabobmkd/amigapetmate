@@ -1,0 +1,227 @@
+## version $VER: PetMate.catalog 1.0 (01.01.2026)
+## language polski
+## codeset 2
+; Polish translation of PetMate - Amiga PETSCII Art Editor
+; Non-ASCII characters use \xNN (ISO 8859-2) escapes for portability.
+MSG_WINDOW_TITLE
+PetMate
+MSG_ABOUT_TITLE
+O programie PetMate
+MSG_ABOUT_TEXT
+\x1bb\x1buAmiga PetMate - C64 PETSCII Art Editor \x1bn - v0.8\n\n\x1bcRysowanie przy u\xbfyciu zestaw\xf3w znak\xf3w zintegrowanych\nze starymi maszynami Commodore 8-bit.\nPierwsza z nich to "PET" - st\xb1d nazwa PETSCII\nnawi\xb1zuj\xb1ca do ASCII.\n\nRozwidlony i przeniesiony do C przez Krb\nz oryginalnego \xbcr\xf3d\xb3a TypeScript.\x1bn\n\n\x1bc\x1bb (c)2026 Licencja MIT, przeczytaj plik LICENSE.\x1bn\n\n\xacr\xf3d\xb3a Amiga PetMate s\xb1 dost\xeapne na:\nhttps://github.com/krabobmkd/amigapetmate\nZg\xb3o\xb6 b\xb3\xeady i pro\xb6by o funkcje na:\nhttps://github.com/krabobmkd/amigapetmate/issues\n\n \x1bbOryginalny projekt PetMate dost\xeapny na:\x1bn\n\x1bc\x1bbnurpax https://github.com/nurpax/petmate\x1bn\n\x1bc\x1bbwbochar https://github.com/wbochar/petmate9\x1bn\n\n\x1bcTo tak\xbfe projekt do eksploracji Intuition BOOPSI\ni nie powsta\xb3by bez oficjalnego forum programist\xf3w\nAmiga:\nhttps://developer.amigaos3.net/forum
+MSG_MENU_PROJECT
+Projekt
+MSG_FILE_NEW
+Nowy
+MSG_FILE_OPEN
+Otw\xf3rz...
+MSG_FILE_SAVEAS
+Zapisz jako...
+MSG_FILE_SAVE
+Zapisz
+MSG_MENU_ICONIFY
+Ikonizuj
+MSG_MENU_ABOUT
+O programie
+MSG_MENU_QUIT
+Zako\xf1cz
+MSG_MENU_EDIT
+Edycja
+MSG_EDIT_UNDO
+Cofnij
+MSG_EDIT_REDO
+Pon\xf3w
+MSG_EDIT_COPY_SCREEN
+Kopiuj ekran
+MSG_EDIT_PASTE_SCREEN
+Wklej ekran
+MSG_EDIT_CLEAR_SCREEN
+Wyczy\xb6\xe6 ekran
+MSG_EDIT_SHIFT_LEFT
+Przesu\xf1 w lewo
+MSG_EDIT_SHIFT_RIGHT
+Przesu\xf1 w prawo
+MSG_EDIT_SHIFT_UP
+Przesu\xf1 w g\xf3r\xea
+MSG_EDIT_SHIFT_DOWN
+Przesu\xf1 w d\xf3\xb3
+MSG_MENU_SCREEN
+Ekran
+MSG_SCREEN_ADD
+Dodaj ekran
+MSG_SCREEN_CLONE
+Klonuj ekran
+MSG_SCREEN_REMOVE
+Usu\xf1 ekran
+MSG_SCREEN_PREV
+Poprzedni ekran
+MSG_SCREEN_NEXT
+Nast\xeapny ekran
+MSG_SCREEN_ADD_ERROR
+Nie mo\xbfna doda\xe6 wi\xeacej ekran\xf3w, limit: 64.
+MSG_SCREEN_D
+Ekran %d
+MSG_MENU_VIEW
+Widok
+MSG_VIEW_TOGGLE_GRID
+Prze\xb3\xb1cz siatk\xea
+MSG_VIEW_CHARSET_UPPER
+Zestaw znak\xf3w - wielkie litery
+MSG_VIEW_CHARSET_LOWER
+Zestaw znak\xf3w - ma\xb3e litery
+MSG_TOGGLE_FULLSCREEN
+Pe\xb3ny ekran
+MSG_MENU_PALETTE
+Paleta
+MSG_PALETTE_PETMATE
+PetMate
+MSG_PALETTE_COLODORE
+Colodore
+MSG_PALETTE_PEPTO
+Pepto
+MSG_PALETTE_VICE
+VICE
+MSG_MENU_BRUSH
+P\xeadzel
+MSG_BRUSH_FLIP_X
+Odbij poziomo
+MSG_BRUSH_FLIP_Y
+Odbij pionowo
+MSG_BRUSH_ROT90CW
+Obr\xf3\xe6 90\xb0 w prawo
+MSG_BRUSH_ROT180
+Obr\xf3\xe6 180\xb0
+MSG_BRUSH_ROT90CCW
+Obr\xf3\xe6 90\xb0 w lewo
+MSG_LABEL_DRAWCOLOR
+Kolor rysowania
+MSG_LABEL_BACKGROUNDCOLOR
+Kolor t\xb3a
+MSG_LABEL_BORDERCOLOR
+Kolor obramowania
+MSG_STATUS_READY
+Gotowy
+MSG_STATUS_LOADING
+Wczytywanie...
+MSG_STATUS_SAVING
+Zapisywanie...
+MSG_STATUS_ERROR
+B\xb3\xb1d
+MSG_ERROR_OPENFILE
+Nie mo\xbfna otworzy\xe6 pliku
+MSG_ERROR_SAVEFILE
+Nie mo\xbfna zapisa\xe6 pliku
+MSG_ERROR_NOMEMORY
+Brak pami\xeaci
+MSG_ERROR_INVALIDFILE
+Nieprawid\xb3owy format pliku
+MSG_PETSCII_FILEIO_OK
+Projekt wczytany poprawnie.
+MSG_PETSCII_FILEIO_EOPEN
+Nie mo\xbfna otworzy\xe6 pliku.
+MSG_PETSCII_FILEIO_EREAD
+B\xb3\xb1d odczytu pliku.
+MSG_PETSCII_FILEIO_EPARSE
+B\xb3\xb1d parsowania JSON.
+MSG_PETSCII_FILEIO_EFORMAT
+Nieoczekiwany format pliku JSON.
+MSG_PETSCII_FILEIO_EALLOC
+Brak pami\xeaci.
+MSG_PETSCII_FILEIO_EWRITE
+B\xb3\xb1d zapisu pliku.
+MSG_PETSCII_FILEIO_NEED_DT
+Eksport obrazu wymaga biblioteki datatype
+MSG_PETSCII_FILEIO_WRITEOK
+Plik zapisany.
+MSG_TOOL_DRAW
+Znak i kolor
+MSG_TOOL_COLORIZE
+Tylko kolor
+MSG_TOOL_CHARDRAW
+Tylko znak
+MSG_TOOL_BRUSH
+P\xeadzel
+MSG_TOOL_TEXT
+Tekst
+MSG_BTN_CLEAR
+Wyczy\xb6\xe6
+MSG_BTN_CHARSET_UPPER
+Wielkie
+MSG_BTN_CHARSET_LOWER
+Ma\xb3e
+MSG_SETTINGS
+Ustawienia
+MSG_EXPORT_BAS
+Eksportuj jako BASIC (.bas)...
+MSG_EXPORT_ASM
+Eksportuj jako ASM (.asm)...
+MSG_EXPORT_SEQ
+Eksportuj jako SEQ (.seq)...
+MSG_EXPORT_PRG_BAS
+Eksportuj PRG z BASIC (.prg)...
+MSG_EXPORT_PRG_ASM
+Eksportuj PRG z ASM (.prg)...
+MSG_EXPORT_IFF
+Eksportuj obraz IFF (.ilbm)...
+MSG_EXPORT_GIF
+Eksportuj obraz GIF (.gif)...
+MSG_EXPORT_PNG
+Eksportuj obraz PNG (.png)...
+MSG_IMPORT_IMAGE
+Importuj obraz...
+MSG_IMPORT_NOMATCH
+Nie znaleziono dopasowania PETSCII (sprawd\xbc rozmiar i palet\xea).
+MSG_MENU_GENERATE
+Generuj
+MSG_GENERATE_RANDOM_BRUSH
+Losowe z p\xeadzla
+MSG_GENERATE_MAGIC_LINE
+Magiczna linia
+MSG_GENERATE_TRON_LINES
+Linie Tron
+MSG_STATUS_DRAW
+Rysuj znak i kolor.
+MSG_STATUS_COLORIZE
+Tryb kolorowania.
+MSG_STATUS_CHARDRAW
+Tryb rysowania znaku.
+MSG_STATUS_START_LASSO
+U\xbfyj lassa do zaznaczenia p\xeadzla.
+MSG_STATUS_TEXT
+Ustaw kursor i wpisz tekst.
+MSG_SETTINGS_UI_BG_GROUP
+T\xb3o UI (wymagane zamkni\xeacie/otwarcie lub F10)
+MSG_SETTINGS_USEONECLORBG
+U\xbfyj jednego koloru dla t\xb3a
+MSG_SETTINGS_BGIMAGE_LABEL
+Obraz t\xb3a:
+MSG_SETTINGS_CHOOSE_BGIMAGE
+Wybierz...
+MSG_SETTINGS_BGIMAGE_TITLE
+Wybierz obraz t\xb3a
+MSG_SETTINGS_BGIMAGE_NONE
+(brak)
+MSG_SETTINGS_REMOVEBGIMAGE
+Usu\xf1
+MSG_MENU_OPEN_RECENT
+Ostatnio otwarte
+MSG_SETTINGS_FSUSEWBMODE
+Pe\xb3ny ekran: klonuj tryb WB
+MSG_SETTINGS_CHOOSEDOTS
+Wybierz...
+MSG_SETTINGS_SCREENMODECL
+Tryb ekranu:
+MSG_SETTINGS_DESCRIPTIONCL
+Opis:
+MSG_SETTINGS_FULLSCREENDISPLAYMODE
+Tryb wy\xb6wietlania pe\xb3noekranowego:
+MSG_MENU_HELP
+Pomoc...
+MSG_HELPERROR_CANTFIND
+Nie mo\xbfna znale\xbc\xe6 PROGDIR:PetMate.guide
+MSG_TOOL_REVERSE
+Odwr\xf3\xe6
+MSG_STATUS_REVERSE
+Zaznacz obszar lassem, aby odwr\xf3ci\xe6 znaki (XOR 128).
+MSG_MENU_EXPORT_AS
+Eksportuj jako

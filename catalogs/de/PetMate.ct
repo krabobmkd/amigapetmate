@@ -8,8 +8,7 @@ PetMate
 MSG_ABOUT_TITLE
 \xdcber PetMate
 MSG_ABOUT_TEXT
-PetMate - C64 PETSCII-Kunst-Editor
-Amiga-Portierung v0.1
+\x1bb\x1buAmiga PetMate - C64 PETSCII Art Editor \x1bn - v0.8\n\n\x1bcHier dreht sich alles ums Zeichnen mit den Zeichens\xe4tzen\nalter Commodore 8-Bit-Maschinen. Die erste davon war der\n"PET" - daher der Name PETSCII in Anlehnung an ASCII.\n\nVon Krb aus dem urspr\xfcnglichen TypeScript-Quellcode\ngeforkt und nach C portiert.\x1bn\n\n\x1bc\x1bb (c)2026 Lizenz ist MIT, siehe Datei LICENSE.\x1bn\n\nQuellcode von Amiga PetMate gehostet auf:\nhttps://github.com/krabobmkd/amigapetmate\nFehler melden und Funktionen anfragen:\nhttps://github.com/krabobmkd/amigapetmate/issues\n\n \x1bbOriginale PetMate-Projekte gehostet auf:\x1bn\n\x1bc\x1bbnurpax https://github.com/nurpax/petmate\x1bn\n\x1bc\x1bbwbochar https://github.com/wbochar/petmate9\x1bn\n\n\x1bcDieses Projekt erkundet auch Intuition BOOPSI\nund w\xe4re ohne das offizielle Amiga-Entwicklerforum\nnicht entstanden:\nhttps://developer.amigaos3.net/forum
 MSG_MENU_PROJECT
 Projekt
 MSG_FILE_NEW
@@ -224,3 +223,5 @@ MSG_TOOL_REVERSE
 Umkehren
 MSG_STATUS_REVERSE
 Lasso zum Umkehren der Zeichen (XOR 128).
+MSG_MENU_EXPORT_AS
+Exportieren als

@@ -8,8 +8,7 @@ PetMate
 MSG_ABOUT_TITLE
 \xc0 propos de PetMate
 MSG_ABOUT_TEXT
-PetMate - \xc9diteur d'art PETSCII C64
-Portage Amiga v0.1
+\x1bb\x1buAmiga PetMate - C64 PETSCII Art Editor \x1bn - v0.8\n\n\x1bcTout est question de dessin avec les jeux de caract\xe8res\nint\xe9gr\xe9s dans les anciennes machines Commodore 8 bits,\ndont la premi\xe8re \xe9tait le "PET", d'o\xf9 le nom PETSCII\nen r\xe9f\xe9rence \xe0 l'ASCII.\n\nFork\xe9 et port\xe9 en C par Krb depuis le source\nTypeScript original.\x1bn\n\n\x1bc\x1bb (c)2026 La licence est MIT, lire le fichier LICENSE.\x1bn\n\nSources d'Amiga PetMate h\xe9berg\xe9es sur :\nhttps://github.com/krabobmkd/amigapetmate\nSignaler des bugs et demander des fonctionnalit\xe9s sur :\nhttps://github.com/krabobmkd/amigapetmate/issues\n\n \x1bbProjets PetMate originaux h\xe9berg\xe9s sur :\x1bn\n\x1bc\x1bbnurpax https://github.com/nurpax/petmate\x1bn\n\x1bc\x1bbwbochar https://github.com/wbochar/petmate9\x1bn\n\n\x1bcC'est aussi un projet pour explorer Intuition BOOPSI\net n'existerait pas sans le forum officiel\ndes d\xe9veloppeurs Amiga :\nhttps://developer.amigaos3.net/forum
 MSG_MENU_PROJECT
 Projet
 MSG_FILE_NEW
@@ -137,9 +136,9 @@ Fichier enregistr\xe9.
 MSG_TOOL_DRAW
 Car. & Couleur
 MSG_TOOL_COLORIZE
-Couleur uniquement
+Couleur
 MSG_TOOL_CHARDRAW
-Caract\xe8re uniquement
+Caract\xe8re
 MSG_TOOL_BRUSH
 Pinceau
 MSG_TOOL_TEXT
@@ -224,3 +223,5 @@ MSG_TOOL_REVERSE
 Inverser
 MSG_STATUS_REVERSE
 Lasso pour inverser les caract\xe8res (XOR 128).
+MSG_MENU_EXPORT_AS
+Exporter sous

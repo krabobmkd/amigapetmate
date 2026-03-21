@@ -15,7 +15,7 @@ static const char *defaultStrings[MSG_COUNT] = {
     /* MSG_ABOUT_TITLE */
     "About PetMate",
     /* MSG_ABOUT_TEXT */
-    "PetMate - C64 PETSCII Art Editor\nAmiga port v0.1",
+    "PetMate - C64 PETSCII Art Editor\nAmiga port v0.8",
 
     /* MSG_MENU_PROJECT */
     "Project",
@@ -235,7 +235,10 @@ static const char *defaultStrings[MSG_COUNT] = {
     /* MSG_TOOL_REVERSE */
     "Reverse",
     /* MSG_STATUS_REVERSE */
-    "Lasso a selection to reverse chars (XOR 128)."
+    "Lasso a selection to reverse chars (XOR 128).",
+
+    /* MSG_MENU_EXPORT_AS */
+    "Export As"
 
 };
 

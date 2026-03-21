@@ -1,0 +1,227 @@
+## version $VER: PetMate.catalog 1.0 (01.01.2026)
+## language dansk
+## codeset 0
+; Danish translation of PetMate - Amiga PETSCII Art Editor
+; Non-ASCII characters use \xNN (ISO 8859-1) escapes for portability.
+MSG_WINDOW_TITLE
+PetMate
+MSG_ABOUT_TITLE
+Om PetMate
+MSG_ABOUT_TEXT
+\x1bb\x1buAmiga PetMate - C64 PETSCII Art Editor \x1bn - v0.8\n\n\x1bcDette handler om at tegne med tegns\xe6ttene fra\ngamle Commodore 8-bit maskiner. Den f\xf8rste var\n"PET" - deraf navnet PETSCII i relation til ASCII.\n\nForgrenet og porteret til C af Krb fra den originale\nTypeScript-kilde.\x1bn\n\n\x1bc\x1bb (c)2026 Licens er MIT, l\xe6s filen LICENSE.\x1bn\n\nKilden til Amiga PetMate er hostet p\xe5:\nhttps://github.com/krabobmkd/amigapetmate\nRapporter fejl og anmod om funktioner p\xe5:\nhttps://github.com/krabobmkd/amigapetmate/issues\n\n \x1bbOriginale PetMate-projekter er hostet p\xe5:\x1bn\n\x1bc\x1bbnurpax https://github.com/nurpax/petmate\x1bn\n\x1bc\x1bbwbochar https://github.com/wbochar/petmate9\x1bn\n\n\x1bcDette er ogs\xe5 et projekt til at udforske Intuition BOOPSI\nog ville ikke eksistere uden det officielle\nAmiga-udviklerForum:\nhttps://developer.amigaos3.net/forum
+MSG_MENU_PROJECT
+Projekt
+MSG_FILE_NEW
+Ny
+MSG_FILE_OPEN
+\xc5bn...
+MSG_FILE_SAVEAS
+Gem som...
+MSG_FILE_SAVE
+Gem
+MSG_MENU_ICONIFY
+Ikonificer
+MSG_MENU_ABOUT
+Om
+MSG_MENU_QUIT
+Afslut
+MSG_MENU_EDIT
+Rediger
+MSG_EDIT_UNDO
+Fortryd
+MSG_EDIT_REDO
+Gendan
+MSG_EDIT_COPY_SCREEN
+Kopier sk\xe6rm
+MSG_EDIT_PASTE_SCREEN
+Inds\xe6t sk\xe6rm
+MSG_EDIT_CLEAR_SCREEN
+Ryd sk\xe6rm
+MSG_EDIT_SHIFT_LEFT
+Skub til venstre
+MSG_EDIT_SHIFT_RIGHT
+Skub til h\xf8jre
+MSG_EDIT_SHIFT_UP
+Skub opad
+MSG_EDIT_SHIFT_DOWN
+Skub nedad
+MSG_MENU_SCREEN
+Sk\xe6rm
+MSG_SCREEN_ADD
+Tilf\xf8j sk\xe6rm
+MSG_SCREEN_CLONE
+Klon sk\xe6rm
+MSG_SCREEN_REMOVE
+Fjern sk\xe6rm
+MSG_SCREEN_PREV
+Forrige sk\xe6rm
+MSG_SCREEN_NEXT
+N\xe6ste sk\xe6rm
+MSG_SCREEN_ADD_ERROR
+Kan ikke tilf\xf8je flere sk\xe6rme, gr\xe6nse: 64.
+MSG_SCREEN_D
+Sk\xe6rm %d
+MSG_MENU_VIEW
+Vis
+MSG_VIEW_TOGGLE_GRID
+Sl\xe5 gitter til/fra
+MSG_VIEW_CHARSET_UPPER
+Store bogstavers tegns\xe6t
+MSG_VIEW_CHARSET_LOWER
+Sm\xe5 bogstavers tegns\xe6t
+MSG_TOGGLE_FULLSCREEN
+Skift fuldsk\xe6rm
+MSG_MENU_PALETTE
+Palet
+MSG_PALETTE_PETMATE
+PetMate
+MSG_PALETTE_COLODORE
+Colodore
+MSG_PALETTE_PEPTO
+Pepto
+MSG_PALETTE_VICE
+VICE
+MSG_MENU_BRUSH
+Pensel
+MSG_BRUSH_FLIP_X
+Vend vandret
+MSG_BRUSH_FLIP_Y
+Vend lodret
+MSG_BRUSH_ROT90CW
+Roter 90\xb0 med uret
+MSG_BRUSH_ROT180
+Roter 180\xb0
+MSG_BRUSH_ROT90CCW
+Roter 90\xb0 mod uret
+MSG_LABEL_DRAWCOLOR
+Tegnfarve
+MSG_LABEL_BACKGROUNDCOLOR
+Baggrundsfarve
+MSG_LABEL_BORDERCOLOR
+Kantfarve
+MSG_STATUS_READY
+Klar
+MSG_STATUS_LOADING
+Indl\xe6ser...
+MSG_STATUS_SAVING
+Gemmer...
+MSG_STATUS_ERROR
+Fejl
+MSG_ERROR_OPENFILE
+Kan ikke \xe5bne filen
+MSG_ERROR_SAVEFILE
+Kan ikke gemme filen
+MSG_ERROR_NOMEMORY
+Ikke nok hukommelse
+MSG_ERROR_INVALIDFILE
+Ugyldigt filformat
+MSG_PETSCII_FILEIO_OK
+Projekt l\xe6st OK.
+MSG_PETSCII_FILEIO_EOPEN
+Kan ikke \xe5bne filen.
+MSG_PETSCII_FILEIO_EREAD
+Fejl ved l\xe6sning af fil.
+MSG_PETSCII_FILEIO_EPARSE
+JSON-parsefejl.
+MSG_PETSCII_FILEIO_EFORMAT
+Uventet JSON-filformat.
+MSG_PETSCII_FILEIO_EALLOC
+Ikke nok hukommelse.
+MSG_PETSCII_FILEIO_EWRITE
+Fejl ved skrivning af fil.
+MSG_PETSCII_FILEIO_NEED_DT
+Billedeksport kr\xe6ver datatype-bibliotek
+MSG_PETSCII_FILEIO_WRITEOK
+Fil gemt.
+MSG_TOOL_DRAW
+Tegn og farve
+MSG_TOOL_COLORIZE
+Kun farve
+MSG_TOOL_CHARDRAW
+Kun tegn
+MSG_TOOL_BRUSH
+Pensel
+MSG_TOOL_TEXT
+Tekst
+MSG_BTN_CLEAR
+Ryd
+MSG_BTN_CHARSET_UPPER
+Store
+MSG_BTN_CHARSET_LOWER
+Sm\xe5
+MSG_SETTINGS
+Indstillinger
+MSG_EXPORT_BAS
+Eksporter som BASIC (.bas)...
+MSG_EXPORT_ASM
+Eksporter som ASM (.asm)...
+MSG_EXPORT_SEQ
+Eksporter som SEQ (.seq)...
+MSG_EXPORT_PRG_BAS
+Eksporter PRG med BASIC (.prg)...
+MSG_EXPORT_PRG_ASM
+Eksporter PRG fra ASM (.prg)...
+MSG_EXPORT_IFF
+Eksporter IFF-billede (.ilbm)...
+MSG_EXPORT_GIF
+Eksporter GIF-billede (.gif)...
+MSG_EXPORT_PNG
+Eksporter PNG-billede (.png)...
+MSG_IMPORT_IMAGE
+Importer billede...
+MSG_IMPORT_NOMATCH
+Ingen PETSCII-match fundet (tjek st\xf8rrelse og palet).
+MSG_MENU_GENERATE
+Generer
+MSG_GENERATE_RANDOM_BRUSH
+Tilf\xe6ldig fra pensel
+MSG_GENERATE_MAGIC_LINE
+Magisk linje
+MSG_GENERATE_TRON_LINES
+Tron-linjer
+MSG_STATUS_DRAW
+Tegn tegn og farve.
+MSG_STATUS_COLORIZE
+Farvel\xe6gningstilstand.
+MSG_STATUS_CHARDRAW
+Tegnetilstand.
+MSG_STATUS_START_LASSO
+Brug lassoen til at v\xe6lge en pensel.
+MSG_STATUS_TEXT
+Placer mark\xf8ren og skriv tekst.
+MSG_SETTINGS_UI_BG_GROUP
+UI-baggrund (kr\xe6ver luk/\xe5bn eller F10)
+MSG_SETTINGS_USEONECLORBG
+Brug \xe9n farve til baggrunden
+MSG_SETTINGS_BGIMAGE_LABEL
+Baggrundsbillede:
+MSG_SETTINGS_CHOOSE_BGIMAGE
+V\xe6lg...
+MSG_SETTINGS_BGIMAGE_TITLE
+V\xe6lg baggrundsbillede
+MSG_SETTINGS_BGIMAGE_NONE
+(ingen)
+MSG_SETTINGS_REMOVEBGIMAGE
+Fjern
+MSG_MENU_OPEN_RECENT
+\xc5bn seneste
+MSG_SETTINGS_FSUSEWBMODE
+Fuldsk\xe6rm: klon WB-tilstand
+MSG_SETTINGS_CHOOSEDOTS
+V\xe6lg...
+MSG_SETTINGS_SCREENMODECL
+Sk\xe6rmtilstand:
+MSG_SETTINGS_DESCRIPTIONCL
+Beskrivelse:
+MSG_SETTINGS_FULLSCREENDISPLAYMODE
+Fuldsk\xe6rmsvisningstilstand:
+MSG_MENU_HELP
+Hj\xe6lp...
+MSG_HELPERROR_CANTFIND
+Kan ikke finde PROGDIR:PetMate.guide
+MSG_TOOL_REVERSE
+Inverter
+MSG_STATUS_REVERSE
+Lasso et omr\xe5de for at invertere tegn (XOR 128).
+MSG_MENU_EXPORT_AS
+Eksporter som

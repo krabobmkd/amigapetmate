@@ -98,7 +98,7 @@ static void buildMenuTemplate(const AppSettings *as)
     }
 
     BAR(NM_ITEM);
-    ADD(NM_ITEM, (STRPTR)"Export As", 0, 0, 0, 0);
+    ADD(NM_ITEM, LOC(MSG_MENU_EXPORT_AS), 0, 0, 0, 0);
         ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_IFF_ILBM);
         ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_GIF);
         BAR(NM_SUB);

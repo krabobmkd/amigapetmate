@@ -369,7 +369,7 @@ int main(int argc, char **argv)
     if (!app->project) cleanexit("Can't create project");
 
     /* Initialize locale (no catalog for now - English built-in) */
-    PmLocale_Init("PetMate.ct", 0);
+    PmLocale_Init("PetMate.catalog", 0);
 
     /* Initialize action system (localizes action names) */
     PmAction_Init();
@@ -746,7 +746,7 @@ int main(int argc, char **argv)
     PmSettingsView_SetBgImagePath(&app->settingsView,app->appSettings.bgImagePath);
 
     /* Open the window */
-    BMainWindow_SetTitle(&app->mainwindow,"PetMate v0.1 beta");
+    BMainWindow_SetTitle(&app->mainwindow,"PetMate v" PETMATE_VERSION);
     /*  Open the window or screen accoring to last prefs. */
     BMainWindow_Show(&app->mainwindow,app->window_obj,&app->appSettings);
 

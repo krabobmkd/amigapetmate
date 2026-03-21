@@ -173,6 +173,9 @@ enum {
     MSG_TOOL_REVERSE,
     MSG_STATUS_REVERSE,
 
+    /* Export submenu header */
+    MSG_MENU_EXPORT_AS,
+
     /* Must be last */
     MSG_COUNT
 };
