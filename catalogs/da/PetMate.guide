@@ -1,0 +1,893 @@
+@database PetMate.guide
+@master PetMate.guide
+@width 72
+
+@node MAIN "PetMate til AmigaOS - Brugervejledning"
+
+@{b}PetMate til AmigaOS 3.x@{ub}
+@{b}PETSCII-kunstredaktør@{ub}
+
+                        Brugervejledning
+
+  PetMate er en PETSCII-kunstredaktør til AmigaOS 3.x, porteret fra det
+  originale open source-projekt Petmate. Det giver dig mulighed for at
+  oprette og redigere tegnbaseret kunst med Commodore 64's PETSCII-
+  tegnsæt, med eksport til flere formater herunder native C64-programmer.
+
+  @{" Introduktion         " link INTRO}       Hvad er PetMate?
+  @{" Requirements         " link REQUIRE}     Minimale systemkrav
+  @{" Interface Overview   " link INTERFACE}   Hovedvinduets layout
+  @{" Drawing Tools        " link TOOLS}       De seks tegnemetoder
+  @{" Color Palettes       " link PALETTES}    C64-farvepalettens muligheder
+  @{" Brush Operations     " link BRUSH}       Lasso, transformationer og brug
+  @{" Screen Management    " link SCREENS}     Arbejde med flere skærme
+  @{" Generate Menu        " link GENERATE}    Procedural indholdsgenerering
+  @{" Menus Reference      " link MENUS}       Komplet menureference
+  @{" Keyboard Shortcuts   " link KEYS}        Alle tastaturgenveje
+  @{" Export Formats       " link EXPORT}      Eksportér dit kunstværk
+  @{" Import               " link IMPORT}      Importér billeder
+  @{" File Format          " link FORMAT}      .petmate-projektformatet
+  @{" Credits              " link CREDITS}     Forfattere og licenser
+
+@endnode
+
+
+@node INTRO "Introduktion"
+
+@{b}Introduktion@{ub}
+
+  PetMate er en PETSCII-kunstredaktør, der kører nativt på AmigaOS 3.x.
+  PETSCII (PET Standard Code of Information Interchange) er det tegnsæt,
+  der bruges af Commodore 8-bit computere, mest berømt Commodore 64.
+
+  Den originale Petmate blev skrevet i TypeScript/React til desktop-
+  operativsystemer. Denne Amiga-port er skrevet i C89 med de AmigaOS-
+  native GUI-toolkits BOOPSI og ReAction.
+
+  @{b}Funktioner i oversigt:@{ub}
+
+    - Seks tegneredskaber: Tegn, Farvelæg, TegnTegn, Pensel, Tekst, Omvendt
+    - Fuld C64-16-farvepalette med fire palettevarianter
+    - Lasso-pensel med rotations- og spejltransformationer
+    - Op til 64 skærme pr. projekt
+    - Fortryd / Gentag
+    - Procedural generering: Tilfældig pensel, Magisk linje, Tron-linjer
+    - Eksport til IFF ILBM, GIF, C64 BASIC, ASM og PRG-filer
+    - Importér billeder og konvertér til PETSCII
+    - Projektfiler i .petmate JSON-format (tværplatform)
+
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode
+
+
+@node REQUIRE "Systemkrav"
+
+@{b}Systemkrav@{ub}
+
+  @{b}Minimumskonfiguration:@{ub}
+
+    CPU       Motorola 68020 eller bedre
+    OS        AmigaOS 3.9
+
+  @{b}Anbefalet konfiguration:@{ub}
+
+    OS        AmigaOS 3.2.3 eller nyere
+
+  AmigaOS 3.2.3 giver bedre systembiblioteksunderstøttelse og er den
+  anbefalede platform for den bedste oplevelse. Programmet kører på
+  OS 3.9, men nogle systemfunktioner kan være begrænsede.
+
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode
+
+
+@node INTERFACE "Grænsefladeoversigt"
+
+@{b}Grænsefladeoversigt@{ub}
+
+  Hovedvinduet er opdelt i flere områder:
+
+  @{b}Lærred (centrum)@{ub}
+    Det primære redigeringsområde, der viser den aktuelle skærm. Hver
+    celle viser et PETSCII-tegn med sin forgrundsfarve på den aktuelle
+    baggrundsfarve. Klik eller træk for at tegne.
+
+  @{b}Venstre værktøjslinje@{ub}
+    Lodret stribe med værktøjsknapper langs den venstre kant:
+
+      Tegn             - Vælg Tegn-redskabet (F1)
+      Farvelæg         - Vælg Farvelæg-redskabet (F2)
+      TegnTegn         - Vælg TegnTegn-redskabet (F3)
+      Pensel           - Vælg Lasso-pensel-redskabet (F4)
+      Tekst            - Vælg Tekst-redskabet (F5)
+      Omvendt tegning  - Vælg Omvendt tegning-redskabet (F6)
+      Fortryd          - Fortryd seneste ændring
+      Gentag           - Gentag seneste fortrydelse
+      Ryd              - Ryd den aktuelle skærm
+
+  @{b}Farvevælger@{ub}
+    Viser alle 16 C64-farver fra den aktive palette. Klik på en farve
+    for at vælge den som aktiv forgrundfarve. En separat indikator viser
+    den aktuelle baggrundsfarve.
+
+  @{b}Tegnvælger@{ub}
+    Et 16x16-gitter, der viser alle 256 PETSCII-tegn fra det aktive
+    tegnsæt (store eller små bogstaver). Klik på et tegn for at vælge
+    det som det aktive tegnetegn.
+
+  @{b}Skærmkarrusel@{ub}
+    En lodret stribe med miniaturebilleder, ét pr. skærm i projektet.
+    Klik på et miniaturebillede for at skifte til den skærm. Den
+    aktuelle skærm er fremhævet.
+
+  @{b}Statuslinje@{ub}
+    Viser feedbackmeddelelser og operationsstatus nederst i vinduet.
+
+  @{b}Gitteroverlejring@{ub}
+    Et valgfrit pixelgitter kan slås til/fra for at hjælpe med præcis
+    tegnplacering (Vis-menuen eller G-tasten).
+
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode
+
+
+@node TOOLS "Tegneredskaber"
+
+@{b}Tegneredskaber@{ub}
+
+  PetMate har seks tegneredskaber, der vælges via Rediger-menuen eller
+  funktionstaster. Det aktive redskab bestemmer, hvad der sker, når du
+  klikker eller trækker på lærredet.
+
+  ---------------------------------------------------------------
+
+  @{b}Tegn  (F1)@{ub}
+
+    Det standardtegneredskab. Et klik på en lærredscelle placerer det
+    aktuelt valgte tegn OG anvender den aktuelt valgte forgrundfarve.
+    Både tegn og farve ændres.
+
+    Dette er det mest almindeligt brugte redskab til at bygge PETSCII-
+    kunst fra bunden.
+
+  ---------------------------------------------------------------
+
+  @{b}Farvelæg  (F2)@{ub}
+
+    Anvender den aktuelle forgrundfarve på celler uden at ændre tegnet,
+    der allerede er der. Brug dette til at male områder af lærredet med
+    en anden farve, mens tegnene bevares.
+
+  ---------------------------------------------------------------
+
+  @{b}TegnTegn  (F3)@{ub}
+
+    Placerer det aktuelt valgte tegn uden at ændre cellens eksisterende
+    farve. Tegnet opdateres, men forgrundsfarven for hver celle bevares.
+    Nyttigt til at lægge struktur ud, mens et farveskema bevares.
+
+  ---------------------------------------------------------------
+
+  @{b}Lasso-pensel  (F4)@{ub}
+
+    Klik og træk for at vælge et rektangulært område af lærredet.
+    Valget bliver den aktive @{"pensel" link BRUSH}. Med en fanget pensel
+    stempler et klik andetsteds på lærredet en kopi af penslen.
+
+    Mens en pensel er aktiv, bliver Pensel-menuen tilgængelig og tilbyder
+    spejl- og rotationstransformationer.
+
+  ---------------------------------------------------------------
+
+  @{b}Tekst  (F5)@{ub}
+
+    Placerer markøren på lærredet og tillader direkte tastaturinput.
+    Indtastede tegn placeres med den aktuelle forgrundfarve. Markøren
+    rykker automatisk frem efter hvert tegn.
+
+  ---------------------------------------------------------------
+
+  @{b}Omvendt tegning  (F6)@{ub}
+
+    Klik og træk for at vælge et rektangulært område af lærredet. Når
+    museknappen slippes, byttes forgrundsfarven og baggrundsfarven for
+    hver celle inden for valget. Tegnene i disse celler ændres ikke.
+
+    Nyttigt til hurtigt at invertere et område for at skabe fremhævede
+    eller markerede udseende områder i din PETSCII-kunst.
+
+  ---------------------------------------------------------------
+
+  @{" Penseloperationer  " link BRUSH}
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode
+
+
+@node BRUSH "Penseloperationer"
+
+@{b}Penseloperationer@{ub}
+
+  En pensel er en rektangulær blok af PETSCII-celler fanget fra lærredet
+  med Lasso-pensel-redskabet (F4). Den husker både tegnene og farverne
+  i det fangede område.
+
+  @{b}Fange en pensel@{ub}
+
+    1. Vælg Lasso-pensel-redskabet (F4 eller Rediger > Tegn 4).
+    2. Klik og træk på lærredet for at tegne et udvalgsrektangel.
+    3. Slip museknappen. Det valgte område er nu den aktive pensel.
+
+  @{b}Stemple en pensel@{ub}
+
+    Med en aktiv pensel klikker du et sted på lærredet for at stemple
+    en kopi af penslen der. Penslen respekterer det aktive tegneredskab:
+
+      Tegn-tilstand      - placerer tegn OG farver fra penslen
+      Farvelæg-tilstand  - placerer kun farver fra penslen
+      TegnTegn-tilstand  - placerer kun tegn fra penslen
+
+  @{b}Penseltransformationer@{ub}
+
+    Når en pensel er fanget, bliver Pensel-menuen aktiv.
+    Følgende transformationer er tilgængelige:
+
+      @{b}Spejl X@{ub}       Spejl penslen vandret (venstre bliver højre)
+      @{b}Spejl Y@{ub}       Spejl penslen lodret (top bliver bund)
+      @{b}Rotér 90 H@{ub}    Rotér penslen 90 grader med uret
+      @{b}Rotér 180@{ub}     Rotér penslen 180 grader
+      @{b}Rotér 90 MU@{ub}   Rotér penslen 90 grader mod uret
+
+    Bemærk: rotationer genkortlægger også tegn til deres korrekte
+    retningsækvivalenter (f.eks. erstattes et hjørnestykke i én retning
+    af det matchende hjørne i den roterede retning).
+
+  @{b}Tilfældig pensel-udfyldning@{ub}
+
+    Generér > Tilfældig pensel fylder hele skærmen med tilfældigt valgte
+    celler fra den aktive pensel. Hvis ingen pensel er aktiv, bruges
+    diagonale halvblok-tegn. Udfyldningen respekterer den aktuelle
+    tegneredskabstilstand.
+
+  @{" Tegneredskaber    " link TOOLS}
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode
+
+
+@node PALETTES "Farvepaletter"
+
+@{b}Farvepaletter@{ub}
+
+  C64 har et fast sæt på 16 farver. Forskellige emulatorer og
+  hardwarerevisioner gengiver disse farver lidt forskelligt. PetMate
+  tilbyder fire palettevarianter, der svarer til populære
+  referencestandarder.
+
+  Vælg en palette fra Palette-menuen. Den aktive palette vises med
+  et flueben.
+
+  ---------------------------------------------------------------
+
+  @{b}Petmate@{ub}  (standard)
+
+    Standardpaletten brugt af den originale Petmate-redaktør.
+    En velafbalanceret alsidig C64-palette.
+
+  @{b}Colodore@{ub}
+
+    Colodore-paletten, der er meget anerkendt som en fysisk nøjagtig
+    model af C64's VIC-II farveoutput baseret på målinger.
+
+  @{b}Pepto@{ub}
+
+    Pepto-paletten, en anden målingsbaseret palette af Tobias Gubber,
+    der bruges som reference i emulering.
+
+  @{b}VICE@{ub}
+
+    Paletten brugt af VICE Commodore-emulatoren.
+
+  ---------------------------------------------------------------
+
+  @{b}De 16 C64-farver@{ub}
+
+    Indeks  Navn
+    ------  ----------
+      0     Sort
+      1     Hvid
+      2     Rød
+      3     Cyan
+      4     Lilla
+      5     Grøn
+      6     Blå
+      7     Gul
+      8     Orange
+      9     Brun
+     10     Lysrød
+     11     Mørkegrå
+     12     Grå
+     13     Lysgrøn
+     14     Lysblå
+     15     Lysgrå
+
+  Hver tegncelle har en uafhængig forgrundfarve. Baggrundsfarven og
+  kantfarven deles på tværs af skærmen.
+
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode
+
+
+@node SCREENS "Skærmstyring"
+
+@{b}Skærmstyring@{ub}
+
+  Et PetMate-projekt kan indeholde op til 64 skærme. Hver skærm er et
+  uafhængigt 40x25-tegnlærred med sin egen baggrundsfarve, kantfarve
+  og tegnsætvalg.
+
+  Skærme styres fra Skærm-menuen og skærmkarrusellen.
+
+  @{b}Navigere mellem skærme@{ub}
+
+    Forrige skærm    [-tasten eller Skærm > Forrige skærm
+    Næste skærm      ]-tasten eller Skærm > Næste skærm
+
+    Klik på et miniaturebillede i karrusellen navigerer også direkte
+    til den skærm.
+
+  @{b}Tilføje og fjerne skærme@{ub}
+
+    Tilføj skærm    Tilføjer en ny tom skærm efter den aktuelle.
+    Klon skærm      Tilføjer en kopi af den aktuelle skærm.
+    Fjern skærm     Sletter den aktuelle skærm. Kan ikke udføres, hvis
+                    projektet kun har én skærm tilbage.
+
+  @{b}Kopiere og indsætte skærme@{ub}
+
+    Rediger > Kopiér skærm   Kopierer hele den aktuelle skærm til en
+                             intern udklipsholder.
+    Rediger > Indsæt skærm   Erstatter den aktuelle skærm med indholdet
+                             af udklipsholderen.
+
+  @{b}Flytte skærmindhold@{ub}
+
+    Indholdet af lærredet kan flyttes ét tegn ad gangen i enhver
+    retning. Celler, der bevæger sig ud over én kant, vikles rundt til
+    den modsatte kant.
+
+    Rediger > Flyt venstre
+    Rediger > Flyt højre
+    Rediger > Flyt op
+    Rediger > Flyt ned
+
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode
+
+
+@node GENERATE "Generér-menu"
+
+@{b}Generér-menu@{ub}
+
+  Generér-menuen indeholder tre procedurale indholdsgeneratorer, der
+  fylder den aktuelle skærm med algoritmisk oprettede mønstre. De er
+  nyttige som udgangspunkter for kunstværker eller til hurtigt at
+  fylde baggrunde.
+
+  ---------------------------------------------------------------
+
+  @{b}Tilfældig pensel@{ub}
+
+    Fylder hele skærmen med tilfældigt valgte celler fra den aktive
+    pensel. Udfyldningstilstanden følger det aktive redskab:
+
+      Tegn       - placerer tilfældige tegn OG farver fra penslen
+      Farvelæg   - placerer kun tilfældige farver fra penslen
+      TegnTegn   - placerer kun tilfældige tegn fra penslen
+
+    Hvis ingen pensel er fanget, bruger udfyldningen et tilfældigt
+    udvalg af diagonale halvblok-tegn.
+
+  ---------------------------------------------------------------
+
+  @{b}Magisk linje@{ub}
+
+    Tegner kontinuerlige ormformede stier over skærmen med PETSCII-
+    linjetegningssymboler. Tre algoritmer gennemløbes ved successive
+    kald:
+
+      @{b}Algoritme A - Tilfældig orm@{ub}
+        En orm vandrer over skærmen og skifter retning ca. 20% af
+        tiden. Skaber flydende, organiske linjeforløb.
+
+      @{b}Algoritme B - Gentilsluttende orm@{ub}
+        Ligner Algoritme A, men med en returbias: 40% af skridt
+        påvirkes mod startpositionen. Skaber lukkede sløjfer og
+        ottetalsmønstre.
+
+      @{b}Algoritme C - Fraktal kryds@{ub}
+        En rekursiv fraktalalgoritme, der genererer symmetriske kryds-
+        og forgreningmønstre.
+
+    Krydsningssymboler vælges automatisk for at repræsentere hjørner,
+    T-kryds og rette segmenter korrekt.
+
+  ---------------------------------------------------------------
+
+  @{b}Tron-linjer@{ub}
+
+    Inspireret af lyscykler fra filmen Tron. Fire spillere starter på
+    tilfældige positioner på skærmen og rejser i rette linjer og drejer
+    90 grader i tilfældige intervaller på 2 til 7 skridt. En spiller
+    elimineres, når der ikke er nogen frie celler at flytte ind i.
+
+    Krydsende stier genererer automatisk de korrekte krydsningssymboler
+    der, hvor linjerne krydser hinanden.
+
+  ---------------------------------------------------------------
+
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode
+
+
+@node MENUS "Menureference"
+
+@{b}Menureference@{ub}
+
+  @{" Projekt-menu   " link MENU_PROJECT}
+  @{" Rediger-menu   " link MENU_EDIT}
+  @{" Skærm-menu     " link MENU_SCREEN}
+  @{" Vis-menu       " link MENU_VIEW}
+  @{" Generér-menu   " link MENU_GENERATE}
+  @{" Pensel-menu    " link MENU_BRUSH}
+  @{" Palette-menu   " link MENU_PALETTE}
+
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode
+
+
+@node MENU_PROJECT "Projekt-menu"
+
+@{b}Projekt-menu@{ub}
+
+  @{b}Ny@{ub}  (Ctrl+N)
+    Lukker det aktuelle projekt og starter et nyt tomt projekt med én
+    tom skærm. Ikke-gemte ændringer kasseres.
+
+  @{b}Åbn...@{ub}  (Ctrl+O)
+    Åbner en .petmate-projektfil via systemfiludvælgeren.
+
+  @{b}Gem@{ub}  (Ctrl+S)
+    Gemmer projektet til dets aktuelle filsti. Hvis projektet ikke er
+    gemt før, bedes om et filnavn.
+
+  @{b}Gem som...@{ub}  (Ctrl+A)
+    Gemmer projektet til en ny filsti valgt via filudvælgeren.
+
+  @{b}Åbn nylig@{ub}
+    Undermenu med de fire senest åbnede projektfiler. Klik på en post
+    for at åbne den fil direkte.
+
+  @{b}Eksportér som@{ub}
+    Undermenu til eksport af den aktuelle skærm. Se @{"Eksportformater" link EXPORT}.
+
+  @{b}Importér@{ub}
+    Undermenu til import af eksterne filer. Se @{"Importér" link IMPORT}.
+
+  @{b}Ikonificér@{ub}
+    Minimerer programvinduet til et AppIcon på Workbench.
+
+  @{b}Om@{ub}
+    Viser version og copyrightoplysninger.
+
+  @{b}Afslut@{ub}  (Q)
+    Afslutter PetMate.
+
+  @{" Tilbage til menureference " link MENUS}
+
+@endnode
+
+
+@node MENU_EDIT "Rediger-menu"
+
+@{b}Rediger-menu@{ub}
+
+  @{b}Tegn 1@{ub}  (F1)
+    Aktivér Tegn-redskabet. Placerer tegn og farver.
+
+  @{b}Tegn 2@{ub}  (F2)
+    Aktivér Farvelæg-redskabet. Ændrer kun farver.
+
+  @{b}Tegn 3@{ub}  (F3)
+    Aktivér TegnTegn-redskabet. Placerer kun tegn.
+
+  @{b}Tegn 4@{ub}  (F4)
+    Aktivér Lasso-pensel-redskabet. Fang og stempl pensler.
+
+  @{b}Tegn 5@{ub}  (F5)
+    Aktivér Tekst-redskabet. Skriv tekst direkte på lærredet.
+
+  @{b}Tegn 6@{ub}  (F6)
+    Aktivér Omvendt tegning. Træk et rektangel for at bytte forgrunds-
+    og baggrundsfarver i det valgte område.
+
+  @{b}Fortryd@{ub}  (Z)
+    Fortryder den seneste redigeringshandling. PetMate vedligeholder en
+    cirkulær buffer med skærm-snapshots.
+
+  @{b}Gentag@{ub}  (Y)
+    Gentager den senest fortrydede handling.
+
+  @{b}Kopiér skærm@{ub}
+    Kopierer hele den aktuelle skærm til den interne udklipsholder.
+
+  @{b}Indsæt skærm@{ub}
+    Erstatter den aktuelle skærm med indholdet af den interne
+    udklipsholder.
+
+  @{b}Ryd skærm@{ub}
+    Fylder hele skærmen med den aktuelle kantfarve og fjerner alle tegn
+    og nulstiller cellefarver.
+
+  @{b}Flyt venstre@{ub}
+    Flytter alt skærmindhold ét tegn til venstre. Indhold, der bevæger
+    sig ud over den venstre kant, vikles til højre.
+
+  @{b}Flyt højre@{ub}
+    Flytter alt skærmindhold ét tegn til højre.
+
+  @{b}Flyt op@{ub}
+    Flytter alt skærmindhold ét tegn opad. Indhold, der bevæger sig ud
+    over toppen, vikles til bunden.
+
+  @{b}Flyt ned@{ub}
+    Flytter alt skærmindhold ét tegn nedad.
+
+  @{" Tilbage til menureference " link MENUS}
+
+@endnode
+
+
+@node MENU_SCREEN "Skærm-menu"
+
+@{b}Skærm-menu@{ub}
+
+  @{b}Tilføj skærm@{ub}
+    Tilføjer en ny tom skærm til projektet efter den aktuelle og
+    navigerer til den.
+
+  @{b}Klon skærm@{ub}
+    Tilføjer en nøjagtig kopi af den aktuelle skærm og navigerer til den.
+
+  @{b}Fjern skærm@{ub}
+    Sletter den aktuelle skærm fra projektet. Denne handling kan ikke
+    udføres, hvis projektet kun indeholder én skærm.
+
+  @{b}Forrige skærm@{ub}  ([)
+    Navigerer til den forrige skærm i projektet.
+
+  @{b}Næste skærm@{ub}  (])
+    Navigerer til den næste skærm i projektet.
+
+  @{" Tilbage til menureference " link MENUS}
+
+@endnode
+
+
+@node MENU_VIEW "Vis-menu"
+
+@{b}Vis-menu@{ub}
+
+  @{b}Slå gitter til/fra@{ub}  (G)
+    Viser eller skjuler en pixelgitteroverlejring på lærredet. Gitteret
+    tegner linjer rundt om hver tegncelleafgrænsning for at hjælpe med
+    præcis justering.
+
+  @{b}Tegnsæt store bogstaver@{ub}
+    Skifter tegnvælgeren og lærredsgengivelsen til PETSCII store
+    bogstavers tegnsæt.
+
+  @{b}Tegnsæt små bogstaver@{ub}
+    Skifter til PETSCII lille bogstavers tegnsæt.
+
+  @{b}Slå fuldskærm til/fra@{ub}  (F10)
+    Skifter mellem vinduet og fuldskærmsvisning.
+
+  @{b}Åbn indstillinger@{ub}  (P)
+    Åbner projektindstillingsvinduet, hvor skærmdimensioner og andre
+    projektniveauegenskaber kan konfigureres.
+
+  @{" Tilbage til menureference " link MENUS}
+
+@endnode
+
+
+@node MENU_GENERATE "Generér-menu"
+
+@{b}Generér-menu@{ub}
+
+  Se afsnittet @{"Generér" link GENERATE} for fulde beskrivelser.
+
+  @{b}Tilfældig pensel@{ub}
+    Fylder skærmen med tilfældige celler fra den aktive pensel.
+
+  @{b}Magisk linje@{ub}
+    Tegner algoritmisk ormformet linjekunst over skærmen.
+
+  @{b}Tron-linjer@{ub}
+    Genererer Tron-stil lyscykelkorridormønstre.
+
+  @{" Tilbage til menureference " link MENUS}
+
+@endnode
+
+
+@node MENU_BRUSH "Pensel-menu"
+
+@{b}Pensel-menu@{ub}
+
+  Pensel-menuen er kun aktiv, når en pensel er fanget med Lasso-pensel-
+  redskabet. Se @{"Penseloperationer" link BRUSH}.
+
+  @{b}Spejl X@{ub}
+    Spejl den aktive pensel vandret (venstre-højre).
+
+  @{b}Spejl Y@{ub}
+    Spejl den aktive pensel lodret (top-bund).
+
+  @{b}Rotér 90 H@{ub}
+    Rotér den aktive pensel 90 grader med uret.
+
+  @{b}Rotér 180@{ub}
+    Rotér den aktive pensel 180 grader.
+
+  @{b}Rotér 90 MU@{ub}
+    Rotér den aktive pensel 90 grader mod uret.
+
+  @{" Tilbage til menureference " link MENUS}
+
+@endnode
+
+
+@node MENU_PALETTE "Palette-menu"
+
+@{b}Palette-menu@{ub}
+
+  Vælg den aktive C64-farvepalette. Et flueben angiver den aktuelt
+  aktive palette. Se @{"Farvepaletter" link PALETTES} for detaljer.
+
+  @{b}Petmate@{ub}     Den originale Petmate-palette (standard)
+  @{b}Colodore@{ub}    Målingsbaseret fysisk nøjagtig palette
+  @{b}Pepto@{ub}       Peptos målingsbaserede referencepalette
+  @{b}VICE@{ub}        Paletten brugt af VICE-emulatoren
+
+  @{" Tilbage til menureference " link MENUS}
+
+@endnode
+
+
+@node KEYS "Tastaturgenveje"
+
+@{b}Tastaturgenveje@{ub}
+
+  @{b}Filhandlinger@{ub}
+
+    Ctrl+N    Nyt projekt
+    Ctrl+O    Åbn projekt
+    Ctrl+S    Gem projekt
+    Ctrl+A    Gem som
+    Q         Afslut
+
+  @{b}Tegneredskaber@{ub}
+
+    F1        Tegn-redskab
+    F2        Farvelæg-redskab
+    F3        TegnTegn-redskab
+    F4        Lasso-pensel-redskab
+    F5        Tekst-redskab
+    F6        Omvendt tegning
+
+  @{b}Redigering@{ub}
+
+    Z         Fortryd
+    Y         Gentag
+
+  @{b}Skærmnavigation@{ub}
+
+    [         Forrige skærm
+    ]         Næste skærm
+
+  @{b}Vis@{ub}
+
+    G         Slå gitter til/fra
+    P         Åbn indstillinger
+    F10       Fuldskærm til/fra
+
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode
+
+
+@node EXPORT "Eksportformater"
+
+@{b}Eksportformater@{ub}
+
+  PetMate kan eksportere den aktuelle skærm til adskillige formater via
+  Projekt > Eksportér som. En filudvælger beder om outputfilstien og
+  -navnet.
+
+  ---------------------------------------------------------------
+
+  @{b}IFF ILBM  (.ilbm)@{ub}
+
+    Eksporterer som en Amiga IFF ILBM-billedfil med 4 bitplanes
+    (16 farver). CMAP-chunken indeholder de aktive palettefarver.
+    Billedet er 320x200 pixels (eller 384x272 med den valgfrie C64-
+    kant). Dette format kan åbnes direkte af de fleste Amiga-
+    billedfremvisere og maleprogrammer.
+
+  ---------------------------------------------------------------
+
+  @{b}GIF  (.gif)@{ub}
+
+    Eksporterer som et GIF87a-billede med et globalt 16-farvet farvekort,
+    der matcher den aktive palette. Billedet er 320x200 pixels (eller
+    384x272 med C64-kanten). Velegnet til deling på moderne systemer.
+
+  ---------------------------------------------------------------
+
+  @{b}BASIC  (.bas)@{ub}
+
+    Eksporterer en BASIC-kildetekstfil med DATA-sætninger med
+    skærmkoderne og farveværdierne for hver skærmrække. Filen kan
+    indlæses på en C64 og bruges i et BASIC-program med POKE-sætninger
+    til at vise billedet.
+
+  ---------------------------------------------------------------
+
+  @{b}ASM  (.asm)@{ub}
+
+    Eksporterer en ACME-assemblerkilde med @{b}!byte@{ub}-direktiver og labels.
+    Dataene er arrangeret som skærmbogstavsdata og farve-RAM-data, klar
+    til inkludering i et 6510-assemblerprojekt.
+
+  ---------------------------------------------------------------
+
+  @{b}PRG BASIC  (.prg)@{ub}
+
+    Eksporterer en køreklar Commodore 64-programfil. PRG'en indeholder
+    en minimal BASIC-stub (SYS), der hopper til maskinkode, som kopierer
+    skærm- og farvedataene til C64'ens displayhukommelse og derefter
+    stopper. Indlæs og RUN på en rigtig C64 eller i en emulator.
+
+  ---------------------------------------------------------------
+
+  @{b}PRG ASM  (.prg)@{ub}
+
+    Eksporterer en køreklar Commodore 64-programfil med en ren
+    maskinkodelæsser (intet BASIC). PRG'en kopierer skærm- og farve-
+    RAM-data til C64'ens displayhukommelse.
+
+  ---------------------------------------------------------------
+
+  @{b}Billeddimensioner@{ub}
+
+    Standard:   320 x 200 pixels  (40 x 25 tegn ved 8x8)
+    Med kant:   384 x 272 pixels  (med 8-pixel C64-kantstriber)
+
+  @{" Importér          " link IMPORT}
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode
+
+
+@node IMPORT "Importér"
+
+@{b}Importér@{ub}
+
+  PetMate kan importere et eksisterende billede og automatisk konvertere
+  det til en PETSCII-repræsentation.
+
+  @{b}Projekt > Importér > Billede@{ub}
+
+    Åbner en filudvælger. Vælg en billedfil, der skal importeres.
+
+    @{b}Understøttede billedformater:@{ub}
+      PNG, GIF, BMP, IFF, ILBM, JPG, JPEG
+
+    Importøren bruger Amiga picture.datatype-systemet til at indlæse
+    billedet. Dette kræver datatypes.library version 40 eller højere
+    (AmigaOS 3.5 eller nyere, eller en tilsvarende tredjeparts-
+    datatypeinstallation).
+
+    @{b}Understøttede inputdimensioner:@{ub}
+      320 x 200  (C64-skærm uden kant)
+      384 x 272  (C64-skærm med 8-pixel kant)
+
+    @{b}Konverteringsproces:@{ub}
+
+      1. Billedet indlæses via picture.datatype.
+      2. Billedet kvantiseres til C64's 16-farvepalette.
+      3. Alle 16 mulige baggrundsfarver afprøves for at finde den
+         kombination, der bedst gengiver det originale billede i PETSCII.
+      4. Den resulterende 40x25-skærm indsættes som den aktuelle skærm.
+
+    Konverteringskvaliteten afhænger i høj grad af, om kildebildet
+    oprindeligt blev oprettet som PETSCII-kunst, eller om det er et
+    screenshot af C64-output. Fotografiske billeder giver omtrentlige
+    resultater.
+
+  @{" Eksportformater    " link EXPORT}
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode
+
+
+@node FORMAT "Filformat"
+
+@{b}Filformat@{ub}
+
+  PetMate-projekter gemmes som @{b}.petmate@{ub}-filer. Disse er simple JSON-
+  tekstfiler kompatible med den originale Petmate-redaktør på Windows,
+  macOS og Linux.
+
+  @{b}Indholdet af en .petmate-fil:@{ub}
+
+    - Alle skærme i projektet (op til 64)
+    - For hver skærm: tegnkoden og farven for hver celle, plus
+      baggrundsfarve, kantfarve og tegnsætvalg
+    - Det aktive palettevalg
+    - Projektmetadata
+
+  @{b}Skærmdimensioner:@{ub}
+
+    Standardskærmstørrelsen er 40 x 25 tegn (standard C64-tekstskærmen).
+    Indstillingsvinduet tillader andre dimensioner op til 80 x 50 tegn
+    til ikke-standard brug.
+
+  Da formatet er ren JSON, kan det inspiceres og redigeres med enhver
+  teksteditor, og projekter oprettet på enhver platform kan åbnes på
+  Amigaen uden konvertering.
+
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode
+
+
+@node CREDITS "Tak til"
+
+@{b}Tak til@{ub}
+
+  @{b}PetMate til AmigaOS@{ub}
+    Amiga-port i C89 med BOOPSI og ReAction af Krb.
+
+  @{b}Originale Petmate@{ub}
+    Skrevet i TypeScript/React af Hannu Hartikainen (nurpax)
+    https://github.com/nurpax/petmate
+
+  @{b}Petmate 9@{ub}
+    Udvidet version af wbochar
+    https://github.com/wbochar/petmate9
+
+  @{b}Tredjeparts biblioteker:@{ub}
+    cJSON   - JSON-parser (Amiga-fork)
+    giflib  - GIF-billedskrivning
+
+  @{b}Paletterereferencer:@{ub}
+    Colodore-palette af pepto & others
+    Pepto-palette af Tobias Gubber
+    VICE-palette fra VICE-emulatorprojektet
+
+  Denne software udgives under betingelserne i sin open source-licens.
+  Se LICENSE-filen i distributionen for detaljer.
+
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode

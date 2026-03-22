@@ -1,0 +1,924 @@
+@database PetMate.guide
+@master PetMate.guide
+@width 72
+
+@node MAIN "PetMate für AmigaOS - Benutzerhandbuch"
+
+@{b}PetMate für AmigaOS 3.x@{ub}
+@{b}PETSCII-Kunstwerk-Editor@{ub}
+
+                        Benutzerhandbuch
+
+  PetMate ist ein PETSCII-Kunstwerk-Editor für AmigaOS 3.x, portiert
+  vom ursprünglichen Open-Source-Petmate-Projekt. Er ermöglicht das
+  Erstellen und Bearbeiten von zeichenbasierter Kunst mit dem PETSCII-
+  Zeichensatz des Commodore 64, mit Export in mehrere Formate
+  einschließlich nativer C64-Programme.
+
+  @{" Einführung           " link INTRO}       Was ist PetMate?
+  @{" Requirements         " link REQUIRE}     Mindestsystemanforderungen
+  @{" Interface Overview   " link INTERFACE}   Das Hauptfensterlayout
+  @{" Drawing Tools        " link TOOLS}       Die sechs Zeichenmodi
+  @{" Color Palettes       " link PALETTES}    C64-Farbpaletten-Optionen
+  @{" Brush Operations     " link BRUSH}       Lasso, Transformationen und Verwendung
+  @{" Screen Management    " link SCREENS}     Arbeiten mit mehreren Bildschirmen
+  @{" Generate Menu        " link GENERATE}    Prozedurale Inhaltsgenerierung
+  @{" Menus Reference      " link MENUS}       Vollständige Menüreferenz
+  @{" Keyboard Shortcuts   " link KEYS}        Alle Tastaturkürzel
+  @{" Export Formats       " link EXPORT}      Ihr Kunstwerk exportieren
+  @{" Import               " link IMPORT}      Bilder importieren
+  @{" File Format          " link FORMAT}      Das .petmate-Projektformat
+  @{" Credits              " link CREDITS}     Autoren und Lizenzen
+
+@endnode
+
+
+@node INTRO "Einführung"
+
+@{b}Einführung@{ub}
+
+  PetMate ist ein PETSCII-Kunstwerk-Editor, der nativ auf AmigaOS 3.x
+  läuft. PETSCII (PET Standard Code of Information Interchange) ist
+  der Zeichensatz der Commodore-8-Bit-Computer, vor allem des
+  Commodore 64.
+
+  Das ursprüngliche Petmate wurde in TypeScript/React für Desktop-
+  Betriebssysteme geschrieben. Dieser Amiga-Port ist in C89 unter
+  Verwendung der für AmigaOS nativen GUI-Toolkits BOOPSI und ReAction
+  geschrieben.
+
+  @{b}Funktionen auf einen Blick:@{ub}
+
+    - Sechs Zeichenwerkzeuge: Zeichnen, Einfärben, ZeichenZeichnen, Pinsel, Text, Invertiert
+    - Vollständige C64-16-Farb-Palette mit vier Palettenvarianten
+    - Lasso-Pinsel mit Dreh- und Spiegeltransformationen
+    - Bis zu 64 Bildschirme pro Projekt
+    - Rückgängig / Wiederholen
+    - Prozedurale Generierung: Zufallspinsel, Magische Linie, Tron-Linien
+    - Export nach IFF ILBM, GIF, C64 BASIC, ASM und PRG-Dateien
+    - Bilder importieren und in PETSCII umwandeln
+    - Projektdateien im .petmate JSON-Format (plattformübergreifend)
+
+  @{" Zurück zum Inhaltsverzeichnis " link MAIN}
+
+@endnode
+
+
+@node REQUIRE "Systemanforderungen"
+
+@{b}Systemanforderungen@{ub}
+
+  @{b}Mindestkonfiguration:@{ub}
+
+    CPU       Motorola 68020 oder besser
+    OS        AmigaOS 3.9
+
+  @{b}Empfohlene Konfiguration:@{ub}
+
+    OS        AmigaOS 3.2.3 oder später
+
+  AmigaOS 3.2.3 bietet bessere Systembibliothekenunterstützung und ist
+  die empfohlene Plattform für das beste Erlebnis. Die Anwendung läuft
+  auf OS 3.9, aber einige Systemfunktionen können eingeschränkt sein.
+
+  @{" Zurück zum Inhaltsverzeichnis " link MAIN}
+
+@endnode
+
+
+@node INTERFACE "Schnittstellenübersicht"
+
+@{b}Schnittstellenübersicht@{ub}
+
+  Das Hauptfenster ist in mehrere Bereiche unterteilt:
+
+  @{b}Zeichenfläche (Mitte)@{ub}
+    Der Hauptbearbeitungsbereich, der den aktuellen Bildschirm zeigt.
+    Jede Zelle zeigt ein PETSCII-Zeichen mit seiner Vordergrundfarbe
+    auf der aktuellen Hintergrundfarbe. Klicken oder ziehen zum Zeichnen.
+
+  @{b}Linke Werkzeugleiste@{ub}
+    Vertikaler Streifen mit Werkzeug-Schaltflächen am linken Rand:
+
+      Zeichnen         - Zeichnen-Werkzeug auswählen (F1)
+      Einfärben        - Einfärben-Werkzeug auswählen (F2)
+      ZeichenZeichnen  - ZeichenZeichnen-Werkzeug auswählen (F3)
+      Pinsel           - Lasso-Pinsel-Werkzeug auswählen (F4)
+      Text             - Text-Werkzeug auswählen (F5)
+      Invertiert       - Invertiertes Zeichnen auswählen (F6)
+      Rückgängig       - Letzte Änderung rückgängig machen
+      Wiederholen      - Letzte rückgängig gemachte Änderung wiederholen
+      Löschen          - Aktuellen Bildschirm löschen
+
+  @{b}Farbauswahl@{ub}
+    Zeigt alle 16 C64-Farben der aktiven Palette. Klicken Sie auf eine
+    Farbe, um sie als aktive Vordergrundfarbe auszuwählen. Ein separater
+    Indikator zeigt die aktuelle Hintergrundfarbe.
+
+  @{b}Zeichenauswahl@{ub}
+    Ein 16x16-Raster mit allen 256 PETSCII-Zeichen des aktiven
+    Zeichensatzes (Groß- oder Kleinbuchstaben). Klicken Sie auf ein
+    Zeichen, um es als aktives Zeichenzeichen auszuwählen.
+
+  @{b}Bildschirm-Karussell@{ub}
+    Ein vertikaler Streifen mit Miniaturansichten, eine pro Bildschirm
+    im Projekt. Klicken Sie auf eine Miniaturansicht, um zu diesem
+    Bildschirm zu wechseln. Der aktuelle Bildschirm ist hervorgehoben.
+
+  @{b}Statusleiste@{ub}
+    Zeigt Rückmeldungen und den Operationsstatus am unteren Rand des
+    Fensters an.
+
+  @{b}Rasterüberlagerung@{ub}
+    Ein optionales Pixelraster kann ein- oder ausgeschaltet werden, um
+    bei der präzisen Zeichenpositionierung zu helfen (Ansicht-Menü oder G).
+
+  @{" Zurück zum Inhaltsverzeichnis " link MAIN}
+
+@endnode
+
+
+@node TOOLS "Zeichenwerkzeuge"
+
+@{b}Zeichenwerkzeuge@{ub}
+
+  PetMate hat sechs Zeichenwerkzeuge, die über das Bearbeiten-Menü
+  oder Funktionstasten ausgewählt werden. Das aktive Werkzeug bestimmt,
+  was beim Klicken oder Ziehen auf der Zeichenfläche passiert.
+
+  ---------------------------------------------------------------
+
+  @{b}Zeichnen  (F1)@{ub}
+
+    Das Standard-Zeichenwerkzeug. Ein Klick auf eine Zelle platziert
+    das aktuell ausgewählte Zeichen UND wendet die aktuell ausgewählte
+    Vordergrundfarbe an. Sowohl Zeichen als auch Farbe werden geändert.
+
+    Dies ist das am häufigsten verwendete Werkzeug zum Erstellen von
+    PETSCII-Kunst von Grund auf.
+
+  ---------------------------------------------------------------
+
+  @{b}Einfärben  (F2)@{ub}
+
+    Wendet die aktuelle Vordergrundfarbe auf Zellen an, ohne das bereits
+    vorhandene Zeichen zu ändern. Damit können Bereiche der Zeichenfläche
+    mit einer anderen Farbe neu gestrichen werden, während die Zeichen
+    erhalten bleiben.
+
+  ---------------------------------------------------------------
+
+  @{b}ZeichenZeichnen  (F3)@{ub}
+
+    Platziert das aktuell ausgewählte Zeichen, ohne die vorhandene Farbe
+    der Zelle zu ändern. Das Zeichen wird aktualisiert, aber die
+    Vordergrundfarbe jeder Zelle bleibt erhalten. Nützlich zum Festlegen
+    der Struktur unter Beibehaltung eines Farbschemas.
+
+  ---------------------------------------------------------------
+
+  @{b}Lasso-Pinsel  (F4)@{ub}
+
+    Klicken und ziehen, um einen rechteckigen Bereich der Zeichenfläche
+    auszuwählen. Die Auswahl wird zum aktiven @{"Pinsel" link BRUSH}. Mit einem
+    erfassten Pinsel stempelt ein Klick anderswo eine Kopie des Pinsels
+    an diese Position.
+
+    Während ein Pinsel aktiv ist, wird das Pinsel-Menü verfügbar, das
+    Spiegel- und Drehtransformationen bietet.
+
+  ---------------------------------------------------------------
+
+  @{b}Text  (F5)@{ub}
+
+    Platziert den Cursor auf der Zeichenfläche und ermöglicht die direkte
+    Texteingabe über die Tastatur. Eingegebene Zeichen werden mit der
+    aktuellen Vordergrundfarbe platziert. Der Cursor rückt nach jedem
+    Zeichen automatisch vor.
+
+  ---------------------------------------------------------------
+
+  @{b}Invertiertes Zeichnen  (F6)@{ub}
+
+    Klicken und ziehen, um einen rechteckigen Bereich der Zeichenfläche
+    auszuwählen. Beim Loslassen der Maustaste werden die Vordergrund-
+    und Hintergrundfarben jeder Zelle in der Auswahl getauscht. Die
+    Zeichen in diesen Zellen werden nicht verändert.
+
+    Nützlich zum schnellen Invertieren eines Bereichs, um hervorgehobene
+    oder ausgewählte Bereiche in Ihrer PETSCII-Kunst zu erstellen.
+
+  ---------------------------------------------------------------
+
+  @{" Pinseloperationen              " link BRUSH}
+  @{" Zurück zum Inhaltsverzeichnis  " link MAIN}
+
+@endnode
+
+
+@node BRUSH "Pinseloperationen"
+
+@{b}Pinseloperationen@{ub}
+
+  Ein Pinsel ist ein rechteckiger Block von PETSCII-Zellen, der mit dem
+  Lasso-Pinsel-Werkzeug (F4) von der Zeichenfläche erfasst wurde. Er
+  merkt sich sowohl die Zeichen als auch die Farben des erfassten Bereichs.
+
+  @{b}Einen Pinsel erfassen@{ub}
+
+    1. Wählen Sie das Lasso-Pinsel-Werkzeug (F4 oder Bearbeiten > Zeichnen 4).
+    2. Klicken und ziehen Sie auf der Zeichenfläche, um ein Auswahlrechteck
+       zu zeichnen.
+    3. Lassen Sie die Maustaste los. Der ausgewählte Bereich ist jetzt
+       der aktive Pinsel.
+
+  @{b}Einen Pinsel stempeln@{ub}
+
+    Mit einem aktiven Pinsel klicken Sie an einer beliebigen Stelle der
+    Zeichenfläche, um eine Kopie des Pinsels dort zu stempeln. Der
+    Pinsel respektiert das aktive Zeichenwerkzeug:
+
+      Zeichnen-Modus        - platziert Zeichen UND Farben vom Pinsel
+      Einfärben-Modus       - platziert nur Farben vom Pinsel
+      ZeichenZeichnen-Modus - platziert nur Zeichen vom Pinsel
+
+  @{b}Pinseltransformationen@{ub}
+
+    Sobald ein Pinsel erfasst ist, wird das Pinsel-Menü aktiv.
+    Die folgenden Transformationen sind verfügbar:
+
+      @{b}X spiegeln@{ub}    Pinsel horizontal spiegeln (links wird rechts)
+      @{b}Y spiegeln@{ub}    Pinsel vertikal spiegeln (oben wird unten)
+      @{b}90° rechts@{ub}    Pinsel um 90 Grad im Uhrzeigersinn drehen
+      @{b}180°@{ub}          Pinsel um 180 Grad drehen
+      @{b}90° links@{ub}     Pinsel um 90 Grad gegen den Uhrzeigersinn drehen
+
+    Hinweis: Drehungen ordnen Zeichen auch ihren korrekt ausgerichteten
+    Entsprechungen zu (z.B. wird ein Eckstück in eine Richtung durch das
+    passende Eckstück in der gedrehten Richtung ersetzt).
+
+  @{b}Zufalls-Pinsel-Füllung@{ub}
+
+    Generieren > Zufallspinsel füllt den gesamten Bildschirm mit zufällig
+    ausgewählten Zellen aus dem aktiven Pinsel. Wenn kein Pinsel aktiv
+    ist, werden diagonale Halbblock-Zeichen verwendet. Die Füllung
+    respektiert den aktuellen Zeichenwerkzeug-Modus.
+
+  @{" Zeichenwerkzeuge               " link TOOLS}
+  @{" Zurück zum Inhaltsverzeichnis  " link MAIN}
+
+@endnode
+
+
+@node PALETTES "Farbpaletten"
+
+@{b}Farbpaletten@{ub}
+
+  Der C64 hat einen festen Satz von 16 Farben. Verschiedene Emulatoren
+  und Hardwarerevisionen geben diese Farben leicht unterschiedlich wieder.
+  PetMate bietet vier Palettenvarianten, die gängigen Referenzstandards
+  entsprechen.
+
+  Wählen Sie eine Palette aus dem Palette-Menü. Die aktive Palette wird
+  mit einem Häkchen angezeigt.
+
+  ---------------------------------------------------------------
+
+  @{b}Petmate@{ub}  (Standard)
+
+    Die Standard-Palette des ursprünglichen Petmate-Editors.
+    Eine ausgewogene Allzweck-C64-Palette.
+
+  @{b}Colodore@{ub}
+
+    Die Colodore-Palette, die allgemein als physikalisch genaues Modell
+    der VIC-II-Farbausgabe des C64 auf Basis von Messungen gilt.
+
+  @{b}Pepto@{ub}
+
+    Die Pepto-Palette, eine weitere messungsbasierte Palette von Tobias
+    Gubber, die häufig als Referenz in der Emulation verwendet wird.
+
+  @{b}VICE@{ub}
+
+    Die vom VICE-Commodore-Emulator verwendete Palette.
+
+  ---------------------------------------------------------------
+
+  @{b}Die 16 C64-Farben@{ub}
+
+    Index  Name
+    -----  ----------
+      0    Schwarz
+      1    Weiß
+      2    Rot
+      3    Cyan
+      4    Lila
+      5    Grün
+      6    Blau
+      7    Gelb
+      8    Orange
+      9    Braun
+     10    Hellrot
+     11    Dunkelgrau
+     12    Grau
+     13    Hellgrün
+     14    Hellblau
+     15    Hellgrau
+
+  Jede Zeichenzelle hat eine unabhängige Vordergrundfarbe. Die
+  Hintergrundfarbe und Rahmenfarbe werden über den gesamten Bildschirm
+  geteilt.
+
+  @{" Zurück zum Inhaltsverzeichnis " link MAIN}
+
+@endnode
+
+
+@node SCREENS "Bildschirmverwaltung"
+
+@{b}Bildschirmverwaltung@{ub}
+
+  Ein PetMate-Projekt kann bis zu 64 Bildschirme enthalten. Jeder
+  Bildschirm ist eine unabhängige 40x25-Zeichen-Zeichenfläche mit
+  eigener Hintergrundfarbe, Rahmenfarbe und Zeichensatzauswahl.
+
+  Bildschirme werden über das Bildschirm-Menü und das On-Screen-
+  Karussell verwaltet.
+
+  @{b}Zwischen Bildschirmen navigieren@{ub}
+
+    Vorheriger Bildschirm   Taste [ oder Bildschirm > Vorheriger Bildschirm
+    Nächster Bildschirm     Taste ] oder Bildschirm > Nächster Bildschirm
+
+    Ein Klick auf eine Miniaturansicht im Karussell navigiert ebenfalls
+    direkt zu diesem Bildschirm.
+
+  @{b}Bildschirme hinzufügen und entfernen@{ub}
+
+    Bildschirm hinzufügen  Fügt einen neuen leeren Bildschirm nach dem
+                           aktuellen ein.
+    Bildschirm klonen      Fügt eine Kopie des aktuellen Bildschirms ein.
+    Bildschirm entfernen   Löscht den aktuellen Bildschirm. Kann nicht
+                           ausgeführt werden, wenn nur ein Bildschirm
+                           im Projekt vorhanden ist.
+
+  @{b}Bildschirme kopieren und einfügen@{ub}
+
+    Bearbeiten > Bildschirm kopieren   Kopiert den gesamten aktuellen
+                                       Bildschirm in eine interne
+                                       Zwischenablage.
+    Bearbeiten > Bildschirm einfügen   Ersetzt den aktuellen Bildschirm
+                                       durch den Inhalt der Zwischenablage.
+
+  @{b}Bildschirminhalt verschieben@{ub}
+
+    Der Inhalt der Zeichenfläche kann jeweils ein Zeichen in beliebige
+    Richtungen verschoben werden. Zellen, die über einen Rand hinaus
+    verschoben werden, erscheinen auf der gegenüberliegenden Seite.
+
+    Bearbeiten > Nach links verschieben
+    Bearbeiten > Nach rechts verschieben
+    Bearbeiten > Nach oben verschieben
+    Bearbeiten > Nach unten verschieben
+
+  @{" Zurück zum Inhaltsverzeichnis " link MAIN}
+
+@endnode
+
+
+@node GENERATE "Generieren-Menü"
+
+@{b}Generieren-Menü@{ub}
+
+  Das Generieren-Menü bietet drei prozedurale Inhaltsgeneratoren, die
+  den aktuellen Bildschirm mit algorithmisch erstellten Mustern füllen.
+  Sie sind nützlich als Ausgangspunkte für Kunstwerke oder zum schnellen
+  Füllen von Hintergründen.
+
+  ---------------------------------------------------------------
+
+  @{b}Zufallspinsel@{ub}
+
+    Füllt den gesamten Bildschirm mit zufällig aus dem aktiven Pinsel
+    ausgewählten Zellen. Der Füllmodus folgt dem aktiven Werkzeug:
+
+      Zeichnen        - platziert zufällige Zeichen UND Farben vom Pinsel
+      Einfärben       - platziert nur zufällige Farben vom Pinsel
+      ZeichenZeichnen - platziert nur zufällige Zeichen vom Pinsel
+
+    Wenn kein Pinsel erfasst ist, verwendet die Füllung eine zufällige
+    Auswahl diagonaler Halbblock-Zeichen.
+
+  ---------------------------------------------------------------
+
+  @{b}Magische Linie@{ub}
+
+    Zeichnet kontinuierliche wurmartige Pfade über den Bildschirm mit
+    PETSCII-Linienzeichen. Drei Algorithmen werden bei aufeinander-
+    folgenden Aufrufen durchgewechselt:
+
+      @{b}Algorithmus A - Zufallswurm@{ub}
+        Ein Wurm wandert über den Bildschirm und ändert die Richtung
+        etwa 20% der Zeit. Erzeugt fließende, organische Linienspuren.
+
+      @{b}Algorithmus B - Wiederverbindender Wurm@{ub}
+        Ähnlich wie Algorithmus A, aber mit einem Heimwärts-Bias: 40%
+        der Schritte werden zur Startposition hin gelenkt. Erzeugt
+        geschlossene Schleifen und Acht-Muster.
+
+      @{b}Algorithmus C - Fraktales Kreuzgitter@{ub}
+        Ein rekursiver Fraktal-Algorithmus, der symmetrische Kreuz-
+        und Verzweigungsmuster erzeugt.
+
+    Kreuzungszeichen werden automatisch ausgewählt, um Ecken,
+    T-Kreuzungen und gerade Segmente korrekt darzustellen.
+
+  ---------------------------------------------------------------
+
+  @{b}Tron-Linien@{ub}
+
+    Inspiriert von den Lichtmotorrädern aus dem Film Tron. Vier Spieler
+    starten an zufälligen Positionen auf dem Bildschirm und reisen in
+    geraden Linien, drehen sich um 90 Grad in zufälligen Abständen von
+    2 bis 7 Schritten. Ein Spieler scheidet aus, wenn er keine freien
+    Zellen mehr zum Bewegen hat.
+
+    Kreuzende Pfade erzeugen automatisch die richtigen Kreuzungszeichen
+    an den Schnittpunkten.
+
+  ---------------------------------------------------------------
+
+  @{" Zurück zum Inhaltsverzeichnis " link MAIN}
+
+@endnode
+
+
+@node MENUS "Menüreferenz"
+
+@{b}Menüreferenz@{ub}
+
+  @{" Projekt-Menü    " link MENU_PROJECT}
+  @{" Bearbeiten-Menü " link MENU_EDIT}
+  @{" Bildschirm-Menü " link MENU_SCREEN}
+  @{" Ansicht-Menü    " link MENU_VIEW}
+  @{" Generieren-Menü " link MENU_GENERATE}
+  @{" Pinsel-Menü     " link MENU_BRUSH}
+  @{" Palette-Menü    " link MENU_PALETTE}
+
+  @{" Zurück zum Inhaltsverzeichnis " link MAIN}
+
+@endnode
+
+
+@node MENU_PROJECT "Projekt-Menü"
+
+@{b}Projekt-Menü@{ub}
+
+  @{b}Neu@{ub}  (Ctrl+N)
+    Schließt das aktuelle Projekt und startet ein neues leeres Projekt
+    mit einem einzigen leeren Bildschirm. Nicht gespeicherte Änderungen
+    werden verworfen.
+
+  @{b}Öffnen...@{ub}  (Ctrl+O)
+    Öffnet eine .petmate-Projektdatei über den Systemdateiauswähler.
+
+  @{b}Speichern@{ub}  (Ctrl+S)
+    Speichert das Projekt unter seinem aktuellen Dateipfad. Wenn das
+    Projekt noch nie gespeichert wurde, wird nach einem Dateinamen
+    gefragt.
+
+  @{b}Speichern unter...@{ub}  (Ctrl+A)
+    Speichert das Projekt unter einem neuen Dateipfad, der über den
+    Dateiauswähler gewählt wird.
+
+  @{b}Zuletzt geöffnet@{ub}
+    Untermenü mit den vier zuletzt geöffneten Projektdateien. Klicken
+    Sie auf einen Eintrag, um diese Datei direkt zu öffnen.
+
+  @{b}Exportieren als@{ub}
+    Untermenü zum Exportieren des aktuellen Bildschirms. Siehe @{"Exportformate" link EXPORT}.
+
+  @{b}Importieren@{ub}
+    Untermenü zum Importieren externer Dateien. Siehe @{"Import" link IMPORT}.
+
+  @{b}Iconifizieren@{ub}
+    Minimiert das Anwendungsfenster zu einem AppIcon auf dem Workbench.
+
+  @{b}Über@{ub}
+    Zeigt Versions- und Copyright-Informationen an.
+
+  @{b}Beenden@{ub}  (Q)
+    Beendet PetMate.
+
+  @{" Zurück zur Menüreferenz " link MENUS}
+
+@endnode
+
+
+@node MENU_EDIT "Bearbeiten-Menü"
+
+@{b}Bearbeiten-Menü@{ub}
+
+  @{b}Zeichnen 1@{ub}  (F1)
+    Zeichnen-Werkzeug aktivieren. Platziert Zeichen und Farben.
+
+  @{b}Zeichnen 2@{ub}  (F2)
+    Einfärben-Werkzeug aktivieren. Ändert nur Farben.
+
+  @{b}Zeichnen 3@{ub}  (F3)
+    ZeichenZeichnen-Werkzeug aktivieren. Platziert nur Zeichen.
+
+  @{b}Zeichnen 4@{ub}  (F4)
+    Lasso-Pinsel-Werkzeug aktivieren. Pinsel erfassen und stempeln.
+
+  @{b}Zeichnen 5@{ub}  (F5)
+    Text-Werkzeug aktivieren. Text direkt auf die Zeichenfläche tippen.
+
+  @{b}Zeichnen 6@{ub}  (F6)
+    Invertiertes Zeichnen aktivieren. Ein Rechteck ziehen, um Vorder-
+    und Hintergrundfarben im ausgewählten Bereich zu tauschen.
+
+  @{b}Rückgängig@{ub}  (Z)
+    Macht die letzte Bearbeitungsoperation rückgängig. PetMate führt
+    einen Ringpuffer mit Bildschirm-Schnappschüssen.
+
+  @{b}Wiederholen@{ub}  (Y)
+    Wiederholt die letzte rückgängig gemachte Operation.
+
+  @{b}Bildschirm kopieren@{ub}
+    Kopiert den gesamten aktuellen Bildschirm in die interne
+    Zwischenablage.
+
+  @{b}Bildschirm einfügen@{ub}
+    Ersetzt den aktuellen Bildschirm durch den Inhalt der internen
+    Zwischenablage.
+
+  @{b}Bildschirm löschen@{ub}
+    Füllt den gesamten Bildschirm mit der aktuellen Rahmenfarbe und
+    entfernt alle Zeichen sowie setzt Zellenfarben zurück.
+
+  @{b}Nach links verschieben@{ub}
+    Verschiebt den gesamten Bildschirminhalt ein Zeichen nach links.
+    Inhalt, der links herausfällt, erscheint rechts wieder.
+
+  @{b}Nach rechts verschieben@{ub}
+    Verschiebt den gesamten Bildschirminhalt ein Zeichen nach rechts.
+
+  @{b}Nach oben verschieben@{ub}
+    Verschiebt den gesamten Bildschirminhalt ein Zeichen nach oben.
+    Inhalt, der oben herausfällt, erscheint unten wieder.
+
+  @{b}Nach unten verschieben@{ub}
+    Verschiebt den gesamten Bildschirminhalt ein Zeichen nach unten.
+
+  @{" Zurück zur Menüreferenz " link MENUS}
+
+@endnode
+
+
+@node MENU_SCREEN "Bildschirm-Menü"
+
+@{b}Bildschirm-Menü@{ub}
+
+  @{b}Bildschirm hinzufügen@{ub}
+    Fügt einen neuen leeren Bildschirm nach dem aktuellen ein und
+    navigiert zu ihm.
+
+  @{b}Bildschirm klonen@{ub}
+    Fügt eine exakte Kopie des aktuellen Bildschirms ein und navigiert
+    zu ihr.
+
+  @{b}Bildschirm entfernen@{ub}
+    Löscht den aktuellen Bildschirm aus dem Projekt. Diese Aktion kann
+    nicht ausgeführt werden, wenn das Projekt nur einen Bildschirm
+    enthält.
+
+  @{b}Vorheriger Bildschirm@{ub}  ([)
+    Navigiert zum vorherigen Bildschirm im Projekt.
+
+  @{b}Nächster Bildschirm@{ub}  (])
+    Navigiert zum nächsten Bildschirm im Projekt.
+
+  @{" Zurück zur Menüreferenz " link MENUS}
+
+@endnode
+
+
+@node MENU_VIEW "Ansicht-Menü"
+
+@{b}Ansicht-Menü@{ub}
+
+  @{b}Raster umschalten@{ub}  (G)
+    Blendet ein Pixelraster auf der Zeichenfläche ein oder aus. Das
+    Raster zeichnet Linien um jede Zeichenzell-Grenze für präzise
+    Ausrichtung.
+
+  @{b}Zeichensatz Großbuchstaben@{ub}
+    Wechselt die Zeichenauswahl und die Zeichenflächendarstellung zum
+    PETSCII-Großbuchstaben-Zeichensatz.
+
+  @{b}Zeichensatz Kleinbuchstaben@{ub}
+    Wechselt zum PETSCII-Kleinbuchstaben-Zeichensatz.
+
+  @{b}Vollbild umschalten@{ub}  (F10)
+    Wechselt zwischen Fenster- und Vollbild-Anzeigemodus.
+
+  @{b}Einstellungen öffnen@{ub}  (P)
+    Öffnet das Projekteinstellungsfenster, in dem Bildschirmabmessungen
+    und andere Projekteigenschaften konfiguriert werden können.
+
+  @{" Zurück zur Menüreferenz " link MENUS}
+
+@endnode
+
+
+@node MENU_GENERATE "Generieren-Menü"
+
+@{b}Generieren-Menü@{ub}
+
+  Siehe den Abschnitt @{"Generieren" link GENERATE} für vollständige Beschreibungen.
+
+  @{b}Zufallspinsel@{ub}
+    Füllt den Bildschirm mit zufälligen Zellen aus dem aktiven Pinsel.
+
+  @{b}Magische Linie@{ub}
+    Zeichnet algorithmische wurmartige Linienkunst über den Bildschirm.
+
+  @{b}Tron-Linien@{ub}
+    Erzeugt Tron-Stil-Lichtmotorrad-Korridormuster.
+
+  @{" Zurück zur Menüreferenz " link MENUS}
+
+@endnode
+
+
+@node MENU_BRUSH "Pinsel-Menü"
+
+@{b}Pinsel-Menü@{ub}
+
+  Das Pinsel-Menü ist nur aktiv, wenn ein Pinsel mit dem Lasso-Pinsel-
+  Werkzeug erfasst wurde. Siehe @{"Pinseloperationen" link BRUSH}.
+
+  @{b}X spiegeln@{ub}
+    Aktiven Pinsel horizontal spiegeln (links-rechts).
+
+  @{b}Y spiegeln@{ub}
+    Aktiven Pinsel vertikal spiegeln (oben-unten).
+
+  @{b}90° rechts@{ub}
+    Aktiven Pinsel um 90 Grad im Uhrzeigersinn drehen.
+
+  @{b}180°@{ub}
+    Aktiven Pinsel um 180 Grad drehen.
+
+  @{b}90° links@{ub}
+    Aktiven Pinsel um 90 Grad gegen den Uhrzeigersinn drehen.
+
+  @{" Zurück zur Menüreferenz " link MENUS}
+
+@endnode
+
+
+@node MENU_PALETTE "Palette-Menü"
+
+@{b}Palette-Menü@{ub}
+
+  Wählen Sie die aktive C64-Farbpalette. Ein Häkchen zeigt die aktuell
+  aktive Palette an. Siehe @{"Farbpaletten" link PALETTES} für Details.
+
+  @{b}Petmate@{ub}     Die originale Petmate-Palette (Standard)
+  @{b}Colodore@{ub}    Messungsbasierte physikalisch genaue Palette
+  @{b}Pepto@{ub}       Peptos messungsbasierte Referenzpalette
+  @{b}VICE@{ub}        Die vom VICE-Emulator verwendete Palette
+
+  @{" Zurück zur Menüreferenz " link MENUS}
+
+@endnode
+
+
+@node KEYS "Tastaturkürzel"
+
+@{b}Tastaturkürzel@{ub}
+
+  @{b}Dateioperationen@{ub}
+
+    Ctrl+N    Neues Projekt
+    Ctrl+O    Projekt öffnen
+    Ctrl+S    Projekt speichern
+    Ctrl+A    Speichern unter
+    Q         Beenden
+
+  @{b}Zeichenwerkzeuge@{ub}
+
+    F1        Zeichnen-Werkzeug
+    F2        Einfärben-Werkzeug
+    F3        ZeichenZeichnen-Werkzeug
+    F4        Lasso-Pinsel-Werkzeug
+    F5        Text-Werkzeug
+    F6        Invertiertes Zeichnen
+
+  @{b}Bearbeiten@{ub}
+
+    Z         Rückgängig
+    Y         Wiederholen
+
+  @{b}Bildschirmnavigation@{ub}
+
+    [         Vorheriger Bildschirm
+    ]         Nächster Bildschirm
+
+  @{b}Ansicht@{ub}
+
+    G         Raster umschalten
+    P         Einstellungen öffnen
+    F10       Vollbild umschalten
+
+  @{" Zurück zum Inhaltsverzeichnis " link MAIN}
+
+@endnode
+
+
+@node EXPORT "Exportformate"
+
+@{b}Exportformate@{ub}
+
+  PetMate kann den aktuellen Bildschirm über Projekt > Exportieren als
+  in verschiedene Formate exportieren. Ein Dateiauswähler fragt nach
+  dem Ausgabedateipfad und -namen.
+
+  ---------------------------------------------------------------
+
+  @{b}IFF ILBM  (.ilbm)@{ub}
+
+    Exportiert als Amiga IFF ILBM Bilddatei mit 4 Bitplanes (16 Farben).
+    Der CMAP-Chunk enthält die aktiven Palettenfarben. Das Bild hat
+    320x200 Pixel (oder 384x272 mit dem optionalen C64-Rahmen). Dieses
+    Format kann direkt von den meisten Amiga-Bildbetrachtern und
+    Malprogrammen geöffnet werden.
+
+  ---------------------------------------------------------------
+
+  @{b}GIF  (.gif)@{ub}
+
+    Exportiert als GIF87a-Bild mit einer globalen 16-Farb-Farbkarte,
+    die der aktiven Palette entspricht. Das Bild hat 320x200 Pixel
+    (oder 384x272 mit dem C64-Rahmen). Geeignet zum Teilen auf modernen
+    Systemen.
+
+  ---------------------------------------------------------------
+
+  @{b}BASIC  (.bas)@{ub}
+
+    Exportiert eine BASIC-Quelltextdatei mit DATA-Anweisungen, die die
+    Bildschirmcodes und Farbwerte für jede Zeile des Bildschirms
+    enthalten. Die Datei kann auf einem C64 geladen und in einem
+    BASIC-Programm mit POKE-Anweisungen zum Anzeigen des Bildes
+    verwendet werden.
+
+  ---------------------------------------------------------------
+
+  @{b}ASM  (.asm)@{ub}
+
+    Exportiert eine ACME-Assembler-Quelldatei mit @{b}!byte@{ub}-Direktiven und
+    Labels. Die Daten sind als Bildschirmzeichen-Daten und Farb-RAM-
+    Daten angeordnet, bereit zur Einbindung in ein 6510-Assemblerprojekt.
+
+  ---------------------------------------------------------------
+
+  @{b}PRG BASIC  (.prg)@{ub}
+
+    Exportiert eine lauffähige Commodore-64-Programmdatei. Das PRG
+    enthält einen minimalen BASIC-Stub (SYS), der zu Maschinencode
+    springt, der die Bild- und Farbdaten in den C64-Anzeigespeicher
+    kopiert und dann anhält. Laden und RUN auf einem echten C64 oder
+    in einem Emulator.
+
+  ---------------------------------------------------------------
+
+  @{b}PRG ASM  (.prg)@{ub}
+
+    Exportiert eine lauffähige Commodore-64-Programmdatei mit einem
+    reinen Maschinencode-Lader (kein BASIC). Das PRG kopiert die
+    Bildschirm- und Farb-RAM-Daten in den C64-Anzeigespeicher.
+
+  ---------------------------------------------------------------
+
+  @{b}Bildabmessungen@{ub}
+
+    Standard:  320 x 200 Pixel  (40 x 25 Zeichen bei 8x8)
+    Mit Rahmen: 384 x 272 Pixel  (mit 8-Pixel-C64-Rahmenstreifen)
+
+  @{" Import                         " link IMPORT}
+  @{" Zurück zum Inhaltsverzeichnis  " link MAIN}
+
+@endnode
+
+
+@node IMPORT "Import"
+
+@{b}Import@{ub}
+
+  PetMate kann ein vorhandenes Bild importieren und automatisch in eine
+  PETSCII-Darstellung umwandeln.
+
+  @{b}Projekt > Importieren > Bild@{ub}
+
+    Öffnet einen Dateiauswähler. Wählen Sie eine Bilddatei zum Importieren.
+
+    @{b}Unterstützte Bildformate:@{ub}
+      PNG, GIF, BMP, IFF, ILBM, JPG, JPEG
+
+    Der Importeur verwendet das Amiga picture.datatype-System zum Laden
+    des Bildes. Dies erfordert datatypes.library Version 40 oder höher
+    (AmigaOS 3.5 oder später, oder eine gleichwertige Drittanbieter-
+    Datatype-Installation).
+
+    @{b}Unterstützte Eingangsabmessungen:@{ub}
+      320 x 200  (C64-Bildschirm ohne Rahmen)
+      384 x 272  (C64-Bildschirm mit 8-Pixel-Rahmen)
+
+    @{b}Konvertierungsprozess:@{ub}
+
+      1. Das Bild wird über picture.datatype geladen.
+      2. Das Bild wird auf die 16-Farb-C64-Palette quantisiert.
+      3. Alle 16 möglichen Hintergrundfarben werden nacheinander
+         ausprobiert, um die Kombination zu finden, die das Originalbild
+         in PETSCII am besten reproduziert.
+      4. Der resultierende 40x25-Bildschirm wird als aktueller
+         Bildschirm eingefügt.
+
+    Die Qualität der Konvertierung hängt stark davon ab, ob das
+    Quellbild ursprünglich als PETSCII-Kunst erstellt wurde oder ein
+    Screenshot der C64-Ausgabe ist. Fotografische Bilder liefern
+    ungefähre Ergebnisse.
+
+  @{" Exportformate                  " link EXPORT}
+  @{" Zurück zum Inhaltsverzeichnis  " link MAIN}
+
+@endnode
+
+
+@node FORMAT "Dateiformat"
+
+@{b}Dateiformat@{ub}
+
+  PetMate-Projekte werden als @{b}.petmate@{ub}-Dateien gespeichert. Diese sind
+  einfache JSON-Textdateien, die mit dem ursprünglichen Petmate-Editor
+  auf Windows, macOS und Linux kompatibel sind.
+
+  @{b}Inhalt einer .petmate-Datei:@{ub}
+
+    - Alle Bildschirme im Projekt (bis zu 64)
+    - Für jeden Bildschirm: der Zeichencode und die Farbe jeder Zelle,
+      plus Hintergrundfarbe, Rahmenfarbe und Zeichensatz
+    - Die aktive Palettenauswahl
+    - Projektmetadaten
+
+  @{b}Bildschirmabmessungen:@{ub}
+
+    Die Standard-Bildschirmgröße beträgt 40 x 25 Zeichen (der Standard-
+    C64-Textbildschirm). Das Einstellungsfenster erlaubt andere
+    Abmessungen bis zu 80 x 50 Zeichen für nichtstandard Verwendung.
+
+  Da das Format reines JSON ist, kann es mit jedem Texteditor
+  inspiziert und bearbeitet werden, und Projekte, die auf einer
+  beliebigen Plattform erstellt wurden, können ohne Konvertierung auf
+  dem Amiga geöffnet werden.
+
+  @{" Zurück zum Inhaltsverzeichnis " link MAIN}
+
+@endnode
+
+
+@node CREDITS "Mitwirkende"
+
+@{b}Mitwirkende@{ub}
+
+  @{b}PetMate für AmigaOS@{ub}
+    Amiga-Port in C89 mit BOOPSI und ReAction von Krb.
+
+  @{b}Originales Petmate@{ub}
+    Geschrieben in TypeScript/React von Hannu Hartikainen (nurpax)
+    https://github.com/nurpax/petmate
+
+  @{b}Petmate 9@{ub}
+    Erweiterte Version von wbochar
+    https://github.com/wbochar/petmate9
+
+  @{b}Drittanbieterbibliotheken:@{ub}
+    cJSON   - JSON-Parser (Amiga-Fork)
+    giflib  - GIF-Bildschreiben
+
+  @{b}Palettenreferenzen:@{ub}
+    Colodore-Palette von pepto & others
+    Pepto-Palette von Tobias Gubber
+    VICE-Palette vom VICE-Emulator-Projekt
+
+  Diese Software wird unter den Bedingungen ihrer Open-Source-Lizenz
+  veröffentlicht. Siehe die LICENSE-Datei in der Distribution für
+  Details.
+
+  @{" Zurück zum Inhaltsverzeichnis " link MAIN}
+
+@endnode

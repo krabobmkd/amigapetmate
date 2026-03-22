@@ -374,7 +374,7 @@ ULONG CharSelector_OnRender(Class *cl, Object *o, struct gpRender *msg)
     /* Rebuild native buffer if invalidated */
     if (!inst->valid || (inst->style->updateId != inst->stylesync ) )
     {
-        bdbprintf("CharSelector_OnRender ->rebuildCbuf\n");
+       // bdbprintf("CharSelector_OnRender ->rebuildCbuf\n");
         rebuildCbuf(inst);
         inst->stylesync = inst->style->updateId;
     }

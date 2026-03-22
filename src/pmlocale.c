@@ -15,7 +15,23 @@ static const char *defaultStrings[MSG_COUNT] = {
     /* MSG_ABOUT_TITLE */
     "About PetMate",
     /* MSG_ABOUT_TEXT */
-    "PetMate - C64 PETSCII Art Editor\nAmiga port v0.8",
+"\33b\33uAmiga PetMate - C64 PETSCII Art Editor \33n - v%s"
+"\n\n"
+"\33cThis is all about drawing with the character sets that were\n"
+"integrated with old Commodore 8 Bit machines, the first of\n"
+"which was the \"PET\", hence the name PETSCII in regard to ASCII.\n\n"
+"Forked and ported to C by Krb from the original TypeScript source.\33n\n\n"
+"\33c\33b (c)2026 License is MIT, read file LICENSE.\33n\n\n"
+"Sources for Amiga PetMate are hosted at:\n"
+"https://github.com/krabobmkd/amigapetmate\n"
+"Report bugs and ask functionalities at:\n"
+"https://github.com/krabobmkd/amigapetmate/issues\n\n"
+" \33bOriginal PetMate projects are hosted at:\33n\n"
+"\33c\33bnurpax https://github.com/nurpax/petmate\33n\n"
+"\33c\33bwbochar https://github.com/wbochar/petmate9\33n\n\n"
+"\33cThis is also a project made to explore Intuition BOOPSI and\n"
+"wouldn't exist without the Official Amiga developer forum:\n"
+"https://developer.amigaos3.net/forum",
 
     /* MSG_MENU_PROJECT */
     "Project",
@@ -188,6 +204,10 @@ static const char *defaultStrings[MSG_COUNT] = {
     "Import Image...",
     /* MSG_IMPORT_NOMATCH */
     "No PETSCII match found (check size and palette).",
+    /* MSG_IMPORT_PRG */
+    "Import PRG (ASM export)...",
+    /* MSG_IMPORT_PRG_BADFORMAT */
+    "Not a recognised ASM-export PRG (no data pattern found).",
 
     /* MSG_MENU_GENERATE */
     "Generate",
@@ -256,8 +276,8 @@ BOOL PmLocale_Init(const char *catalogName, ULONG version)
                                   OC_BuiltInLanguage, (ULONG)"english",
                                   TAG_DONE);
             if (!catalog) {
-                printf("Warning: Could not open catalog '%s', using defaults\n",
-                       catalogName);
+                // printf("Warning: Could not open catalog '%s', using defaults\n",
+                //        catalogName);
             }
         }
     } else {

@@ -1,0 +1,83 @@
+Short:        C64 PETSCII art editor for AmigaOS 3.x (68020+)
+Author:       krabobmkd
+Uploader:     krabob@free.fr
+Type:         gfx/edit
+Version:      0.8
+Architecture: m68k-amigaos >= 3.0
+Requires:     68020, AmigaOS 3.x
+
+---------------------------------------------------------------------------
+
+Amiga PetMate v0.8
+
+---------------------------------------------------------------------------
+
+WHAT IS IT?
+
+PetMate is a C64 PETSCII art editor for the Amiga, rewritten from scratch
+in C89, using native Amiga APIs.  It runs on any Amiga with a 68020 or
+better processor and AmigaOS 3.x.
+
+It is a parallel reimplementation of the original PetMate by nurpax:
+  https://github.com/nurpax/petmate
+and the petmate9 fork by wbochar:
+  https://github.com/wbochar/petmate9
+
+Same spirit, same .petmate file format (JSON), new body made of C and
+Amiga magic.  No JavaScript.  No Electron.  No 47-megabyte runtime.
+
+---------------------------------------------------------------------------
+
+FEATURES
+
+- Draw, colorize, paint with brushes, type text -- the full PETSCII
+  experience on your Amiga.
+- Load and save .petmate project files, compatible with the original
+  PetMate application.
+- Export to ASM, BASIC, PRG (standalone C64 executable), GIF, IFF/ILBM.
+- Import from images (PNG, GIF, BMP...) -- auto-detects borders and
+  character alignment.
+- Import from ASM-export PRG files -- reads the 6510 machine code to
+  locate the data block.
+- Localized interface: English (built-in), Francais, Deutsch, Espanol,
+  Italiano, Dansk, Polski.
+- Multiple screens per project, undo/redo, full-screen mode, custom
+  palettes.
+
+---------------------------------------------------------------------------
+
+REQUIREMENTS
+
+- Amiga with 68020 or better CPU
+- AmigaOS 3.x (Kickstart 3.0 or later)
+- Approximately 1 MB of free RAM
+
+---------------------------------------------------------------------------
+
+INSTALLATION
+
+Double-click the Install icon and follow the on-screen instructions.
+The installer will:
+  - Ask where to install (a PetMate drawer will be created there)
+  - Ask which language to use for the interface
+  - Optionally install example .petmate files
+
+To start PetMate, double-click the PetMate icon in the installed drawer.
+
+---------------------------------------------------------------------------
+
+LICENCE
+
+MIT Licence.  Do whatever you want with it.  See the LICENSE file.
+
+---------------------------------------------------------------------------
+
+SOURCE CODE AND BUG REPORTS
+
+Source code:
+  https://github.com/krabobmkd/amigapetmate
+
+Bug reports and feature requests:
+  https://github.com/krabobmkd/amigapetmate/issues
+
+---------------------------------------------------------------------------

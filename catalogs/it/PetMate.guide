@@ -1,0 +1,916 @@
+@database PetMate.guide
+@master PetMate.guide
+@width 72
+
+@node MAIN "PetMate per AmigaOS - Manuale utente"
+
+@{b}PetMate per AmigaOS 3.x@{ub}
+@{b}Editor di arte PETSCII@{ub}
+
+                        Manuale utente
+
+  PetMate è un editor di arte PETSCII per AmigaOS 3.x, adattato dal
+  progetto open-source originale Petmate. Consente di creare e modificare
+  opere basate su caratteri usando il set di caratteri PETSCII del
+  Commodore 64, con esportazione in più formati inclusi programmi C64
+  nativi.
+
+  @{" Introduzione         " link INTRO}       Cos'è PetMate?
+  @{" Requirements         " link REQUIRE}     Requisiti minimi di sistema
+  @{" Interface Overview   " link INTERFACE}   Il layout della finestra principale
+  @{" Drawing Tools        " link TOOLS}       Le sei modalità di disegno
+  @{" Color Palettes       " link PALETTES}    Opzioni di tavolozza colori C64
+  @{" Brush Operations     " link BRUSH}       Lazo, trasformazioni e utilizzo
+  @{" Screen Management    " link SCREENS}     Lavorare con più schermate
+  @{" Generate Menu        " link GENERATE}    Generazione di contenuto procedurale
+  @{" Menus Reference      " link MENUS}       Riferimento completo dei menu
+  @{" Keyboard Shortcuts   " link KEYS}        Tutte le scorciatoie da tastiera
+  @{" Export Formats       " link EXPORT}      Esportare la tua opera
+  @{" Import               " link IMPORT}      Importare immagini
+  @{" File Format          " link FORMAT}      Il formato di progetto .petmate
+  @{" Credits              " link CREDITS}     Autori e licenze
+
+@endnode
+
+
+@node INTRO "Introduzione"
+
+@{b}Introduzione@{ub}
+
+  PetMate è un editor di arte PETSCII che funziona nativamente su
+  AmigaOS 3.x. PETSCII (PET Standard Code of Information Interchange)
+  è il set di caratteri usato dai computer Commodore a 8 bit,
+  in particolare il Commodore 64.
+
+  Il Petmate originale è stato scritto in TypeScript/React per sistemi
+  operativi desktop. Questo porting per Amiga è scritto in C89 usando
+  i toolkit GUI BOOPSI e ReAction nativi di AmigaOS.
+
+  @{b}Caratteristiche principali:@{ub}
+
+    - Sei strumenti di disegno: Disegna, Colora, DisegnaCar., Pennello, Testo, Inverso
+    - Tavolozza C64 completa di 16 colori con quattro varianti
+    - Pennello lazo con trasformazioni di rotazione e specchio
+    - Fino a 64 schermate per progetto
+    - Annulla / Ripeti
+    - Generazione procedurale: Pennello casuale, Linea magica, Linee Tron
+    - Esportazione in IFF ILBM, GIF, BASIC C64, ASM e file PRG
+    - Importazione di immagini e conversione in PETSCII
+    - File di progetto in formato JSON .petmate (multipiattaforma)
+
+  @{" Torna all'indice " link MAIN}
+
+@endnode
+
+
+@node REQUIRE "Requisiti di sistema"
+
+@{b}Requisiti di sistema@{ub}
+
+  @{b}Configurazione minima:@{ub}
+
+    CPU       Motorola 68020 o superiore
+    OS        AmigaOS 3.9
+
+  @{b}Configurazione consigliata:@{ub}
+
+    OS        AmigaOS 3.2.3 o successivo
+
+  AmigaOS 3.2.3 offre un migliore supporto delle librerie di sistema ed
+  è la piattaforma consigliata per la migliore esperienza. L'applicazione
+  funziona su OS 3.9 ma alcune funzionalità di sistema potrebbero essere
+  limitate.
+
+  @{" Torna all'indice " link MAIN}
+
+@endnode
+
+
+@node INTERFACE "Panoramica dell'interfaccia"
+
+@{b}Panoramica dell'interfaccia@{ub}
+
+  La finestra principale è divisa in diverse aree:
+
+  @{b}Tela (centro)@{ub}
+    L'area di modifica principale che mostra la schermata corrente. Ogni
+    cella mostra un carattere PETSCII con il suo colore in primo piano
+    sul colore di sfondo corrente. Fai clic o trascina per disegnare.
+
+  @{b}Barra degli strumenti sinistra@{ub}
+    Striscia verticale di pulsanti strumenti sul bordo sinistro:
+
+      Disegna          - Seleziona lo strumento Disegna (F1)
+      Colora           - Seleziona lo strumento Colora (F2)
+      DisegnaCarattere - Seleziona lo strumento DisegnaCarattere (F3)
+      Pennello         - Seleziona lo strumento Pennello Lazo (F4)
+      Testo            - Seleziona lo strumento Testo (F5)
+      Disegno inverso  - Seleziona lo strumento Disegno inverso (F6)
+      Annulla          - Annulla l'ultima modifica
+      Ripeti           - Ripeti l'ultima modifica annullata
+      Cancella         - Cancella la schermata corrente
+
+  @{b}Selettore colore@{ub}
+    Mostra tutti i 16 colori C64 della tavolozza attiva. Fai clic su un
+    colore per selezionarlo come colore in primo piano attivo. Un
+    indicatore separato mostra il colore di sfondo corrente.
+
+  @{b}Selettore caratteri@{ub}
+    Una griglia 16x16 che mostra tutti i 256 caratteri PETSCII del set
+    di caratteri attivo (maiuscolo o minuscolo). Fai clic su un carattere
+    per selezionarlo come carattere di disegno attivo.
+
+  @{b}Carosello schermate@{ub}
+    Una striscia verticale di miniature, una per ogni schermata nel
+    progetto. Fai clic su una miniatura per passare a quella schermata.
+    La schermata corrente è evidenziata.
+
+  @{b}Barra di stato@{ub}
+    Mostra messaggi di feedback e lo stato delle operazioni nella parte
+    inferiore della finestra.
+
+  @{b}Griglia sovrapposta@{ub}
+    Una griglia di pixel opzionale che può essere attivata o disattivata
+    per aiutare con il posizionamento preciso dei caratteri (menu Vista o G).
+
+  @{" Torna all'indice " link MAIN}
+
+@endnode
+
+
+@node TOOLS "Strumenti di disegno"
+
+@{b}Strumenti di disegno@{ub}
+
+  PetMate ha sei strumenti di disegno selezionabili tramite il menu
+  Modifica o i tasti funzione. Lo strumento attivo determina cosa accade
+  quando si fa clic o si trascina sulla tela.
+
+  ---------------------------------------------------------------
+
+  @{b}Disegna  (F1)@{ub}
+
+    Lo strumento di disegno standard. Facendo clic su una cella si
+    posiziona il carattere attualmente selezionato E si applica il colore
+    in primo piano attualmente selezionato. Sia il carattere che il
+    colore vengono modificati.
+
+    Questo è lo strumento più comunemente usato per creare arte PETSCII
+    da zero.
+
+  ---------------------------------------------------------------
+
+  @{b}Colora  (F2)@{ub}
+
+    Applica il colore in primo piano corrente alle celle senza cambiare
+    il carattere già presente. Usalo per ridipingere aree della tela con
+    un colore diverso preservando i caratteri.
+
+  ---------------------------------------------------------------
+
+  @{b}DisegnaCarattere  (F3)@{ub}
+
+    Posiziona il carattere attualmente selezionato senza modificare il
+    colore esistente della cella. Il carattere viene aggiornato ma il
+    colore in primo piano di ogni cella viene mantenuto. Utile per
+    definire la struttura preservando uno schema di colori.
+
+  ---------------------------------------------------------------
+
+  @{b}Pennello Lazo  (F4)@{ub}
+
+    Fai clic e trascina per selezionare una regione rettangolare della
+    tela. La selezione diventa il @{"pennello" link BRUSH} attivo. Con un pennello
+    catturato, facendo clic altrove sulla tela si timbra una copia del
+    pennello in quella posizione.
+
+    Mentre un pennello è attivo, il menu Pennello diventa disponibile,
+    offrendo trasformazioni di ribaltamento e rotazione.
+
+  ---------------------------------------------------------------
+
+  @{b}Testo  (F5)@{ub}
+
+    Posiziona il cursore sulla tela e consente l'inserimento diretto da
+    tastiera. I caratteri digitati vengono posizionati usando il colore
+    in primo piano corrente. Il cursore avanza automaticamente dopo ogni
+    carattere.
+
+  ---------------------------------------------------------------
+
+  @{b}Disegno inverso  (F6)@{ub}
+
+    Fai clic e trascina per selezionare una regione rettangolare della
+    tela. Quando si rilascia il pulsante del mouse, i colori in primo
+    piano e di sfondo di ogni cella nella selezione vengono scambiati.
+    I caratteri in quelle celle non vengono modificati.
+
+    Utile per invertire rapidamente una regione per creare aree
+    evidenziate nella tua arte PETSCII.
+
+  ---------------------------------------------------------------
+
+  @{" Operazioni con il pennello " link BRUSH}
+  @{" Torna all'indice           " link MAIN}
+
+@endnode
+
+
+@node BRUSH "Operazioni con il pennello"
+
+@{b}Operazioni con il pennello@{ub}
+
+  Un pennello è un blocco rettangolare di celle PETSCII catturato dalla
+  tela con lo strumento Pennello Lazo (F4). Ricorda sia i caratteri che
+  i colori della regione catturata.
+
+  @{b}Catturare un pennello@{ub}
+
+    1. Seleziona lo strumento Pennello Lazo (F4 o Modifica > Disegna 4).
+    2. Fai clic e trascina sulla tela per disegnare un rettangolo di
+       selezione.
+    3. Rilascia il pulsante del mouse. L'area selezionata è ora il
+       pennello attivo.
+
+  @{b}Timbrare un pennello@{ub}
+
+    Con un pennello attivo, fai clic in qualsiasi punto della tela per
+    timbrare una copia del pennello in quella posizione. Il pennello
+    rispetta lo strumento di disegno attivo:
+
+      Modalità Disegna       - posiziona caratteri E colori dal pennello
+      Modalità Colora        - posiziona solo colori dal pennello
+      Modalità DisegnaCar.   - posiziona solo caratteri dal pennello
+
+  @{b}Trasformazioni del pennello@{ub}
+
+    Una volta catturato un pennello, il menu Pennello diventa attivo.
+    Sono disponibili le seguenti trasformazioni:
+
+      @{b}Capovolgi X@{ub}    Specchio orizzontale del pennello (sinistra-destra)
+      @{b}Capovolgi Y@{ub}    Specchio verticale del pennello (alto-basso)
+      @{b}Ruota 90 H@{ub}     Ruota il pennello di 90 gradi in senso orario
+      @{b}Ruota 180@{ub}      Ruota il pennello di 180 gradi
+      @{b}Ruota 90 AH@{ub}    Ruota il pennello di 90 gradi in senso antiorario
+
+    Nota: le rotazioni rimappano anche i caratteri ai loro equivalenti
+    di orientamento corretto (es. un pezzo angolare in una direzione
+    viene sostituito dall'angolo corrispondente nella direzione ruotata).
+
+  @{b}Riempimento con pennello casuale@{ub}
+
+    Genera > Pennello casuale riempie l'intera schermata con celle
+    selezionate casualmente dal pennello attivo. Se non c'è un pennello
+    attivo, vengono usati caratteri a mezzo blocco diagonale. Il
+    riempimento rispetta la modalità dello strumento di disegno corrente.
+
+  @{" Strumenti di disegno " link TOOLS}
+  @{" Torna all'indice     " link MAIN}
+
+@endnode
+
+
+@node PALETTES "Tavolozze dei colori"
+
+@{b}Tavolozze dei colori@{ub}
+
+  Il C64 ha un set fisso di 16 colori. Diversi emulatori e revisioni
+  hardware li riproduccono in modo leggermente diverso. PetMate offre
+  quattro varianti di tavolozza che corrispondono a standard di
+  riferimento popolari.
+
+  Seleziona una tavolozza dal menu Tavolozza. La tavolozza attiva viene
+  mostrata con un segno di spunta.
+
+  ---------------------------------------------------------------
+
+  @{b}Petmate@{ub}  (predefinita)
+
+    La tavolozza predefinita usata dall'editor Petmate originale.
+    Una tavolozza C64 ben bilanciata per uso generale.
+
+  @{b}Colodore@{ub}
+
+    La tavolozza Colodore, ampiamente considerata come un modello
+    fisicamente accurato dell'uscita colore VIC-II del C64 basato su
+    misurazioni.
+
+  @{b}Pepto@{ub}
+
+    La tavolozza Pepto, un'altra tavolozza basata su misurazioni di
+    Tobias Gubber, comunemente usata come riferimento nell'emulazione.
+
+  @{b}VICE@{ub}
+
+    La tavolozza usata dall'emulatore Commodore VICE.
+
+  ---------------------------------------------------------------
+
+  @{b}I 16 colori C64@{ub}
+
+    Indice  Nome
+    ------  ----------
+      0     Nero
+      1     Bianco
+      2     Rosso
+      3     Ciano
+      4     Viola
+      5     Verde
+      6     Blu
+      7     Giallo
+      8     Arancione
+      9     Marrone
+     10     Rosso chiaro
+     11     Grigio scuro
+     12     Grigio
+     13     Verde chiaro
+     14     Blu chiaro
+     15     Grigio chiaro
+
+  Ogni cella di carattere ha un colore in primo piano indipendente.
+  Il colore di sfondo e il colore del bordo sono condivisi su tutta
+  la schermata.
+
+  @{" Torna all'indice " link MAIN}
+
+@endnode
+
+
+@node SCREENS "Gestione delle schermate"
+
+@{b}Gestione delle schermate@{ub}
+
+  Un progetto PetMate può contenere fino a 64 schermate. Ogni schermata
+  è una tela di caratteri 40x25 indipendente con il proprio colore di
+  sfondo, colore del bordo e selezione del set di caratteri.
+
+  Le schermate sono gestite dal menu Schermata e dal carosello a schermo.
+
+  @{b}Navigare tra le schermate@{ub}
+
+    Schermata precedente   tasto [ o Schermata > Schermata precedente
+    Schermata successiva   tasto ] o Schermata > Schermata successiva
+
+    Fare clic su una miniatura nel carosello naviga anche direttamente
+    a quella schermata.
+
+  @{b}Aggiungere e rimuovere schermate@{ub}
+
+    Aggiungi schermata   Aggiunge una nuova schermata vuota dopo quella
+                         corrente.
+    Clona schermata      Aggiunge una copia della schermata corrente.
+    Rimuovi schermata    Elimina la schermata corrente. Non può essere
+                         eseguito se il progetto contiene solo una
+                         schermata.
+
+  @{b}Copiare e incollare schermate@{ub}
+
+    Modifica > Copia schermata   Copia l'intera schermata corrente negli
+                                 appunti interni.
+    Modifica > Incolla schermata Sostituisce la schermata corrente con il
+                                 contenuto degli appunti.
+
+  @{b}Spostare il contenuto della schermata@{ub}
+
+    Il contenuto della tela può essere spostato di un carattere alla
+    volta in qualsiasi direzione. Le celle che escono da un bordo
+    riappaiono dal bordo opposto.
+
+    Modifica > Sposta a sinistra
+    Modifica > Sposta a destra
+    Modifica > Sposta su
+    Modifica > Sposta giu
+
+  @{" Torna all'indice " link MAIN}
+
+@endnode
+
+
+@node GENERATE "Menu Genera"
+
+@{b}Menu Genera@{ub}
+
+  Il menu Genera fornisce tre generatori di contenuto procedurale che
+  riempiono la schermata corrente con pattern creati algoritmicamente.
+  Sono utili come punti di partenza per le opere o per riempire
+  rapidamente gli sfondi.
+
+  ---------------------------------------------------------------
+
+  @{b}Pennello casuale@{ub}
+
+    Riempie l'intera schermata con celle selezionate casualmente dal
+    pennello attivo. La modalità di riempimento segue lo strumento attivo:
+
+      Disegna       - posiziona caratteri E colori casuali dal pennello
+      Colora        - posiziona solo colori casuali dal pennello
+      DisegnaCar.   - posiziona solo caratteri casuali dal pennello
+
+    Se non c'è un pennello catturato, il riempimento usa una selezione
+    casuale di caratteri a mezzo blocco diagonale.
+
+  ---------------------------------------------------------------
+
+  @{b}Linea magica@{ub}
+
+    Disegna percorsi continui a forma di verme attraverso la schermata
+    usando caratteri di disegno a linee PETSCII. Tre algoritmi vengono
+    alternati nelle invocazioni successive:
+
+      @{b}Algoritmo A - Verme casuale@{ub}
+        Un verme attraversa la schermata cambiando direzione circa il
+        20% delle volte. Crea tracce di linee fluide e organiche.
+
+      @{b}Algoritmo B - Verme riconnettente@{ub}
+        Simile all'Algoritmo A ma con una tendenza al ritorno: il 40%
+        dei passi è influenzato verso la posizione di partenza. Crea
+        anelli chiusi e pattern a forma di otto.
+
+      @{b}Algoritmo C - Croce frattale@{ub}
+        Un algoritmo frattale ricorsivo che genera pattern simmetrici
+        a croce e ramificazioni.
+
+    I caratteri di giunzione vengono selezionati automaticamente per
+    rappresentare correttamente angoli, giunzioni a T e segmenti retti.
+
+  ---------------------------------------------------------------
+
+  @{b}Linee Tron@{ub}
+
+    Ispirato alle moto luminose del film Tron. Quattro giocatori
+    iniziano in posizioni casuali sulla schermata e viaggiano in linea
+    retta, girando di 90 gradi a intervalli casuali da 2 a 7 passi.
+    Un giocatore viene eliminato quando non ha celle libere in cui
+    muoversi.
+
+    I percorsi che si incrociano generano automaticamente i caratteri
+    di giunzione corretti agli incroci.
+
+  ---------------------------------------------------------------
+
+  @{" Torna all'indice " link MAIN}
+
+@endnode
+
+
+@node MENUS "Riferimento menu"
+
+@{b}Riferimento menu@{ub}
+
+  @{" Menu Progetto   " link MENU_PROJECT}
+  @{" Menu Modifica   " link MENU_EDIT}
+  @{" Menu Schermata  " link MENU_SCREEN}
+  @{" Menu Vista      " link MENU_VIEW}
+  @{" Menu Genera     " link MENU_GENERATE}
+  @{" Menu Pennello   " link MENU_BRUSH}
+  @{" Menu Tavolozza  " link MENU_PALETTE}
+
+  @{" Torna all'indice " link MAIN}
+
+@endnode
+
+
+@node MENU_PROJECT "Menu Progetto"
+
+@{b}Menu Progetto@{ub}
+
+  @{b}Nuovo@{ub}  (Ctrl+N)
+    Chiude il progetto corrente e avvia un nuovo progetto vuoto con una
+    singola schermata vuota. Le modifiche non salvate vengono scartate.
+
+  @{b}Apri...@{ub}  (Ctrl+O)
+    Apre un file di progetto .petmate usando il selettore file di sistema.
+
+  @{b}Salva@{ub}  (Ctrl+S)
+    Salva il progetto nel suo percorso file corrente. Se il progetto non
+    è mai stato salvato, chiede un nome file.
+
+  @{b}Salva con nome...@{ub}  (Ctrl+A)
+    Salva il progetto in un nuovo percorso file scelto tramite il
+    selettore file.
+
+  @{b}Apri recente@{ub}
+    Sottomenu che elenca i quattro file di progetto aperti più di
+    recente. Fai clic su una voce per aprire direttamente quel file.
+
+  @{b}Esporta come@{ub}
+    Sottomenu per esportare la schermata corrente. Vedi @{"Formati di esportazione" link EXPORT}.
+
+  @{b}Importa@{ub}
+    Sottomenu per importare file esterni. Vedi @{"Importazione" link IMPORT}.
+
+  @{b}Iconifica@{ub}
+    Minimizza la finestra dell'applicazione a un AppIcon sul Workbench.
+
+  @{b}Informazioni@{ub}
+    Mostra le informazioni sulla versione e il copyright.
+
+  @{b}Esci@{ub}  (Q)
+    Chiude PetMate.
+
+  @{" Torna al riferimento menu " link MENUS}
+
+@endnode
+
+
+@node MENU_EDIT "Menu Modifica"
+
+@{b}Menu Modifica@{ub}
+
+  @{b}Disegna 1@{ub}  (F1)
+    Attiva lo strumento Disegna. Posiziona caratteri e colori.
+
+  @{b}Disegna 2@{ub}  (F2)
+    Attiva lo strumento Colora. Cambia solo i colori.
+
+  @{b}Disegna 3@{ub}  (F3)
+    Attiva lo strumento DisegnaCarattere. Posiziona solo caratteri.
+
+  @{b}Disegna 4@{ub}  (F4)
+    Attiva lo strumento Pennello Lazo. Cattura e timbra pennelli.
+
+  @{b}Disegna 5@{ub}  (F5)
+    Attiva lo strumento Testo. Digita testo direttamente sulla tela.
+
+  @{b}Disegna 6@{ub}  (F6)
+    Attiva lo strumento Disegno inverso. Trascina un rettangolo per
+    scambiare i colori in primo piano e di sfondo nella regione.
+
+  @{b}Annulla@{ub}  (Z)
+    Annulla l'ultima operazione di modifica. PetMate mantiene un buffer
+    circolare di istantanee della schermata.
+
+  @{b}Ripeti@{ub}  (Y)
+    Ripete l'ultima operazione annullata.
+
+  @{b}Copia schermata@{ub}
+    Copia l'intera schermata corrente negli appunti interni.
+
+  @{b}Incolla schermata@{ub}
+    Sostituisce la schermata corrente con il contenuto degli appunti.
+
+  @{b}Cancella schermata@{ub}
+    Riempie l'intera schermata con il colore del bordo corrente,
+    rimuovendo tutti i caratteri e ripristinando i colori delle celle.
+
+  @{b}Sposta a sinistra@{ub}
+    Sposta tutto il contenuto di un carattere a sinistra. Il contenuto
+    che esce dal bordo sinistro riappare a destra.
+
+  @{b}Sposta a destra@{ub}
+    Sposta tutto il contenuto di un carattere a destra.
+
+  @{b}Sposta su@{ub}
+    Sposta tutto il contenuto di un carattere verso l'alto. Il contenuto
+    che esce dall'alto riappare in basso.
+
+  @{b}Sposta giu@{ub}
+    Sposta tutto il contenuto di un carattere verso il basso.
+
+  @{" Torna al riferimento menu " link MENUS}
+
+@endnode
+
+
+@node MENU_SCREEN "Menu Schermata"
+
+@{b}Menu Schermata@{ub}
+
+  @{b}Aggiungi schermata@{ub}
+    Aggiunge una nuova schermata vuota al progetto dopo quella corrente
+    e naviga ad essa.
+
+  @{b}Clona schermata@{ub}
+    Aggiunge una copia esatta della schermata corrente e naviga ad essa.
+
+  @{b}Rimuovi schermata@{ub}
+    Elimina la schermata corrente dal progetto. Questa azione non può
+    essere eseguita se il progetto contiene una sola schermata.
+
+  @{b}Schermata precedente@{ub}  ([)
+    Naviga alla schermata precedente nel progetto.
+
+  @{b}Schermata successiva@{ub}  (])
+    Naviga alla schermata successiva nel progetto.
+
+  @{" Torna al riferimento menu " link MENUS}
+
+@endnode
+
+
+@node MENU_VIEW "Menu Vista"
+
+@{b}Menu Vista@{ub}
+
+  @{b}Attiva/disattiva griglia@{ub}  (G)
+    Mostra o nasconde una griglia di pixel sulla tela. La griglia
+    disegna linee intorno a ogni confine di cella per aiutare con
+    l'allineamento preciso.
+
+  @{b}Charset maiuscolo@{ub}
+    Passa il selettore caratteri e il rendering della tela al set di
+    caratteri PETSCII maiuscolo.
+
+  @{b}Charset minuscolo@{ub}
+    Passa al set di caratteri PETSCII minuscolo.
+
+  @{b}Attiva/disattiva schermo intero@{ub}  (F10)
+    Alterna tra le modalità di visualizzazione a finestra e a schermo
+    intero.
+
+  @{b}Apri impostazioni@{ub}  (P)
+    Apre la finestra delle impostazioni del progetto dove le dimensioni
+    della schermata e altre proprietà del progetto possono essere
+    configurate.
+
+  @{" Torna al riferimento menu " link MENUS}
+
+@endnode
+
+
+@node MENU_GENERATE "Menu Genera"
+
+@{b}Menu Genera@{ub}
+
+  Vedi la sezione @{"Genera" link GENERATE} per descrizioni complete.
+
+  @{b}Pennello casuale@{ub}
+    Riempie la schermata con celle casuali dal pennello attivo.
+
+  @{b}Linea magica@{ub}
+    Disegna arte a linee algoritmiche a forma di verme sulla schermata.
+
+  @{b}Linee Tron@{ub}
+    Genera pattern di corridoio in stile Tron con cicli luminosi.
+
+  @{" Torna al riferimento menu " link MENUS}
+
+@endnode
+
+
+@node MENU_BRUSH "Menu Pennello"
+
+@{b}Menu Pennello@{ub}
+
+  Il menu Pennello è attivo solo quando un pennello è stato catturato
+  con lo strumento Pennello Lazo. Vedi @{"Operazioni con il pennello" link BRUSH}.
+
+  @{b}Capovolgi X@{ub}
+    Specchio orizzontale del pennello attivo (sinistra-destra).
+
+  @{b}Capovolgi Y@{ub}
+    Specchio verticale del pennello attivo (alto-basso).
+
+  @{b}Ruota 90 H@{ub}
+    Ruota il pennello attivo di 90 gradi in senso orario.
+
+  @{b}Ruota 180@{ub}
+    Ruota il pennello attivo di 180 gradi.
+
+  @{b}Ruota 90 AH@{ub}
+    Ruota il pennello attivo di 90 gradi in senso antiorario.
+
+  @{" Torna al riferimento menu " link MENUS}
+
+@endnode
+
+
+@node MENU_PALETTE "Menu Tavolozza"
+
+@{b}Menu Tavolozza@{ub}
+
+  Seleziona la tavolozza colori C64 attiva. Un segno di spunta indica
+  la tavolozza attualmente attiva. Vedi @{"Tavolozze dei colori" link PALETTES} per dettagli.
+
+  @{b}Petmate@{ub}     La tavolozza Petmate originale (predefinita)
+  @{b}Colodore@{ub}    Tavolozza fisicamente accurata basata su misurazioni
+  @{b}Pepto@{ub}       Tavolozza di riferimento di Pepto basata su misurazioni
+  @{b}VICE@{ub}        La tavolozza usata dall'emulatore VICE
+
+  @{" Torna al riferimento menu " link MENUS}
+
+@endnode
+
+
+@node KEYS "Scorciatoie da tastiera"
+
+@{b}Scorciatoie da tastiera@{ub}
+
+  @{b}Operazioni sui file@{ub}
+
+    Ctrl+N    Nuovo progetto
+    Ctrl+O    Apri progetto
+    Ctrl+S    Salva progetto
+    Ctrl+A    Salva con nome
+    Q         Esci
+
+  @{b}Strumenti di disegno@{ub}
+
+    F1        Strumento Disegna
+    F2        Strumento Colora
+    F3        Strumento DisegnaCarattere
+    F4        Strumento Pennello Lazo
+    F5        Strumento Testo
+    F6        Strumento Disegno inverso
+
+  @{b}Modifica@{ub}
+
+    Z         Annulla
+    Y         Ripeti
+
+  @{b}Navigazione schermate@{ub}
+
+    [         Schermata precedente
+    ]         Schermata successiva
+
+  @{b}Vista@{ub}
+
+    G         Attiva/disattiva griglia
+    P         Apri impostazioni
+    F10       Schermo intero
+
+  @{" Torna all'indice " link MAIN}
+
+@endnode
+
+
+@node EXPORT "Formati di esportazione"
+
+@{b}Formati di esportazione@{ub}
+
+  PetMate può esportare la schermata corrente in vari formati tramite
+  Progetto > Esporta come. Un selettore file chiederà il percorso e il
+  nome del file di output.
+
+  ---------------------------------------------------------------
+
+  @{b}IFF ILBM  (.ilbm)@{ub}
+
+    Esporta come file immagine Amiga IFF ILBM con 4 bitplane (16 colori).
+    Il chunk CMAP contiene i colori della tavolozza attiva. L'immagine
+    è 320x200 pixel (o 384x272 con il bordo C64 opzionale). Questo
+    formato può essere aperto direttamente dalla maggior parte dei
+    visualizzatori di immagini e programmi di pittura Amiga.
+
+  ---------------------------------------------------------------
+
+  @{b}GIF  (.gif)@{ub}
+
+    Esporta come immagine GIF87a con una mappa colori globale di 16
+    colori corrispondente alla tavolozza attiva. L'immagine è 320x200
+    pixel (o 384x272 con il bordo C64). Adatto per la condivisione su
+    sistemi moderni.
+
+  ---------------------------------------------------------------
+
+  @{b}BASIC  (.bas)@{ub}
+
+    Esporta un file sorgente BASIC contenente istruzioni DATA con i
+    codici schermo e i valori colore per ogni riga della schermata.
+    Il file può essere caricato su un C64 e usato in un programma BASIC
+    con istruzioni POKE per visualizzare l'immagine.
+
+  ---------------------------------------------------------------
+
+  @{b}ASM  (.asm)@{ub}
+
+    Esporta un file sorgente assembler ACME con direttive @{b}!byte@{ub} ed
+    etichette. I dati sono disposti come dati di caratteri schermo e
+    dati di RAM colore, pronti per l'inclusione in un progetto assembler
+    6510.
+
+  ---------------------------------------------------------------
+
+  @{b}PRG BASIC  (.prg)@{ub}
+
+    Esporta un file programma Commodore 64 pronto per l'esecuzione. Il
+    PRG contiene un minimal BASIC stub (SYS) che salta al codice macchina
+    che copia i dati schermo e colore nella memoria di visualizzazione
+    del C64 e si ferma. Carica e RUN su un vero C64 o in un emulatore.
+
+  ---------------------------------------------------------------
+
+  @{b}PRG ASM  (.prg)@{ub}
+
+    Esporta un file programma Commodore 64 pronto per l'esecuzione con
+    un caricatore in codice macchina puro (senza BASIC). Il PRG copia
+    i dati schermo e RAM colore nella memoria di visualizzazione C64.
+
+  ---------------------------------------------------------------
+
+  @{b}Dimensioni immagine@{ub}
+
+    Standard:    320 x 200 pixel  (40 x 25 caratteri a 8x8)
+    Con bordo:   384 x 272 pixel  (con strisce bordo C64 da 8 pixel)
+
+  @{" Importazione    " link IMPORT}
+  @{" Torna all'indice " link MAIN}
+
+@endnode
+
+
+@node IMPORT "Importazione"
+
+@{b}Importazione@{ub}
+
+  PetMate può importare un'immagine esistente e convertirla
+  automaticamente in una rappresentazione PETSCII.
+
+  @{b}Progetto > Importa > Immagine@{ub}
+
+    Apre un selettore file. Seleziona un file immagine da importare.
+
+    @{b}Formati immagine supportati:@{ub}
+      PNG, GIF, BMP, IFF, ILBM, JPG, JPEG
+
+    L'importatore usa il sistema picture.datatype di Amiga per caricare
+    l'immagine. Questo richiede datatypes.library versione 40 o superiore
+    (AmigaOS 3.5 o successivo, o un'installazione equivalente di datatype
+    di terze parti).
+
+    @{b}Dimensioni di input supportate:@{ub}
+      320 x 200  (schermata C64 senza bordo)
+      384 x 272  (schermata C64 con bordo da 8 pixel)
+
+    @{b}Processo di conversione:@{ub}
+
+      1. L'immagine viene caricata tramite picture.datatype.
+      2. L'immagine viene quantizzata alla tavolozza di 16 colori C64.
+      3. Tutti i 16 possibili colori di sfondo vengono provati a turno
+         per trovare la combinazione che riproduce meglio l'immagine
+         originale in PETSCII.
+      4. La schermata 40x25 risultante viene inserita come schermata
+         corrente.
+
+    La qualità della conversione dipende fortemente dal fatto che
+    l'immagine sorgente sia stata creata originalmente come arte PETSCII
+    o sia uno screenshot dell'output C64. Le immagini fotografiche
+    produrranno risultati approssimativi.
+
+  @{" Formati di esportazione " link EXPORT}
+  @{" Torna all'indice        " link MAIN}
+
+@endnode
+
+
+@node FORMAT "Formato file"
+
+@{b}Formato file@{ub}
+
+  I progetti PetMate vengono salvati come file @{b}.petmate@{ub}. Sono semplici
+  file di testo JSON compatibili con l'editor Petmate originale su
+  Windows, macOS e Linux.
+
+  @{b}Contenuto di un file .petmate:@{ub}
+
+    - Tutte le schermate nel progetto (fino a 64)
+    - Per ogni schermata: il codice carattere e il colore di ogni cella,
+      più colore di sfondo, colore del bordo e selezione charset
+    - La selezione della tavolozza attiva
+    - Metadati del progetto
+
+  @{b}Dimensioni schermata:@{ub}
+
+    La dimensione predefinita è 40 x 25 caratteri (lo schermo di testo
+    standard C64). La finestra delle impostazioni consente altre
+    dimensioni fino a 80 x 50 caratteri per uso non standard.
+
+  Poiché il formato è JSON semplice, può essere ispezionato e modificato
+  con qualsiasi editor di testo, e i progetti creati su qualsiasi
+  piattaforma possono essere aperti su Amiga senza conversione.
+
+  @{" Torna all'indice " link MAIN}
+
+@endnode
+
+
+@node CREDITS "Crediti"
+
+@{b}Crediti@{ub}
+
+  @{b}PetMate per AmigaOS@{ub}
+    Porting Amiga in C89 con BOOPSI e ReAction di Krb.
+
+  @{b}Petmate originale@{ub}
+    Scritto in TypeScript/React da Hannu Hartikainen (nurpax)
+    https://github.com/nurpax/petmate
+
+  @{b}Petmate 9@{ub}
+    Versione estesa da wbochar
+    https://github.com/wbochar/petmate9
+
+  @{b}Librerie di terze parti:@{ub}
+    cJSON   - Parser JSON (fork Amiga)
+    giflib  - Scrittura immagini GIF
+
+  @{b}Riferimenti tavolozza:@{ub}
+    Tavolozza Colodore di pepto & others
+    Tavolozza Pepto di Tobias Gubber
+    Tavolozza VICE dal progetto emulatore VICE
+
+  Questo software è rilasciato secondo i termini della sua licenza
+  open-source. Vedi il file LICENSE nella distribuzione per i dettagli.
+
+  @{" Torna all'indice " link MAIN}
+
+@endnode

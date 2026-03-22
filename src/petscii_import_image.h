@@ -7,12 +7,15 @@
  * Ported from petmate/src/utils/importers/png2petscii.ts.
  *
  * Reads any picture file supported by Amiga datatypes (picture.datatype),
- * quantizes to the active 16-color C64 palette, then tries all 16 possible
- * background colors to find a valid PETSCII decoding.
+ * quantizes to the active 16-color C64 palette, then finds a valid PETSCII
+ * decoding by:
+ *   1. Auto-detecting and stripping any uniform-color border (any size).
+ *   2. Trying all sub-pixel alignment offsets (ox, oy) in [0..7] x [0..7]
+ *      within the detected content area.
+ *   3. For each (offset, alignment) pair, trying all 16 background colors.
  *
- * Supported input dimensions:
- *   - 320x200  (borderless: standard C64 display area)
- *   - 384x272  (bordered: 32px left/right, 35px top, 37px bottom)
+ * Supported input: any image >= 320x200.  Larger images with borders of any
+ * width (VICE export, web downloads, etc.) are handled automatically.
  *
  * Requires datatypes.library (picture.datatype v40+, OS 3.5 or later).
  *

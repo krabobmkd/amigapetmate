@@ -11,13 +11,14 @@
  * 26 Jun 96 - Version 3.0 by Eric S. Raymond (Full GIF89 support)
  *****************************************************************************/
 
-#include <unistd.h>
-#include <stdint.h>
+#include "gif_compat.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <fcntl.h>
 
+#ifdef HAVE_POSIX_IO
+#include <unistd.h>
+#include <fcntl.h>
 #if (defined (__MSDOS__) || defined(WINDOWS32))  && !defined(__DJGPP__) && !defined(__GNUC__)
 #include <io.h>
 #include <sys\stat.h>
@@ -25,6 +26,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #endif /* __MSDOS__ */
+#endif /* HAVE_POSIX_IO */
 
 #include "gif_lib.h"
 #include "gif_lib_private.h"
@@ -61,15 +63,16 @@ GifFileType *
 EGifOpenFileName(const char *FileName,
                  bool TestExistance) {
 
+#ifdef HAVE_POSIX_IO
     int FileHandle;
     GifFileType *GifFile;
 
     if (TestExistance)
-        FileHandle = open(FileName, O_WRONLY | O_CREAT | O_EXCL, 
-			  S_IREAD | S_IWRITE);
+        FileHandle = open(FileName, O_WRONLY | O_CREAT | O_EXCL,
+                  S_IREAD | S_IWRITE);
     else
-        FileHandle = open(FileName, O_WRONLY | O_CREAT | O_TRUNC, 
-			  S_IREAD | S_IWRITE);
+        FileHandle = open(FileName, O_WRONLY | O_CREAT | O_TRUNC,
+                  S_IREAD | S_IWRITE);
 
     if (FileHandle == -1) {
         _GifError = E_GIF_ERR_OPEN_FAILED;
@@ -79,6 +82,62 @@ EGifOpenFileName(const char *FileName,
     if (GifFile == (GifFileType *) NULL)
         close(FileHandle);
     return GifFile;
+#else /* !HAVE_POSIX_IO */
+    FILE *f;
+    GifFileType *GifFile;
+    GifFilePrivateType *Private;
+
+    if (TestExistance) {
+        f = fopen(FileName, "rb");
+        if (f != NULL) {
+            fclose(f);
+            _GifError = E_GIF_ERR_OPEN_FAILED;
+            return NULL;
+        }
+    }
+
+    f = fopen(FileName, "wb");
+    if (f == NULL) {
+        _GifError = E_GIF_ERR_OPEN_FAILED;
+        return NULL;
+    }
+
+    GifFile = (GifFileType *) malloc(sizeof(GifFileType));
+    if (GifFile == NULL) {
+        fclose(f);
+        _GifError = E_GIF_ERR_NOT_ENOUGH_MEM;
+        return NULL;
+    }
+
+    memset(GifFile, '\0', sizeof(GifFileType));
+
+    Private = (GifFilePrivateType *)malloc(sizeof(GifFilePrivateType));
+    if (Private == NULL) {
+        fclose(f);
+        free(GifFile);
+        _GifError = E_GIF_ERR_NOT_ENOUGH_MEM;
+        return NULL;
+    }
+    if ((Private->HashTable = _InitHashTable()) == NULL) {
+        fclose(f);
+        free(GifFile);
+        free(Private);
+        _GifError = E_GIF_ERR_NOT_ENOUGH_MEM;
+        return NULL;
+    }
+
+    setvbuf(f, NULL, _IOFBF, GIF_FILE_BUFFER_SIZE);
+
+    GifFile->Private = (void *)Private;
+    Private->FileHandle = 0;
+    Private->File = f;
+    Private->FileState = FILE_STATE_WRITE;
+    Private->Write = (OutputFunc) 0;
+    GifFile->UserData = (void *)NULL;
+
+    _GifError = 0;
+    return GifFile;
+#endif /* HAVE_POSIX_IO */
 }
 
 /******************************************************************************
@@ -87,6 +146,7 @@ EGifOpenFileName(const char *FileName,
  * Returns GifFileType pointer dynamically allocated which serves as the gif
  * info record. _GifError is cleared if succesfull.
  *****************************************************************************/
+#ifdef HAVE_POSIX_IO
 GifFileType *
 EGifOpenFileHandle(int FileHandle) {
 
@@ -137,6 +197,7 @@ EGifOpenFileHandle(int FileHandle) {
 
     return GifFile;
 }
+#endif /* HAVE_POSIX_IO */
 
 /******************************************************************************
  * Output constructor that takes user supplied output function.

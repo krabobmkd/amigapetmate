@@ -8,7 +8,7 @@ PetMate
 MSG_ABOUT_TITLE
 \xc0 propos de PetMate
 MSG_ABOUT_TEXT
-\x1bb\x1buAmiga PetMate - C64 PETSCII Art Editor \x1bn - v0.8\n\n\x1bcTout est question de dessin avec les jeux de caract\xe8res\nint\xe9gr\xe9s dans les anciennes machines Commodore 8 bits,\ndont la premi\xe8re \xe9tait le "PET", d'o\xf9 le nom PETSCII\nen r\xe9f\xe9rence \xe0 l'ASCII.\n\nFork\xe9 et port\xe9 en C par Krb depuis le source\nTypeScript original.\x1bn\n\n\x1bc\x1bb (c)2026 La licence est MIT, lire le fichier LICENSE.\x1bn\n\nSources d'Amiga PetMate h\xe9berg\xe9es sur :\nhttps://github.com/krabobmkd/amigapetmate\nSignaler des bugs et demander des fonctionnalit\xe9s sur :\nhttps://github.com/krabobmkd/amigapetmate/issues\n\n \x1bbProjets PetMate originaux h\xe9berg\xe9s sur :\x1bn\n\x1bc\x1bbnurpax https://github.com/nurpax/petmate\x1bn\n\x1bc\x1bbwbochar https://github.com/wbochar/petmate9\x1bn\n\n\x1bcC'est aussi un projet pour explorer Intuition BOOPSI\net n'existerait pas sans le forum officiel\ndes d\xe9veloppeurs Amiga :\nhttps://developer.amigaos3.net/forum
+\x1bb\x1buAmiga PetMate - C64 PETSCII Art Editor \x1bn - v%s\n\n\x1bcTout est question de dessin avec les jeux de caract\xe8res\nint\xe9gr\xe9s dans les anciennes machines Commodore 8 bits,\ndont la premi\xe8re \xe9tait le "PET", d'o\xf9 le nom PETSCII\nen r\xe9f\xe9rence \xe0 l'ASCII.\n\nFork\xe9 et port\xe9 en C par Krb depuis le source\nTypeScript original.\x1bn\n\n\x1bc\x1bb (c)2026 La licence est MIT, lire le fichier LICENSE.\x1bn\n\nSources d'Amiga PetMate h\xe9berg\xe9es sur :\nhttps://github.com/krabobmkd/amigapetmate\nSignaler des bugs et demander des fonctionnalit\xe9s sur :\nhttps://github.com/krabobmkd/amigapetmate/issues\n\n \x1bbProjets PetMate originaux h\xe9berg\xe9s sur :\x1bn\n\x1bc\x1bbnurpax https://github.com/nurpax/petmate\x1bn\n\x1bc\x1bbwbochar https://github.com/wbochar/petmate9\x1bn\n\n\x1bcC'est aussi un projet pour explorer Intuition BOOPSI\net n'existerait pas sans le forum officiel\ndes d\xe9veloppeurs Amiga :\nhttps://developer.amigaos3.net/forum
 MSG_MENU_PROJECT
 Projet
 MSG_FILE_NEW
@@ -171,6 +171,10 @@ MSG_IMPORT_IMAGE
 Importer une image...
 MSG_IMPORT_NOMATCH
 Aucune correspondance PETSCII trouv\xe9e (v\xe9rifiez la taille et la palette).
+MSG_IMPORT_PRG
+Importer un PRG (export ASM)...
+MSG_IMPORT_PRG_BADFORMAT
+PRG non reconnu comme export ASM (aucun motif de donn\xe9es trouv\xe9).
 MSG_MENU_GENERATE
 G\xe9n\xe9rer
 MSG_GENERATE_RANDOM_BRUSH

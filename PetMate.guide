@@ -15,8 +15,9 @@
   set, with export to multiple formats including native C64 programs.
 
   @{" Introduction        " link INTRO}       What is PetMate?
+  @{" Requirements        " link REQUIRE}     Minimum system requirements
   @{" Interface Overview  " link INTERFACE}   The main window layout
-  @{" Drawing Tools       " link TOOLS}       The five drawing modes
+  @{" Drawing Tools       " link TOOLS}       The six drawing modes
   @{" Color Palettes      " link PALETTES}    C64 color palette options
   @{" Brush Operations    " link BRUSH}       Lasso, transform, and use
   @{" Screen Management   " link SCREENS}     Working with multiple screens
@@ -46,7 +47,7 @@
 
   @{b}Features at a glance:@{ub}
 
-    - Five drawing tools: Draw, Colorize, CharDraw, Brush, Text
+    - Six drawing tools: Draw, Colorize, CharDraw, Brush, Text, Reverse Draw
     - Full 16-color C64 palette with four palette variants
     - Lasso brush with rotate and mirror transforms
     - Up to 64 screens per project
@@ -55,6 +56,28 @@
     - Export to IFF ILBM, GIF, C64 BASIC, ASM, and PRG files
     - Import images and convert them to PETSCII
     - Project files in .petmate JSON format (cross-platform)
+
+  @{" Back to Contents " link MAIN}
+
+@endnode
+
+
+@node REQUIRE "Requirements"
+
+@{b}System Requirements@{ub}
+
+  @{b}Minimum configuration:@{ub}
+
+    CPU       Motorola 68020 or better
+    OS        AmigaOS 3.9
+
+  @{b}Recommended configuration:@{ub}
+
+    OS        AmigaOS 3.2.3 or later
+
+  AmigaOS 3.2.3 provides better system library support and is the
+  recommended platform for the best experience. The application
+  runs on OS 3.9 but some system features may be limited.
 
   @{" Back to Contents " link MAIN}
 
@@ -75,12 +98,13 @@
   @{b}Left Toolbar@{ub}
     Vertical strip of tool buttons along the left edge:
 
-      Draw      - Select the Draw tool (F1)
-      Colorize  - Select the Colorize tool (F2)
-      CharDraw  - Select the CharDraw tool (F3)
-      Brush     - Select the Lasso Brush tool (F4)
-      Text      - Select the Text tool (F5)
-      Undo      - Undo last change
+      Draw         - Select the Draw tool (F1)
+      Colorize     - Select the Colorize tool (F2)
+      CharDraw     - Select the CharDraw tool (F3)
+      Brush        - Select the Lasso Brush tool (F4)
+      Text         - Select the Text tool (F5)
+      Reverse Draw - Select the Reverse Draw tool (F6)
+      Undo         - Undo last change
       Redo      - Redo last undone change
       Clear     - Clear the current screen
 
@@ -116,7 +140,7 @@
 
 @{b}Drawing Tools@{ub}
 
-  PetMate has five drawing tools selected via the Edit menu or
+  PetMate has six drawing tools selected via the Edit menu or
   function keys. The active tool determines what happens when you
   click or drag on the canvas.
 
@@ -169,6 +193,18 @@
     text entry. Characters typed are placed using the current
     foreground color. The cursor advances automatically after
     each character.
+
+  ---------------------------------------------------------------
+
+  @{b}Reverse Draw  (F6)@{ub}
+
+    Click and drag to select a rectangular region of the canvas.
+    When the mouse button is released, the foreground and
+    background colors of every cell inside the selection are
+    swapped. The characters in those cells are not changed.
+
+    This is useful for quickly inverting a region to create
+    highlighted or selected-looking areas in your PETSCII art.
 
   ---------------------------------------------------------------
 
@@ -492,6 +528,10 @@
   @{b}Draw 5@{ub}  (F5)
     Activate the Text tool. Type text directly onto the canvas.
 
+  @{b}Draw 6@{ub}  (F6)
+    Activate the Reverse Draw tool. Drag a rectangle to swap
+    foreground and background colors in the selected region.
+
   @{b}Undo@{ub}  (Z)
     Undo the last edit operation. PetMate maintains a circular
     buffer of screen snapshots.
@@ -666,6 +706,7 @@
     F3        CharDraw tool
     F4        Lasso Brush tool
     F5        Text tool
+    F6        Reverse Draw tool
 
   @{b}Editing@{ub}
 
@@ -844,7 +885,7 @@
 @{b}Credits@{ub}
 
   @{b}PetMate for AmigaOS@{ub}
-    Amiga port in C89 with BOOPSI and ReAction.
+    Amiga port in C89 with BOOPSI and ReAction by Krb.
 
   @{b}Original Petmate@{ub}
     Written in TypeScript/React by Hannu Hartikainen (nurpax)

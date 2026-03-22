@@ -8,7 +8,7 @@ PetMate
 MSG_ABOUT_TITLE
 Informazioni su PetMate
 MSG_ABOUT_TEXT
-\x1bb\x1buAmiga PetMate - C64 PETSCII Art Editor \x1bn - v0.8\n\n\x1bcSi tratta di disegnare con i set di caratteri integrati\nnelle vecchie macchine Commodore a 8 bit. La prima era\nil "PET", da cui il nome PETSCII in riferimento all'ASCII.\n\nDerivato e portato in C da Krb dal sorgente TypeScript\noriginale.\x1bn\n\n\x1bc\x1bb (c)2026 La licenza \xe8 MIT, leggere il file LICENSE.\x1bn\n\nSorgenti di Amiga PetMate ospitati su:\nhttps://github.com/krabobmkd/amigapetmate\nSegnala bug e richiedi funzionalit\xe0 su:\nhttps://github.com/krabobmkd/amigapetmate/issues\n\n \x1bbProgetti PetMate originali ospitati su:\x1bn\n\x1bc\x1bbnurpax https://github.com/nurpax/petmate\x1bn\n\x1bc\x1bbwbochar https://github.com/wbochar/petmate9\x1bn\n\n\x1bcQuesto \xe8 anche un progetto per esplorare Intuition BOOPSI\ne non esisterebbe senza il forum ufficiale degli\nsviluppatori Amiga:\nhttps://developer.amigaos3.net/forum
+\x1bb\x1buAmiga PetMate - C64 PETSCII Art Editor \x1bn - v%s\n\n\x1bcSi tratta di disegnare con i set di caratteri integrati\nnelle vecchie macchine Commodore a 8 bit. La prima era\nil "PET", da cui il nome PETSCII in riferimento all'ASCII.\n\nDerivato e portato in C da Krb dal sorgente TypeScript\noriginale.\x1bn\n\n\x1bc\x1bb (c)2026 La licenza \xe8 MIT, leggere il file LICENSE.\x1bn\n\nSorgenti di Amiga PetMate ospitati su:\nhttps://github.com/krabobmkd/amigapetmate\nSegnala bug e richiedi funzionalit\xe0 su:\nhttps://github.com/krabobmkd/amigapetmate/issues\n\n \x1bbProgetti PetMate originali ospitati su:\x1bn\n\x1bc\x1bbnurpax https://github.com/nurpax/petmate\x1bn\n\x1bc\x1bbwbochar https://github.com/wbochar/petmate9\x1bn\n\n\x1bcQuesto \xe8 anche un progetto per esplorare Intuition BOOPSI\ne non esisterebbe senza il forum ufficiale degli\nsviluppatori Amiga:\nhttps://developer.amigaos3.net/forum
 MSG_MENU_PROJECT
 Progetto
 MSG_FILE_NEW
@@ -171,6 +171,10 @@ MSG_IMPORT_IMAGE
 Importa immagine...
 MSG_IMPORT_NOMATCH
 Nessuna corrispondenza PETSCII trovata (verifica dimensioni e tavolozza).
+MSG_IMPORT_PRG
+Importa PRG (esportazione ASM)...
+MSG_IMPORT_PRG_BADFORMAT
+PRG di esportazione ASM non riconosciuto (nessuno schema dati trovato).
 MSG_MENU_GENERATE
 Genera
 MSG_GENERATE_RANDOM_BRUSH

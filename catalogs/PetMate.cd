@@ -12,7 +12,7 @@ PetMate
 MSG_ABOUT_TITLE (//)
 About PetMate
 MSG_ABOUT_TEXT (//)
-PetMate - C64 PETSCII Art Editor\nAmiga port v0.8
+PetMate - C64 PETSCII Art Editor\nAmiga port v%s
 ; --- Menu: Project ---
 MSG_MENU_PROJECT (//)
 Project
@@ -190,6 +190,10 @@ MSG_IMPORT_IMAGE (//)
 Import Image...
 MSG_IMPORT_NOMATCH (//)
 No PETSCII match found (check size and palette).
+MSG_IMPORT_PRG (//)
+Import PRG (ASM export)...
+MSG_IMPORT_PRG_BADFORMAT (//)
+Not a recognised ASM-export PRG (no data pattern found).
 ; --- Menu: Generate ---
 MSG_MENU_GENERATE (//)
 Generate

@@ -132,6 +132,8 @@ enum {
     /* Import actions */
     MSG_IMPORT_IMAGE,
     MSG_IMPORT_NOMATCH,
+    MSG_IMPORT_PRG,
+    MSG_IMPORT_PRG_BADFORMAT,
 
     /* Menu: Generate */
     MSG_MENU_GENERATE,

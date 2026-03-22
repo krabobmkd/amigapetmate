@@ -12,12 +12,13 @@
 
 #include <stdlib.h>
 #include <limits.h>
-#include <stdint.h>
-#include <fcntl.h>
-#include <unistd.h>
+#include "gif_compat.h"
 #include <stdio.h>
 #include <string.h>
 
+#ifdef HAVE_POSIX_IO
+#include <fcntl.h>
+#include <unistd.h>
 #if (defined (__MSDOS__) || defined(WINDOWS32))  && !defined(__DJGPP__) && !defined(__GNUC__)
 #include <io.h>
 #include <sys\stat.h>
@@ -25,6 +26,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #endif /* __MSDOS__ */
+#endif /* HAVE_POSIX_IO */
 
 #include "gif_lib.h"
 #include "gif_lib_private.h"
@@ -61,6 +63,7 @@ static int DGifBufferedInput(GifFileType *GifFile, GifByteType *Buf,
  *****************************************************************************/
 GifFileType *
 DGifOpenFileName(const char *FileName) {
+#ifdef HAVE_POSIX_IO
     int FileHandle;
     GifFileType *GifFile;
 
@@ -70,8 +73,75 @@ DGifOpenFileName(const char *FileName) {
     }
 
     GifFile = DGifOpenFileHandle(FileHandle);
-    // cppcheck-suppress resourceLeak
     return GifFile;
+#else /* !HAVE_POSIX_IO */
+    char Buf[GIF_STAMP_LEN + 1];
+    GifFileType *GifFile;
+    GifFilePrivateType *Private;
+    FILE *f;
+
+    f = fopen(FileName, "rb");
+    if (f == NULL) {
+        _GifError = D_GIF_ERR_OPEN_FAILED;
+        return NULL;
+    }
+
+    GifFile = (GifFileType *)malloc(sizeof(GifFileType));
+    if (GifFile == NULL) {
+        fclose(f);
+        _GifError = D_GIF_ERR_NOT_ENOUGH_MEM;
+        return NULL;
+    }
+
+    memset(GifFile, '\0', sizeof(GifFileType));
+    GifFile->SavedImages = NULL;
+    GifFile->SColorMap = NULL;
+
+    Private = (GifFilePrivateType *)malloc(sizeof(GifFilePrivateType));
+    if (Private == NULL) {
+        fclose(f);
+        free((char *)GifFile);
+        _GifError = D_GIF_ERR_NOT_ENOUGH_MEM;
+        return NULL;
+    }
+
+    (void)setvbuf(f, NULL, _IOFBF, GIF_FILE_BUFFER_SIZE);
+
+    GifFile->Private = (void *)Private;
+    Private->FileHandle = 0;
+    Private->File = f;
+    Private->FileState = FILE_STATE_READ;
+    Private->Read = NULL;
+    GifFile->UserData = NULL;
+
+    if (READ(GifFile, (unsigned char *)Buf, GIF_STAMP_LEN) != GIF_STAMP_LEN) {
+        _GifError = D_GIF_ERR_READ_FAILED;
+        fclose(f);
+        free((char *)Private);
+        free((char *)GifFile);
+        return NULL;
+    }
+
+    Buf[GIF_STAMP_LEN] = 0;
+    if (strncmp(GIF_STAMP, Buf, GIF_VERSION_POS) != 0) {
+        _GifError = D_GIF_ERR_NOT_GIF_FILE;
+        fclose(f);
+        free((char *)Private);
+        free((char *)GifFile);
+        return NULL;
+    }
+
+    if (DGifGetScreenDesc(GifFile) == GIF_ERROR) {
+        fclose(f);
+        free((char *)Private);
+        free((char *)GifFile);
+        return NULL;
+    }
+
+    _GifError = 0;
+    Private->gif89 = (Buf[GIF_VERSION_POS] == '9');
+    return GifFile;
+#endif /* HAVE_POSIX_IO */
 }
 
 /******************************************************************************
@@ -79,6 +149,7 @@ DGifOpenFileName(const char *FileName) {
  * Returns GifFileType pointer dynamically allocated which serves as the gif
  * info record. _GifError is cleared if succesful.
  *****************************************************************************/
+#ifdef HAVE_POSIX_IO
 GifFileType *
 DGifOpenFileHandle(int FileHandle) {
 
@@ -159,6 +230,7 @@ DGifOpenFileHandle(int FileHandle) {
 
     return GifFile;
 }
+#endif /* HAVE_POSIX_IO */
 
 /******************************************************************************
  * GifFileType constructor with user supplied input function (TVT)

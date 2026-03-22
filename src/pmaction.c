@@ -8,6 +8,7 @@
 #include "petscii_export_ilbm.h"
 #include "petscii_export_gif.h"
 #include "petscii_import_image.h"
+#include "petscii_import_prg.h"
 #include "pmlocale.h"
 #include "pmstring.h"
 #include "petmate.h"
@@ -18,6 +19,7 @@
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <proto/intuition.h>
+#include <proto/alib.h>
 #include <intuition/intuition.h>
 #include <intuition/classusr.h>
 #include <intuition/gadgetclass.h>
@@ -38,7 +40,7 @@
 #include "petscii_canvas.h"  /* PCA_TransformBrush, PCA_Brush, BRUSH_TRANSFORM_* */
 #include "petscii_brush.h"   /* PetsciiBrush */
 
-
+#include <stdio.h>
 /* External globals from petmate.c */
 extern struct Library *AslBase;
 extern struct IntuitionBase *IntuitionBase;
@@ -313,32 +315,11 @@ BOOL Action_ProjectAbout(PmActionContext *ctx)
     if(!CurrentMainWindow) return;
     if(!app->aboutRequester)
     {
+        snprintf(app->aboutrequestertext,2048-1,LOC(MSG_ABOUT_TEXT),PETMATE_VERSION);
+
         app->aboutRequester = NewObject( REQUESTER_GetClass(), NULL,
 			REQ_Image,REQIMAGE_INFO,
-#ifdef ABOUTTEXTFROMSOURCE
-			REQ_BodyText,(ULONG)
-"\33b\33uAmiga PetMate - C64 PETSCII Art Editor \33n - v" PETMATE_VERSION
-"\n\n"
-"\33cThis is all about drawing with the character sets that were\n"
-"integrated with old Commodore 8 Bit machines, the first of\n"
-"which was the \"PET\", hence the name PETSCII in regard to ASCII.\n\n"
-"Forked and ported to C by Krb from the original TypeScript source.\33n\n\n"
-
-"\33c\33b (c)2026 License is MIT, read file LICENSE.\33n\n\n"
-"Sources for Amiga PetMate are hosted at:\n"
-"https://github.com/krabobmkd/amigapetmate\n"
-"Report bugs and ask functionalities at:\n"
-"https://github.com/krabobmkd/amigapetmate/issues\n\n"
-" \33bOriginal PetMate projects are hosted at:\33n\n"
-"\33c\33bnurpax https://github.com/nurpax/petmate\33n\n"
-"\33c\33bwbochar https://github.com/wbochar/petmate9\33n\n\n"
-"\33cThis is also a project made to explore Intuition BOOPSI and\n"
-"wouldn't exist without the Official Amiga developer forum:\n"
-"https://developer.amigaos3.net/forum",
-#else
-			REQ_BodyText,(ULONG)LOC(MSG_ABOUT_TEXT),
-#endif
-
+			REQ_BodyText,(ULONG)&app->aboutrequestertext[0],
             REQ_TitleText,(ULONG)"About Amiga PetMate",
 			REQ_GadgetText,(ULONG)"_Ok",
             TAG_END);
@@ -790,29 +771,29 @@ BOOL Action_ExportASM(PmActionContext *ctx)
     return ok;
 }
 
-BOOL Action_ExportSEQ(PmActionContext *ctx)
-{
-    char          *rawpath;
-    char          *pathbuf;
-    PetsciiScreen *scr;
-    BOOL           ok;
+// BOOL Action_ExportSEQ(PmActionContext *ctx)
+// {
+//     char          *rawpath;
+//     char          *pathbuf;
+//     PetsciiScreen *scr;
+//     BOOL           ok;
 
-    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
-    scr = PetsciiProject_GetCurrentScreen(*ctx->pproject);
-    if (!scr) return FALSE;
+//     if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+//     scr = PetsciiProject_GetCurrentScreen(*ctx->pproject);
+//     if (!scr) return FALSE;
 
-    rawpath = aslExportRequest("Export as SEQ (.seq)", "#?.seq");
-    if (!rawpath) return FALSE;
+//     rawpath = aslExportRequest("Export as SEQ (.seq)", "#?.seq");
+//     if (!rawpath) return FALSE;
 
-    pathbuf = PmStr_WithExt(rawpath, ".seq");
-    PmStr_Free(rawpath);
-    if (!pathbuf) return FALSE;
+//     pathbuf = PmStr_WithExt(rawpath, ".seq");
+//     PmStr_Free(rawpath);
+//     if (!pathbuf) return FALSE;
 
-    ok = (BOOL)(PetsciiExport_SaveSEQ(scr, pathbuf) == PETSCII_EXPORT_OK);
-    PmStr_Free(pathbuf);
-    SetStatusBarMessage(ok ? MSG_PETSCII_FILEIO_WRITEOK : MSG_PETSCII_FILEIO_EWRITE);
-    return ok;
-}
+//     ok = (BOOL)(PetsciiExport_SaveSEQ(scr, pathbuf) == PETSCII_EXPORT_OK);
+//     PmStr_Free(pathbuf);
+//     SetStatusBarMessage(ok ? MSG_PETSCII_FILEIO_WRITEOK : MSG_PETSCII_FILEIO_EWRITE);
+//     return ok;
+// }
 
 BOOL Action_ExportPrgBAS(PmActionContext *ctx)
 {
@@ -983,6 +964,37 @@ BOOL Action_ImportImage(PmActionContext *ctx)
     return (BOOL)(err == PETSCII_IMPORT_OK);
 }
 
+BOOL Action_ImportPrg(PmActionContext *ctx)
+{
+    char          *rawpath;
+    PetsciiScreen *scr;
+    int            err;
+
+    if (!ctx || !ctx->pproject || !*ctx->pproject) return FALSE;
+    scr = PetsciiProject_GetCurrentScreen(*ctx->pproject);
+    if (!scr) return FALSE;
+
+    rawpath = aslExportRequest(LOC(MSG_IMPORT_PRG), "#?.prg");
+    if (!rawpath) return FALSE;
+
+    err = PetsciiImport_FromPrg(rawpath, scr);
+    PmStr_Free(rawpath);
+
+    if (err == PETSCII_IMPORT_PRG_EFORMAT || err == PETSCII_IMPORT_PRG_ESIZE) {
+        SetStatusBarMessage(MSG_IMPORT_PRG_BADFORMAT);
+        return FALSE;
+    }
+    if (err != PETSCII_IMPORT_PRG_OK) {
+        SetStatusBarMessage(MSG_PETSCII_FILEIO_EOPEN);
+        return FALSE;
+    }
+
+    (*ctx->pproject)->modified = 1;
+    refreshUI();
+    SetStatusBarMessage(MSG_PETSCII_FILEIO_OK);
+    return TRUE;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Recent files helper
    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1022,6 +1034,7 @@ BOOL Action_OpenRecent0(PmActionContext *ctx) { return openRecentFile(ctx, 0); }
 BOOL Action_OpenRecent1(PmActionContext *ctx) { return openRecentFile(ctx, 1); }
 BOOL Action_OpenRecent2(PmActionContext *ctx) { return openRecentFile(ctx, 2); }
 BOOL Action_OpenRecent3(PmActionContext *ctx) { return openRecentFile(ctx, 3); }
+BOOL Action_Dummy(PmActionContext *ctx) { return FALSE; }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1738,7 +1751,7 @@ static PmAction actionTable[ACTION_COUNT] = {
     /* 33 ACTION_EXPORT_ASM */
     {Action_ExportASM, MSG_EXPORT_ASM, NULL, 0, 0},
     /* ACTION_EXPORT_SEQ */
-    {Action_ExportSEQ, MSG_EXPORT_SEQ, NULL, 0, 0},
+    {/*Action_ExportSEQ*/Action_Dummy, MSG_EXPORT_SEQ, NULL, 0, 0},
 
     /* ACTION_EXPORT_PRG_BAS */
     {Action_ExportPrgBAS, MSG_EXPORT_PRG_BAS, NULL, 0, 0},
@@ -1754,6 +1767,8 @@ static PmAction actionTable[ACTION_COUNT] = {
 
     /* ACTION_IMPORT_IMAGE */
     {Action_ImportImage, MSG_IMPORT_IMAGE, NULL, 0, 0},
+    /* ACTION_IMPORT_PRG */
+    {Action_ImportPrg, MSG_IMPORT_PRG, NULL, 0, 0},
 
     /* ACTION_GENERATE_RANDOM_BRUSH */
     {Action_GenerateRandomFromBrush, MSG_GENERATE_RANDOM_BRUSH, NULL, 0, 0},
@@ -1766,7 +1781,10 @@ static PmAction actionTable[ACTION_COUNT] = {
     {Action_OpenRecent0, MSG_MENU_OPEN_RECENT, NULL, 0, 0},
     {Action_OpenRecent1, MSG_MENU_OPEN_RECENT, NULL, 0, 0},
     {Action_OpenRecent2, MSG_MENU_OPEN_RECENT, NULL, 0, 0},
-    {Action_OpenRecent3, MSG_MENU_OPEN_RECENT, NULL, 0, 0}
+    {Action_OpenRecent3, MSG_MENU_OPEN_RECENT, NULL, 0, 0},
+
+    {Action_Dummy, MSG_MENU_EXPORT_AS, NULL, 0, 0}
+
 
 };
 

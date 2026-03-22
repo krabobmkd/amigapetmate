@@ -11,7 +11,7 @@
 #define _GIF_HASH_H_
 
 #include <unistd.h>
-#include <stdint.h>
+#include "gif_compat.h"
 
 #define HT_SIZE			8192	   /* 12bits = 4096 or twice as big! */
 #define HT_KEY_MASK		0x1FFF			      /* 13bits keys */

@@ -249,7 +249,7 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
 
             case PCA_Dirty:
                 if (tag->ti_Data && inst->screenbuf) {
-                 bdbprintf("r PCA_Dirty ->valid=0\n");
+                // bdbprintf("r PCA_Dirty ->valid=0\n");
                     if(inst->screenbuf->valid)
                     {
                       redraw = 1;
@@ -333,7 +333,7 @@ ULONG PetsciiCanvas_OnSet(Class *cl, Object *o, struct opSet *msg)
                     if(inst->screen->borderColor != (UBYTE)tag->ti_Data)
                     {
                         inst->screen->borderColor = (UBYTE)tag->ti_Data;
-                bdbprintf("PCA_BdColor ->valid=0 color:%d\n",(int)inst->screen->borderColor);
+              //  bdbprintf("PCA_BdColor ->valid=0 color:%d\n",(int)inst->screen->borderColor);
                         if(inst->screenbuf &&
                           inst->screenbuf->valid )
                          {

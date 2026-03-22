@@ -93,7 +93,7 @@ struct App {
 
 
     Object *aboutRequester; /* allocated once when asked first */
-
+    char aboutrequestertext[2048];
 #ifdef HELP_USE_AGLIB
     /* amigaguide for help */
     struct NewAmigaGuide nAmigaGuide;

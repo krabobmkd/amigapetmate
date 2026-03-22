@@ -196,10 +196,11 @@ int PmToolbar_Create(PmToolbar *tb,struct PetsciiStyle  *style)
 void PmToolbar_SetActiveTool(PmToolbar *tb, UBYTE tool, struct Window *win)
 {
     int i;
+    ULONG doselect,cstate;
     for (i = 0; i < TOOLBAR_TOOL_COUNT; i++) {
         if (!tb->toolBtns[i]) continue;
-        ULONG doselect = (i == (int)tool);
-        ULONG cstate=0;
+        doselect = (i == (int)tool)?1:0;
+        cstate=0;
         GetAttr(GA_Selected,tb->toolBtns[i],&cstate);
 
         if(doselect != cstate) /* important test, or would go infinite recursion */

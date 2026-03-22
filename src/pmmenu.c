@@ -27,10 +27,20 @@ void cleanexit(const char *pmessage);
  * nm_Label = NM_BARLABEL -> separator bar, left unchanged.
  * nm_Label = any other non-NULL ptr -> already set, left unchanged.
  *
- * nm_UserData = (APTR)MSG_* for NM_TITLE entries.
- * nm_UserData = (APTR)ACTION_* for item/sub entries that dispatch an action.
- * nm_UserData = NULL for parent-only items (Export As, Import, Open Recent).
+ * nm_UserData encoding (ULONG):
+ *   upper 16 bits non-zero  ->  ACTION_* id stored in upper 16 bits (ACTION_UD macro).
+ *                               resolveMenuLabels() reads the action name.
+ *                               PmMenu_ToActionID() returns the upper 16 bits.
+ *   upper 16 bits zero      ->  MSG_* locale id in lower 16 bits.
+ *                               resolveMenuLabels() calls LOC(id).
+ *                               PmMenu_ToActionID() returns 0 (branch/title item).
+ *
+ * This lets branch items (Export As, Import, titles) carry a MSG_* for their
+ * label while action items carry their ACTION_* in a distinct bit range.
  */
+
+/* Pack an ACTION_* id into nm_UserData (upper 16 bits). */
+#define ACTION_UD(a)  ((ULONG)(a) << 16)
 
 #define MENU_TEMPLATE_MAX 80   /* enough for all static entries + 4 recent */
 
@@ -74,10 +84,10 @@ static void buildMenuTemplate(const AppSettings *as)
 
     /* - - - Project - - - */
     ADD(NM_TITLE, NULL, 0,    0, 0, MSG_MENU_PROJECT);
-    ADD(NM_ITEM,  NULL, "N",  0, 0, ACTION_PROJECT_NEW);
-    ADD(NM_ITEM,  NULL, "O",  0, 0, ACTION_PROJECT_OPEN);
-    ADD(NM_ITEM,  NULL, "S",  0, 0, ACTION_PROJECT_SAVE);
-    ADD(NM_ITEM,  NULL, "A",  0, 0, ACTION_PROJECT_SAVEAS);
+    ADD(NM_ITEM,  NULL, "N",  0, 0, ACTION_UD(ACTION_PROJECT_NEW));
+    ADD(NM_ITEM,  NULL, "O",  0, 0, ACTION_UD(ACTION_PROJECT_OPEN));
+    ADD(NM_ITEM,  NULL, "S",  0, 0, ACTION_UD(ACTION_PROJECT_SAVE));
+    ADD(NM_ITEM,  NULL, "A",  0, 0, ACTION_UD(ACTION_PROJECT_SAVEAS));
 
     /* Open Recent sub-menu - only when there are recent files */
     if (as && as->recentCount > 0) {
@@ -93,92 +103,92 @@ static void buildMenuTemplate(const AppSettings *as)
                     sizeof(s_recentLabels[r]) - 1);
             s_recentLabels[r][sizeof(s_recentLabels[r]) - 1] = '\0';
             ADD(NM_SUB, s_recentLabels[r], 0, 0, 0,
-                ACTION_OPEN_RECENT_0 + (ULONG)r);
+                ACTION_UD(ACTION_OPEN_RECENT_0 + (ULONG)r));
         }
     }
 
     BAR(NM_ITEM);
-    ADD(NM_ITEM, LOC(MSG_MENU_EXPORT_AS), 0, 0, 0, 0);
-        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_IFF_ILBM);
-        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_GIF);
+    ADD(NM_ITEM, NULL, 0, 0, 0, MSG_MENU_EXPORT_AS);  /* branch: label from MSG_* */
+        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_UD(ACTION_EXPORT_IFF_ILBM));
+        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_UD(ACTION_EXPORT_GIF));
         BAR(NM_SUB);
-        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_BAS);
-        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_ASM);
-/*doesnt work        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_SEQ); */
+        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_UD(ACTION_EXPORT_BAS));
+        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_UD(ACTION_EXPORT_ASM));
+/*doesnt work        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_UD(ACTION_EXPORT_SEQ)); */
         BAR(NM_SUB);
-        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_PRG_BAS);
-        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_EXPORT_PRG_ASM);
+        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_UD(ACTION_EXPORT_PRG_BAS));
+        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_UD(ACTION_EXPORT_PRG_ASM));
     ADD(NM_ITEM, (STRPTR)"Import", 0, 0, 0, 0);
-        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_IMPORT_IMAGE);
+        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_UD(ACTION_IMPORT_IMAGE));
+        ADD(NM_SUB, NULL, 0, 0, 0, ACTION_UD(ACTION_IMPORT_PRG));
     BAR(NM_ITEM);
-    ADD(NM_ITEM, NULL, 0,   0, 0, ACTION_PROJECT_ICONIFY);
-    ADD(NM_ITEM, NULL, 0,   0, 0, ACTION_PROJECT_ABOUT);
-    ADD(NM_ITEM, NULL, "HELP",   NM_COMMANDSTRING, 0, ACTION_PROJECT_HELP);
+    ADD(NM_ITEM, NULL, 0,   0, 0, ACTION_UD(ACTION_PROJECT_ICONIFY));
+    ADD(NM_ITEM, NULL, 0,   0, 0, ACTION_UD(ACTION_PROJECT_ABOUT));
+    ADD(NM_ITEM, NULL, "HELP",   NM_COMMANDSTRING, 0, ACTION_UD(ACTION_PROJECT_HELP));
     BAR(NM_ITEM);
-    ADD(NM_ITEM, NULL, "Q", 0, 0, ACTION_PROJECT_QUIT);
+    ADD(NM_ITEM, NULL, "Q", 0, 0, ACTION_UD(ACTION_PROJECT_QUIT));
 
     /* - - - Edit - - - */
     ADD(NM_TITLE, NULL, 0,     0, 0, MSG_MENU_EDIT);
-    ADD(NM_ITEM,  NULL, "F1",  NM_COMMANDSTRING, 0, ACTION_EDIT_DRAW1);
-    ADD(NM_ITEM,  NULL, "F2",  NM_COMMANDSTRING, 0, ACTION_EDIT_DRAW2);
-    ADD(NM_ITEM,  NULL, "F3",  NM_COMMANDSTRING, 0, ACTION_EDIT_DRAW3);
-    ADD(NM_ITEM,  NULL, "F4",  NM_COMMANDSTRING, 0, ACTION_EDIT_DRAW4);
-    ADD(NM_ITEM,  NULL, "F5",  NM_COMMANDSTRING, 0, ACTION_EDIT_DRAW5);
+    ADD(NM_ITEM,  NULL, "F1",  NM_COMMANDSTRING, 0, ACTION_UD(ACTION_EDIT_DRAW1));
+    ADD(NM_ITEM,  NULL, "F2",  NM_COMMANDSTRING, 0, ACTION_UD(ACTION_EDIT_DRAW2));
+    ADD(NM_ITEM,  NULL, "F3",  NM_COMMANDSTRING, 0, ACTION_UD(ACTION_EDIT_DRAW3));
+    ADD(NM_ITEM,  NULL, "F4",  NM_COMMANDSTRING, 0, ACTION_UD(ACTION_EDIT_DRAW4));
+    ADD(NM_ITEM,  NULL, "F5",  NM_COMMANDSTRING, 0, ACTION_UD(ACTION_EDIT_DRAW5));
     BAR(NM_ITEM);
-    ADD(NM_ITEM, NULL, "Z", 0, 0, ACTION_EDIT_UNDO);
-    ADD(NM_ITEM, NULL, "Y", 0, 0, ACTION_EDIT_REDO);
+    ADD(NM_ITEM, NULL, "Z", 0, 0, ACTION_UD(ACTION_EDIT_UNDO));
+    ADD(NM_ITEM, NULL, "Y", 0, 0, ACTION_UD(ACTION_EDIT_REDO));
     BAR(NM_ITEM);
-    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_EDIT_COPY_SCREEN);
-    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_EDIT_PASTE_SCREEN);
+    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_UD(ACTION_EDIT_COPY_SCREEN));
+    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_UD(ACTION_EDIT_PASTE_SCREEN));
     BAR(NM_ITEM);
-    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_EDIT_CLEAR_SCREEN);
+    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_UD(ACTION_EDIT_CLEAR_SCREEN));
     BAR(NM_ITEM);
-    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_EDIT_SHIFT_LEFT);
-    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_EDIT_SHIFT_RIGHT);
-    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_EDIT_SHIFT_UP);
-    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_EDIT_SHIFT_DOWN);
+    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_UD(ACTION_EDIT_SHIFT_LEFT));
+    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_UD(ACTION_EDIT_SHIFT_RIGHT));
+    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_UD(ACTION_EDIT_SHIFT_UP));
+    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_UD(ACTION_EDIT_SHIFT_DOWN));
 
     /* - - - Screen - - - */
     ADD(NM_TITLE, NULL, 0, 0, 0, MSG_MENU_SCREEN);
-    ADD(NM_ITEM,  NULL, 0, 0, 0, ACTION_SCREEN_ADD);
-    ADD(NM_ITEM,  NULL, 0, 0, 0, ACTION_SCREEN_CLONE);
+    ADD(NM_ITEM,  NULL, 0, 0, 0, ACTION_UD(ACTION_SCREEN_ADD));
+    ADD(NM_ITEM,  NULL, 0, 0, 0, ACTION_UD(ACTION_SCREEN_CLONE));
     BAR(NM_ITEM);
-    ADD(NM_ITEM, NULL, 0,   0, 0, ACTION_SCREEN_REMOVE);
+    ADD(NM_ITEM, NULL, 0,   0, 0, ACTION_UD(ACTION_SCREEN_REMOVE));
     BAR(NM_ITEM);
-    ADD(NM_ITEM, NULL, "[", 0, 0, ACTION_SCREEN_PREV);
-    ADD(NM_ITEM, NULL, "]", 0, 0, ACTION_SCREEN_NEXT);
+    ADD(NM_ITEM, NULL, "[", 0, 0, ACTION_UD(ACTION_SCREEN_PREV));
+    ADD(NM_ITEM, NULL, "]", 0, 0, ACTION_UD(ACTION_SCREEN_NEXT));
 
     /* - - - View - - - */
     ADD(NM_TITLE, NULL, 0,     0, 0, MSG_MENU_VIEW);
-    ADD(NM_ITEM,  NULL, "G",   0, 0, ACTION_VIEW_TOGGLE_GRID);
+    ADD(NM_ITEM,  NULL, "G",   0, 0, ACTION_UD(ACTION_VIEW_TOGGLE_GRID));
     BAR(NM_ITEM);
-    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_VIEW_CHARSET_UPPER);
-    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_VIEW_CHARSET_LOWER);
+    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_UD(ACTION_VIEW_CHARSET_UPPER));
+    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_UD(ACTION_VIEW_CHARSET_LOWER));
     BAR(NM_ITEM);
-    ADD(NM_ITEM, NULL, "F10", NM_COMMANDSTRING, 0, ACTION_VIEW_TOGGLE_FULL_SCREEN);
-    ADD(NM_ITEM, NULL, "P",   0,                0, ACTION_VIEW_OPEN_SETTINGS);
+    ADD(NM_ITEM, NULL, "F10", NM_COMMANDSTRING, 0, ACTION_UD(ACTION_VIEW_TOGGLE_FULL_SCREEN));
+    ADD(NM_ITEM, NULL, "P",   0,                0, ACTION_UD(ACTION_VIEW_OPEN_SETTINGS));
 
     /* - - - Generate - - - */
-    ADD(NM_TITLE, NULL, 0, 0, 0, (APTR)MSG_MENU_GENERATE);
-        ADD(NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_GENERATE_RANDOM_BRUSH);
-/*removed because ugly        ADD(NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_GENERATE_MAGIC_LINE);*/
-        ADD(NM_ITEM, NULL, 0, 0, 0, (APTR)ACTION_GENERATE_TRON_LINES);
+    ADD(NM_TITLE, NULL, 0, 0, 0, MSG_MENU_GENERATE);
+        ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_UD(ACTION_GENERATE_RANDOM_BRUSH));
+        ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_UD(ACTION_GENERATE_TRON_LINES));
 
     /* - - - Brush - - - */
     ADD(NM_TITLE, NULL, 0, 0, 0, MSG_MENU_BRUSH);
-    ADD(NM_ITEM,  NULL, 0, 0, 0, ACTION_BRUSH_FLIP_X);
-    ADD(NM_ITEM,  NULL, 0, 0, 0, ACTION_BRUSH_FLIP_Y);
+    ADD(NM_ITEM,  NULL, 0, 0, 0, ACTION_UD(ACTION_BRUSH_FLIP_X));
+    ADD(NM_ITEM,  NULL, 0, 0, 0, ACTION_UD(ACTION_BRUSH_FLIP_Y));
     BAR(NM_ITEM);
-    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_BRUSH_ROT90CW);
-    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_BRUSH_ROT180);
-    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_BRUSH_ROT90CCW);
+    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_UD(ACTION_BRUSH_ROT90CW));
+    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_UD(ACTION_BRUSH_ROT180));
+    ADD(NM_ITEM, NULL, 0, 0, 0, ACTION_UD(ACTION_BRUSH_ROT90CCW));
 
     /* - - - Palette - - - */
     ADD(NM_TITLE, NULL, 0, 0, 0, MSG_MENU_PALETTE);
-    ADD(NM_ITEM,  NULL, 0, CHECKIT|CHECKED, 0x0E, ACTION_PALETTE_PETMATE);
-    ADD(NM_ITEM,  NULL, 0, CHECKIT,         0x0D, ACTION_PALETTE_COLODORE);
-    ADD(NM_ITEM,  NULL, 0, CHECKIT,         0x0B, ACTION_PALETTE_PEPTO);
-    ADD(NM_ITEM,  NULL, 0, CHECKIT,         0x07, ACTION_PALETTE_VICE);
+    ADD(NM_ITEM,  NULL, 0, CHECKIT|CHECKED, 0x0E, ACTION_UD(ACTION_PALETTE_PETMATE));
+    ADD(NM_ITEM,  NULL, 0, CHECKIT,         0x0D, ACTION_UD(ACTION_PALETTE_COLODORE));
+    ADD(NM_ITEM,  NULL, 0, CHECKIT,         0x0B, ACTION_UD(ACTION_PALETTE_PEPTO));
+    ADD(NM_ITEM,  NULL, 0, CHECKIT,         0x07, ACTION_UD(ACTION_PALETTE_VICE));
 
     /* - - - End - - - */
     ADD(NM_END, NULL, 0, 0, 0, 0);
@@ -198,18 +208,20 @@ static void resolveMenuLabels(struct NewMenu *tmpl)
         if (tmpl[i].nm_Label == NM_BARLABEL) continue;
         if (tmpl[i].nm_Label != NULL) continue;
 
-        if (tmpl[i].nm_Type == NM_TITLE) {
-            /* UserData holds a MSG_* string ID */
-            ULONG msgID = (ULONG)tmpl[i].nm_UserData;
-            tmpl[i].nm_Label = (STRPTR)LOC(msgID);
-        } else {
-            /* UserData holds an ACTION_* ID */
-            ULONG actionID = (ULONG)tmpl[i].nm_UserData;
-            PmAction *action = PmAction_Get(actionID);
-            if (action && action->name) {
-                tmpl[i].nm_Label = (STRPTR)action->name;
+        {
+            ULONG udata    = (ULONG)tmpl[i].nm_UserData;
+            ULONG actionID = udata >> 16;
+
+            if (actionID != 0) {
+                /* Upper 16 bits set: ACTION_* id */
+                PmAction *action = PmAction_Get(actionID);
+                if (action && action->name)
+                    tmpl[i].nm_Label = (STRPTR)action->name;
+                else
+                    tmpl[i].nm_Label = (STRPTR)"???";
             } else {
-                tmpl[i].nm_Label = (STRPTR)"???";
+                /* Upper 16 bits clear: MSG_* locale id in lower 16 bits */
+                tmpl[i].nm_Label = (STRPTR)LOC(udata);
             }
         }
     }
@@ -329,7 +341,7 @@ void PmMenu_UpdatePaletteCheck(PmMenu *pm, struct Window *window, UBYTE paletteI
 
     for (m = pm->menu; m; m = m->NextMenu) {
         for (item = m->FirstItem; item; item = item->NextItem) {
-            ULONG aid = (ULONG)GTMENUITEM_USERDATA(item);
+            ULONG aid = (ULONG)GTMENUITEM_USERDATA(item) >> 16;
             int i;
             for (i = 0; i < 4; i++) {
                 if (aid == paletteActions[i]) {
@@ -356,7 +368,7 @@ LONG PmMenu_ToActionID(PmMenu *pm, UWORD menuCode)
     item = ItemAddress(pm->menu, menuCode);
     if (!item) return -1;
 
-    return (LONG)GTMENUITEM_USERDATA(item);
+    return (LONG)((ULONG)GTMENUITEM_USERDATA(item) >> 16);
 }
 
 
@@ -379,7 +391,7 @@ void PmMenu_UpdateBrushMenu(PmMenu *pm, struct Window *window, Object *canvasGad
     for (menu = pm->menu; menu; menu = menu->NextMenu) {
         item = menu->FirstItem;
         if (!item) continue;
-        if (GTMENUITEM_USERDATA(item) != (APTR)ACTION_BRUSH_FLIP_X) continue;
+        if (((ULONG)GTMENUITEM_USERDATA(item) >> 16) != ACTION_BRUSH_FLIP_X) continue;
 
         /* Found it update menu title and every item atomically.
          * ClearMenuStrip/ResetMenuStrip is required while modifying flags

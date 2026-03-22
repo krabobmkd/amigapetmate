@@ -1,0 +1,914 @@
+@database PetMate.guide
+@master PetMate.guide
+@width 72
+
+@node MAIN "PetMate para AmigaOS - Manual de usuario"
+
+@{b}PetMate para AmigaOS 3.x@{ub}
+@{b}Editor de arte PETSCII@{ub}
+
+                        Manual de usuario
+
+  PetMate es un editor de arte PETSCII para AmigaOS 3.x, adaptado desde
+  el proyecto original de código abierto Petmate. Permite crear y editar
+  obras basadas en caracteres usando el conjunto de caracteres PETSCII
+  del Commodore 64, con exportación a múltiples formatos incluyendo
+  programas nativos de C64.
+
+  @{" Introducción         " link INTRO}       ¿Qué es PetMate?
+  @{" Requirements         " link REQUIRE}     Requisitos mínimos del sistema
+  @{" Interface Overview   " link INTERFACE}   Disposición de la ventana principal
+  @{" Drawing Tools        " link TOOLS}       Los seis modos de dibujo
+  @{" Color Palettes       " link PALETTES}    Opciones de paleta de colores C64
+  @{" Brush Operations     " link BRUSH}       Lazo, transformaciones y uso
+  @{" Screen Management    " link SCREENS}     Trabajar con múltiples pantallas
+  @{" Generate Menu        " link GENERATE}    Generación de contenido procedural
+  @{" Menus Reference      " link MENUS}       Referencia completa de menús
+  @{" Keyboard Shortcuts   " link KEYS}        Todos los atajos de teclado
+  @{" Export Formats       " link EXPORT}      Exportar tu obra
+  @{" Import               " link IMPORT}      Importar imágenes
+  @{" File Format          " link FORMAT}      El formato de proyecto .petmate
+  @{" Credits              " link CREDITS}     Autores y licencias
+
+@endnode
+
+
+@node INTRO "Introducción"
+
+@{b}Introducción@{ub}
+
+  PetMate es un editor de arte PETSCII que se ejecuta de forma nativa en
+  AmigaOS 3.x. PETSCII (PET Standard Code of Information Interchange) es
+  el conjunto de caracteres utilizado por los ordenadores Commodore de
+  8 bits, especialmente el Commodore 64.
+
+  El Petmate original fue escrito en TypeScript/React para sistemas
+  operativos de escritorio. Esta adaptación para Amiga está escrita en
+  C89 usando los toolkits GUI BOOPSI y ReAction nativos de AmigaOS.
+
+  @{b}Características principales:@{ub}
+
+    - Seis herramientas de dibujo: Dibujar, Colorear, DibujarCar., Pincel, Texto, Invertido
+    - Paleta C64 completa de 16 colores con cuatro variantes de paleta
+    - Pincel lazo con transformaciones de rotación y espejo
+    - Hasta 64 pantallas por proyecto
+    - Deshacer / Rehacer
+    - Generación procedural: Pincel aleatorio, Línea mágica, Líneas Tron
+    - Exportación a IFF ILBM, GIF, BASIC C64, ASM y archivos PRG
+    - Importación de imágenes y conversión a PETSCII
+    - Archivos de proyecto en formato JSON .petmate (multiplataforma)
+
+  @{" Volver al índice " link MAIN}
+
+@endnode
+
+
+@node REQUIRE "Requisitos del sistema"
+
+@{b}Requisitos del sistema@{ub}
+
+  @{b}Configuración mínima:@{ub}
+
+    CPU       Motorola 68020 o superior
+    OS        AmigaOS 3.9
+
+  @{b}Configuración recomendada:@{ub}
+
+    OS        AmigaOS 3.2.3 o posterior
+
+  AmigaOS 3.2.3 ofrece mejor soporte de biblioteca del sistema y es la
+  plataforma recomendada para la mejor experiencia. La aplicación
+  funciona en OS 3.9 pero algunas características del sistema pueden
+  estar limitadas.
+
+  @{" Volver al índice " link MAIN}
+
+@endnode
+
+
+@node INTERFACE "Vista general de la interfaz"
+
+@{b}Vista general de la interfaz@{ub}
+
+  La ventana principal está dividida en varias áreas:
+
+  @{b}Lienzo (centro)@{ub}
+    El área de edición principal que muestra la pantalla actual. Cada
+    celda muestra un carácter PETSCII con su color de primer plano sobre
+    el color de fondo actual. Haz clic o arrastra para dibujar.
+
+  @{b}Barra de herramientas izquierda@{ub}
+    Franja vertical de botones de herramientas en el borde izquierdo:
+
+      Dibujar          - Seleccionar la herramienta Dibujar (F1)
+      Colorear         - Seleccionar la herramienta Colorear (F2)
+      DibujarCar.      - Seleccionar la herramienta DibujarCarácter (F3)
+      Pincel           - Seleccionar la herramienta Pincel Lazo (F4)
+      Texto            - Seleccionar la herramienta Texto (F5)
+      Dibujo invertido - Seleccionar la herramienta Dibujo invertido (F6)
+      Deshacer         - Deshacer el último cambio
+      Rehacer          - Rehacer el último cambio deshecho
+      Borrar           - Borrar la pantalla actual
+
+  @{b}Selector de color@{ub}
+    Muestra los 16 colores C64 de la paleta activa. Haz clic en un color
+    para seleccionarlo como color de primer plano activo. Un indicador
+    separado muestra el color de fondo actual.
+
+  @{b}Selector de caracteres@{ub}
+    Una cuadrícula 16x16 que muestra los 256 caracteres PETSCII del
+    conjunto de caracteres activo (mayúsculas o minúsculas). Haz clic
+    en un carácter para seleccionarlo como carácter de dibujo activo.
+
+  @{b}Carrusel de pantallas@{ub}
+    Una franja vertical de miniaturas, una por cada pantalla del
+    proyecto. Haz clic en una miniatura para cambiar a esa pantalla.
+    La pantalla actual aparece resaltada.
+
+  @{b}Barra de estado@{ub}
+    Muestra mensajes de retroalimentación y el estado de las operaciones
+    en la parte inferior de la ventana.
+
+  @{b}Cuadrícula superpuesta@{ub}
+    Una cuadrícula de píxeles opcional que puede activarse o desactivarse
+    para ayudar con la colocación precisa de caracteres (menú Ver o G).
+
+  @{" Volver al índice " link MAIN}
+
+@endnode
+
+
+@node TOOLS "Herramientas de dibujo"
+
+@{b}Herramientas de dibujo@{ub}
+
+  PetMate tiene seis herramientas de dibujo seleccionables mediante el
+  menú Edición o las teclas de función. La herramienta activa determina
+  qué ocurre al hacer clic o arrastrar sobre el lienzo.
+
+  ---------------------------------------------------------------
+
+  @{b}Dibujar  (F1)@{ub}
+
+    La herramienta de dibujo estándar. Al hacer clic en una celda del
+    lienzo se coloca el carácter seleccionado Y se aplica el color de
+    primer plano seleccionado. Se modifican tanto el carácter como el
+    color.
+
+    Es la herramienta más utilizada para crear arte PETSCII desde cero.
+
+  ---------------------------------------------------------------
+
+  @{b}Colorear  (F2)@{ub}
+
+    Aplica el color de primer plano actual a las celdas sin cambiar el
+    carácter que ya contienen. Úsala para repintar áreas del lienzo con
+    un color diferente conservando los caracteres.
+
+  ---------------------------------------------------------------
+
+  @{b}DibujarCarácter  (F3)@{ub}
+
+    Coloca el carácter seleccionado sin cambiar el color existente de la
+    celda. El carácter se actualiza pero el color de primer plano de cada
+    celda se conserva. Útil para definir estructura preservando un esquema
+    de color.
+
+  ---------------------------------------------------------------
+
+  @{b}Pincel Lazo  (F4)@{ub}
+
+    Haz clic y arrastra para seleccionar una región rectangular del
+    lienzo. La selección se convierte en el @{"pincel" link BRUSH} activo. Con un
+    pincel capturado, al hacer clic en otro lugar del lienzo se estampa
+    una copia del pincel en esa posición.
+
+    Mientras hay un pincel activo, el menú Pincel se activa, ofreciendo
+    transformaciones de volteo y rotación.
+
+  ---------------------------------------------------------------
+
+  @{b}Texto  (F5)@{ub}
+
+    Coloca el cursor en el lienzo y permite la entrada directa desde el
+    teclado. Los caracteres escritos se colocan usando el color de primer
+    plano actual. El cursor avanza automáticamente tras cada carácter.
+
+  ---------------------------------------------------------------
+
+  @{b}Dibujo invertido  (F6)@{ub}
+
+    Haz clic y arrastra para seleccionar una región rectangular del
+    lienzo. Al soltar el botón del ratón, los colores de primer plano y
+    fondo de cada celda dentro de la selección se intercambian. Los
+    caracteres no se modifican.
+
+    Útil para invertir rápidamente una región y crear áreas resaltadas
+    en tu arte PETSCII.
+
+  ---------------------------------------------------------------
+
+  @{" Operaciones con el pincel " link BRUSH}
+  @{" Volver al índice          " link MAIN}
+
+@endnode
+
+
+@node BRUSH "Operaciones con el pincel"
+
+@{b}Operaciones con el pincel@{ub}
+
+  Un pincel es un bloque rectangular de celdas PETSCII capturado del
+  lienzo con la herramienta Pincel Lazo (F4). Recuerda tanto los
+  caracteres como los colores de la región capturada.
+
+  @{b}Capturar un pincel@{ub}
+
+    1. Selecciona la herramienta Pincel Lazo (F4 o Edición > Dibujar 4).
+    2. Haz clic y arrastra sobre el lienzo para dibujar un rectángulo.
+    3. Suelta el botón del ratón. El área seleccionada es ahora el
+       pincel activo.
+
+  @{b}Estampar un pincel@{ub}
+
+    Con un pincel activo, haz clic en cualquier lugar del lienzo para
+    estampar una copia del pincel en esa posición. El pincel respeta la
+    herramienta de dibujo activa:
+
+      Modo Dibujar        - coloca caracteres Y colores del pincel
+      Modo Colorear       - coloca solo colores del pincel
+      Modo DibujarCar.    - coloca solo caracteres del pincel
+
+  @{b}Transformaciones del pincel@{ub}
+
+    Una vez capturado un pincel, el menú Pincel se activa.
+    Las siguientes transformaciones están disponibles:
+
+      @{b}Voltear X@{ub}      Espejo horizontal del pincel (izquierda-derecha)
+      @{b}Voltear Y@{ub}      Espejo vertical del pincel (arriba-abajo)
+      @{b}Rotar 90 H@{ub}     Rotar el pincel 90 grados en sentido horario
+      @{b}Rotar 180@{ub}      Rotar el pincel 180 grados
+      @{b}Rotar 90 AH@{ub}    Rotar el pincel 90 grados en sentido antihorario
+
+    Nota: las rotaciones también reasignan los caracteres a sus
+    equivalentes de orientación correcta (p. ej. una esquina mirando
+    en una dirección se cambia por la esquina correspondiente girada).
+
+  @{b}Relleno con pincel aleatorio@{ub}
+
+    Generar > Pincel aleatorio rellena toda la pantalla con celdas
+    seleccionadas aleatoriamente del pincel activo. Si no hay pincel
+    activo, se usan caracteres de medio bloque diagonal. El relleno
+    respeta el modo de la herramienta de dibujo actual.
+
+  @{" Herramientas de dibujo " link TOOLS}
+  @{" Volver al índice       " link MAIN}
+
+@endnode
+
+
+@node PALETTES "Paletas de colores"
+
+@{b}Paletas de colores@{ub}
+
+  El C64 tiene un conjunto fijo de 16 colores. Distintos emuladores y
+  revisiones de hardware los reproducen de forma ligeramente diferente.
+  PetMate ofrece cuatro variantes de paleta que corresponden a estándares
+  de referencia populares.
+
+  Selecciona una paleta desde el menú Paleta. La paleta activa se
+  muestra con una marca de verificación.
+
+  ---------------------------------------------------------------
+
+  @{b}Petmate@{ub}  (predeterminada)
+
+    La paleta predeterminada usada por el editor Petmate original.
+    Una paleta C64 equilibrada de uso general.
+
+  @{b}Colodore@{ub}
+
+    La paleta Colodore, ampliamente considerada como un modelo
+    físicamente preciso de la salida de color VIC-II del C64 basado
+    en mediciones.
+
+  @{b}Pepto@{ub}
+
+    La paleta Pepto, otra paleta basada en mediciones de Tobias Gubber,
+    comúnmente usada como referencia en emulación.
+
+  @{b}VICE@{ub}
+
+    La paleta usada por el emulador Commodore VICE.
+
+  ---------------------------------------------------------------
+
+  @{b}Los 16 colores C64@{ub}
+
+    Índice  Nombre
+    ------  ----------
+      0     Negro
+      1     Blanco
+      2     Rojo
+      3     Cian
+      4     Púrpura
+      5     Verde
+      6     Azul
+      7     Amarillo
+      8     Naranja
+      9     Marrón
+     10     Rojo claro
+     11     Gris oscuro
+     12     Gris
+     13     Verde claro
+     14     Azul claro
+     15     Gris claro
+
+  Cada celda de carácter tiene un color de primer plano independiente.
+  El color de fondo y el color de borde son compartidos por toda la
+  pantalla.
+
+  @{" Volver al índice " link MAIN}
+
+@endnode
+
+
+@node SCREENS "Gestión de pantallas"
+
+@{b}Gestión de pantallas@{ub}
+
+  Un proyecto PetMate puede contener hasta 64 pantallas. Cada pantalla
+  es un lienzo de caracteres 40x25 independiente con su propio color de
+  fondo, color de borde y selección de conjunto de caracteres.
+
+  Las pantallas se gestionan desde el menú Pantalla y el carrusel en
+  pantalla.
+
+  @{b}Navegar entre pantallas@{ub}
+
+    Pantalla anterior   tecla [ o Pantalla > Pantalla anterior
+    Pantalla siguiente  tecla ] o Pantalla > Pantalla siguiente
+
+    Hacer clic en una miniatura del carrusel también navega directamente
+    a esa pantalla.
+
+  @{b}Añadir y eliminar pantallas@{ub}
+
+    Añadir pantalla    Añade una nueva pantalla en blanco tras la actual.
+    Clonar pantalla    Añade una copia de la pantalla actual.
+    Eliminar pantalla  Elimina la pantalla actual. No se puede eliminar
+                       la última pantalla restante de un proyecto.
+
+  @{b}Copiar y pegar pantallas@{ub}
+
+    Edición > Copiar pantalla   Copia la pantalla actual entera al
+                                portapapeles interno.
+    Edición > Pegar pantalla    Reemplaza la pantalla actual con el
+                                contenido del portapapeles.
+
+  @{b}Desplazar el contenido de la pantalla@{ub}
+
+    El contenido del lienzo puede desplazarse un carácter a la vez en
+    cualquier dirección. Las celdas que salen por un borde aparecen por
+    el borde opuesto.
+
+    Edición > Desplazar a la izquierda
+    Edición > Desplazar a la derecha
+    Edición > Desplazar arriba
+    Edición > Desplazar abajo
+
+  @{" Volver al índice " link MAIN}
+
+@endnode
+
+
+@node GENERATE "Menú Generar"
+
+@{b}Menú Generar@{ub}
+
+  El menú Generar ofrece tres generadores de contenido procedural que
+  rellenan la pantalla actual con patrones creados algorítmicamente.
+  Son útiles como punto de partida para obras o para rellenar fondos
+  rápidamente.
+
+  ---------------------------------------------------------------
+
+  @{b}Pincel aleatorio@{ub}
+
+    Rellena toda la pantalla con celdas seleccionadas aleatoriamente del
+    pincel activo. El modo de relleno sigue la herramienta activa:
+
+      Dibujar       - coloca caracteres Y colores aleatorios del pincel
+      Colorear      - coloca solo colores aleatorios del pincel
+      DibujarCar.   - coloca solo caracteres aleatorios del pincel
+
+    Si no hay pincel capturado, el relleno usa una selección aleatoria
+    de caracteres de medio bloque diagonal.
+
+  ---------------------------------------------------------------
+
+  @{b}Línea mágica@{ub}
+
+    Dibuja caminos continuos en forma de gusano por la pantalla usando
+    caracteres de trazado de líneas PETSCII. Se alternan tres algoritmos
+    en sucesivas invocaciones:
+
+      @{b}Algoritmo A - Gusano aleatorio@{ub}
+        Un gusano recorre la pantalla cambiando de dirección
+        aproximadamente el 20% del tiempo. Crea trazos de línea fluidos
+        y orgánicos.
+
+      @{b}Algoritmo B - Gusano reconectante@{ub}
+        Similar al Algoritmo A pero con sesgo de retorno: el 40% de los
+        pasos se dirigen hacia la posición de inicio. Crea bucles
+        cerrados y patrones en forma de ocho.
+
+      @{b}Algoritmo C - Cruz fractal@{ub}
+        Un algoritmo fractal recursivo que genera patrones simétricos
+        de cruces y ramificaciones.
+
+    Los caracteres de unión se seleccionan automáticamente para
+    representar correctamente esquinas, uniones en T y segmentos rectos.
+
+  ---------------------------------------------------------------
+
+  @{b}Líneas Tron@{ub}
+
+    Inspirado en las motos de luz de la película Tron. Cuatro jugadores
+    comienzan en posiciones aleatorias de la pantalla y avanzan en línea
+    recta, girando 90 grados en intervalos aleatorios de 2 a 7 pasos.
+    Un jugador queda eliminado cuando no tiene celdas libres.
+
+    Los caminos que se cruzan generan automáticamente los caracteres de
+    unión correctos en las intersecciones.
+
+  ---------------------------------------------------------------
+
+  @{" Volver al índice " link MAIN}
+
+@endnode
+
+
+@node MENUS "Referencia de menús"
+
+@{b}Referencia de menús@{ub}
+
+  @{" Menú Proyecto  " link MENU_PROJECT}
+  @{" Menú Edición   " link MENU_EDIT}
+  @{" Menú Pantalla  " link MENU_SCREEN}
+  @{" Menú Ver       " link MENU_VIEW}
+  @{" Menú Generar   " link MENU_GENERATE}
+  @{" Menú Pincel    " link MENU_BRUSH}
+  @{" Menú Paleta    " link MENU_PALETTE}
+
+  @{" Volver al índice " link MAIN}
+
+@endnode
+
+
+@node MENU_PROJECT "Menú Proyecto"
+
+@{b}Menú Proyecto@{ub}
+
+  @{b}Nuevo@{ub}  (Ctrl+N)
+    Cierra el proyecto actual e inicia un nuevo proyecto en blanco con
+    una sola pantalla vacía. Los cambios no guardados se descartan.
+
+  @{b}Abrir...@{ub}  (Ctrl+O)
+    Abre un archivo de proyecto .petmate usando el selector de archivos
+    del sistema.
+
+  @{b}Guardar@{ub}  (Ctrl+S)
+    Guarda el proyecto en su ruta de archivo actual. Si el proyecto no
+    se ha guardado antes, solicita un nombre de archivo.
+
+  @{b}Guardar como...@{ub}  (Ctrl+A)
+    Guarda el proyecto en una nueva ruta de archivo elegida mediante el
+    selector de archivos.
+
+  @{b}Abrir reciente@{ub}
+    Submenú que lista los cuatro archivos de proyecto abiertos más
+    recientemente. Haz clic en una entrada para abrirlo directamente.
+
+  @{b}Exportar como@{ub}
+    Submenú para exportar la pantalla actual. Ver @{"Formatos de exportación" link EXPORT}.
+
+  @{b}Importar@{ub}
+    Submenú para importar archivos externos. Ver @{"Importación" link IMPORT}.
+
+  @{b}Iconificar@{ub}
+    Minimiza la ventana de la aplicación a un AppIcon en el Workbench.
+
+  @{b}Acerca de@{ub}
+    Muestra información de versión y copyright.
+
+  @{b}Salir@{ub}  (Q)
+    Sale de PetMate.
+
+  @{" Volver a menús " link MENUS}
+
+@endnode
+
+
+@node MENU_EDIT "Menú Edición"
+
+@{b}Menú Edición@{ub}
+
+  @{b}Dibujar 1@{ub}  (F1)
+    Activar la herramienta Dibujar. Coloca caracteres y colores.
+
+  @{b}Dibujar 2@{ub}  (F2)
+    Activar la herramienta Colorear. Cambia solo los colores.
+
+  @{b}Dibujar 3@{ub}  (F3)
+    Activar la herramienta DibujarCarácter. Coloca solo caracteres.
+
+  @{b}Dibujar 4@{ub}  (F4)
+    Activar la herramienta Pincel Lazo. Capturar y estampar pinceles.
+
+  @{b}Dibujar 5@{ub}  (F5)
+    Activar la herramienta Texto. Escribir texto directamente en el lienzo.
+
+  @{b}Dibujar 6@{ub}  (F6)
+    Activar la herramienta Dibujo invertido. Arrastra un rectángulo para
+    intercambiar los colores de primer plano y fondo en la región.
+
+  @{b}Deshacer@{ub}  (Z)
+    Deshace la última operación de edición. PetMate mantiene un búfer
+    circular de instantáneas de pantalla.
+
+  @{b}Rehacer@{ub}  (Y)
+    Rehace la última operación deshecha.
+
+  @{b}Copiar pantalla@{ub}
+    Copia la pantalla actual completa al portapapeles interno.
+
+  @{b}Pegar pantalla@{ub}
+    Reemplaza la pantalla actual con el contenido del portapapeles.
+
+  @{b}Borrar pantalla@{ub}
+    Rellena toda la pantalla con el color de borde actual, eliminando
+    todos los caracteres y restableciendo los colores de las celdas.
+
+  @{b}Desplazar a la izquierda@{ub}
+    Desplaza todo el contenido un carácter a la izquierda. El contenido
+    que sale por el borde izquierdo aparece por la derecha.
+
+  @{b}Desplazar a la derecha@{ub}
+    Desplaza todo el contenido un carácter a la derecha.
+
+  @{b}Desplazar arriba@{ub}
+    Desplaza todo el contenido un carácter hacia arriba. El contenido
+    que sale por arriba aparece por abajo.
+
+  @{b}Desplazar abajo@{ub}
+    Desplaza todo el contenido un carácter hacia abajo.
+
+  @{" Volver a menús " link MENUS}
+
+@endnode
+
+
+@node MENU_SCREEN "Menú Pantalla"
+
+@{b}Menú Pantalla@{ub}
+
+  @{b}Añadir pantalla@{ub}
+    Añade una nueva pantalla en blanco al proyecto tras la actual y
+    navega a ella.
+
+  @{b}Clonar pantalla@{ub}
+    Añade una copia exacta de la pantalla actual y navega a ella.
+
+  @{b}Eliminar pantalla@{ub}
+    Elimina la pantalla actual del proyecto. Esta acción no puede
+    realizarse si el proyecto contiene solo una pantalla.
+
+  @{b}Pantalla anterior@{ub}  ([)
+    Navega a la pantalla anterior del proyecto.
+
+  @{b}Pantalla siguiente@{ub}  (])
+    Navega a la pantalla siguiente del proyecto.
+
+  @{" Volver a menús " link MENUS}
+
+@endnode
+
+
+@node MENU_VIEW "Menú Ver"
+
+@{b}Menú Ver@{ub}
+
+  @{b}Activar/desactivar cuadrícula@{ub}  (G)
+    Muestra u oculta una cuadrícula de píxeles sobre el lienzo. La
+    cuadrícula dibuja líneas alrededor de cada borde de celda para
+    ayudar con la alineación precisa.
+
+  @{b}Charset mayúsculas@{ub}
+    Cambia el selector de caracteres y el renderizado del lienzo al
+    conjunto de caracteres PETSCII en mayúsculas.
+
+  @{b}Charset minúsculas@{ub}
+    Cambia al conjunto de caracteres PETSCII en minúsculas.
+
+  @{b}Pantalla completa@{ub}  (F10)
+    Alterna entre los modos de visualización en ventana y pantalla
+    completa.
+
+  @{b}Abrir configuración@{ub}  (P)
+    Abre la ventana de configuración del proyecto donde se pueden
+    configurar las dimensiones de la pantalla y otras propiedades.
+
+  @{" Volver a menús " link MENUS}
+
+@endnode
+
+
+@node MENU_GENERATE "Menú Generar"
+
+@{b}Menú Generar@{ub}
+
+  Ver la sección @{"Generar" link GENERATE} para descripciones completas.
+
+  @{b}Pincel aleatorio@{ub}
+    Rellena la pantalla con celdas aleatorias del pincel activo.
+
+  @{b}Línea mágica@{ub}
+    Dibuja arte de líneas algorítmicas en forma de gusano por la pantalla.
+
+  @{b}Líneas Tron@{ub}
+    Genera patrones de corredor estilo Tron con ciclos de luz.
+
+  @{" Volver a menús " link MENUS}
+
+@endnode
+
+
+@node MENU_BRUSH "Menú Pincel"
+
+@{b}Menú Pincel@{ub}
+
+  El menú Pincel solo está activo cuando se ha capturado un pincel con
+  la herramienta Pincel Lazo. Ver @{"Operaciones con el pincel" link BRUSH}.
+
+  @{b}Voltear X@{ub}
+    Espejo horizontal del pincel activo (izquierda-derecha).
+
+  @{b}Voltear Y@{ub}
+    Espejo vertical del pincel activo (arriba-abajo).
+
+  @{b}Rotar 90 H@{ub}
+    Rotar el pincel activo 90 grados en sentido horario.
+
+  @{b}Rotar 180@{ub}
+    Rotar el pincel activo 180 grados.
+
+  @{b}Rotar 90 AH@{ub}
+    Rotar el pincel activo 90 grados en sentido antihorario.
+
+  @{" Volver a menús " link MENUS}
+
+@endnode
+
+
+@node MENU_PALETTE "Menú Paleta"
+
+@{b}Menú Paleta@{ub}
+
+  Selecciona la paleta de colores C64 activa. Una marca de verificación
+  indica la paleta actualmente activa. Ver @{"Paletas de colores" link PALETTES} para detalles.
+
+  @{b}Petmate@{ub}     La paleta Petmate original (predeterminada)
+  @{b}Colodore@{ub}    Paleta físicamente precisa basada en mediciones
+  @{b}Pepto@{ub}       Paleta de referencia de Pepto basada en mediciones
+  @{b}VICE@{ub}        La paleta usada por el emulador VICE
+
+  @{" Volver a menús " link MENUS}
+
+@endnode
+
+
+@node KEYS "Atajos de teclado"
+
+@{b}Atajos de teclado@{ub}
+
+  @{b}Operaciones de archivo@{ub}
+
+    Ctrl+N    Nuevo proyecto
+    Ctrl+O    Abrir proyecto
+    Ctrl+S    Guardar proyecto
+    Ctrl+A    Guardar como
+    Q         Salir
+
+  @{b}Herramientas de dibujo@{ub}
+
+    F1        Herramienta Dibujar
+    F2        Herramienta Colorear
+    F3        Herramienta DibujarCarácter
+    F4        Herramienta Pincel Lazo
+    F5        Herramienta Texto
+    F6        Herramienta Dibujo invertido
+
+  @{b}Edición@{ub}
+
+    Z         Deshacer
+    Y         Rehacer
+
+  @{b}Navegación de pantallas@{ub}
+
+    [         Pantalla anterior
+    ]         Pantalla siguiente
+
+  @{b}Ver@{ub}
+
+    G         Activar/desactivar cuadrícula
+    P         Abrir configuración
+    F10       Pantalla completa
+
+  @{" Volver al índice " link MAIN}
+
+@endnode
+
+
+@node EXPORT "Formatos de exportación"
+
+@{b}Formatos de exportación@{ub}
+
+  PetMate puede exportar la pantalla actual a varios formatos mediante
+  Proyecto > Exportar como. Un selector de archivos pedirá la ruta y
+  el nombre del archivo de salida.
+
+  ---------------------------------------------------------------
+
+  @{b}IFF ILBM  (.ilbm)@{ub}
+
+    Exporta como archivo de imagen Amiga IFF ILBM con 4 bitplanes
+    (16 colores). El chunk CMAP contiene los colores de la paleta activa.
+    La imagen es de 320x200 píxeles (o 384x272 con el borde C64
+    opcional). Este formato puede abrirse directamente por la mayoría
+    de visores de imágenes y programas de pintura Amiga.
+
+  ---------------------------------------------------------------
+
+  @{b}GIF  (.gif)@{ub}
+
+    Exporta como imagen GIF87a con un mapa de color global de 16 colores
+    coincidente con la paleta activa. La imagen es de 320x200 píxeles
+    (o 384x272 con el borde C64). Adecuado para compartir en sistemas
+    modernos.
+
+  ---------------------------------------------------------------
+
+  @{b}BASIC  (.bas)@{ub}
+
+    Exporta un archivo de texto fuente BASIC que contiene instrucciones
+    DATA con los códigos de pantalla y valores de color de cada fila.
+    El archivo puede cargarse en un C64 y usarse en un programa BASIC
+    con instrucciones POKE para mostrar la imagen.
+
+  ---------------------------------------------------------------
+
+  @{b}ASM  (.asm)@{ub}
+
+    Exporta un archivo fuente ensamblador ACME con directivas @{b}!byte@{ub}
+    y etiquetas. Los datos se presentan como datos de caracteres de
+    pantalla y datos de RAM de color, listos para incluirse en un
+    proyecto de ensamblado 6510.
+
+  ---------------------------------------------------------------
+
+  @{b}PRG BASIC  (.prg)@{ub}
+
+    Exporta un archivo de programa Commodore 64 listo para ejecutar.
+    El PRG contiene un stub BASIC mínimo (SYS) que salta a código
+    máquina que copia los datos de pantalla y color a la memoria de
+    visualización del C64 y se detiene. Cárgalo y ejecútalo en un C64
+    real o en un emulador.
+
+  ---------------------------------------------------------------
+
+  @{b}PRG ASM  (.prg)@{ub}
+
+    Exporta un archivo de programa Commodore 64 listo para ejecutar con
+    un cargador en código máquina puro (sin BASIC). El PRG copia los
+    datos de pantalla y RAM de color a la memoria de visualización C64.
+
+  ---------------------------------------------------------------
+
+  @{b}Dimensiones de la imagen@{ub}
+
+    Estándar:    320 x 200 píxeles  (40 x 25 caracteres a 8x8)
+    Con borde:   384 x 272 píxeles  (con franjas de borde C64 de 8 píxeles)
+
+  @{" Importación     " link IMPORT}
+  @{" Volver al índice " link MAIN}
+
+@endnode
+
+
+@node IMPORT "Importación"
+
+@{b}Importación@{ub}
+
+  PetMate puede importar una imagen existente y convertirla
+  automáticamente a una representación PETSCII.
+
+  @{b}Proyecto > Importar > Imagen@{ub}
+
+    Abre un selector de archivos. Selecciona un archivo de imagen para
+    importar.
+
+    @{b}Formatos de imagen admitidos:@{ub}
+      PNG, GIF, BMP, IFF, ILBM, JPG, JPEG
+
+    El importador usa el sistema picture.datatype de Amiga para cargar
+    la imagen. Esto requiere datatypes.library versión 40 o superior
+    (AmigaOS 3.5 o posterior, o una instalación equivalente de datatype
+    de terceros).
+
+    @{b}Dimensiones de entrada admitidas:@{ub}
+      320 x 200  (pantalla C64 sin borde)
+      384 x 272  (pantalla C64 con borde de 8 píxeles)
+
+    @{b}Proceso de conversión:@{ub}
+
+      1. La imagen se carga mediante picture.datatype.
+      2. La imagen se cuantiza a la paleta de 16 colores C64.
+      3. Se prueban los 16 colores de fondo posibles para encontrar la
+         combinación que mejor reproduce la imagen original en PETSCII.
+      4. La pantalla 40x25 resultante se inserta como pantalla actual.
+
+    La calidad de la conversión depende en gran medida de si la imagen
+    fuente fue creada originalmente como arte PETSCII o es una captura
+    de pantalla de salida C64. Las imágenes fotográficas producirán
+    resultados aproximados.
+
+  @{" Formatos de exportación " link EXPORT}
+  @{" Volver al índice        " link MAIN}
+
+@endnode
+
+
+@node FORMAT "Formato de archivo"
+
+@{b}Formato de archivo@{ub}
+
+  Los proyectos PetMate se guardan como archivos @{b}.petmate@{ub}. Son archivos
+  de texto JSON simples compatibles con el editor Petmate original en
+  Windows, macOS y Linux.
+
+  @{b}Contenido de un archivo .petmate:@{ub}
+
+    - Todas las pantallas del proyecto (hasta 64)
+    - Por cada pantalla: el código de carácter y el color de cada celda,
+      más color de fondo, color de borde y selección de charset
+    - La selección de paleta activa
+    - Metadatos del proyecto
+
+  @{b}Dimensiones de pantalla:@{ub}
+
+    El tamaño de pantalla predeterminado es 40 x 25 caracteres (la
+    pantalla de texto estándar del C64). La ventana de configuración
+    permite otras dimensiones hasta 80 x 50 caracteres para uso no
+    estándar.
+
+  Como el formato es JSON plano, puede inspeccionarse y editarse con
+  cualquier editor de texto, y los proyectos creados en cualquier
+  plataforma pueden abrirse en el Amiga sin conversión.
+
+  @{" Volver al índice " link MAIN}
+
+@endnode
+
+
+@node CREDITS "Créditos"
+
+@{b}Créditos@{ub}
+
+  @{b}PetMate para AmigaOS@{ub}
+    Adaptación para Amiga en C89 con BOOPSI y ReAction por Krb.
+
+  @{b}Petmate original@{ub}
+    Escrito en TypeScript/React por Hannu Hartikainen (nurpax)
+    https://github.com/nurpax/petmate
+
+  @{b}Petmate 9@{ub}
+    Versión extendida por wbochar
+    https://github.com/wbochar/petmate9
+
+  @{b}Bibliotecas de terceros:@{ub}
+    cJSON   - Analizador JSON (fork Amiga)
+    giflib  - Escritura de imágenes GIF
+
+  @{b}Referencias de paleta:@{ub}
+    Paleta Colodore por pepto & others
+    Paleta Pepto por Tobias Gubber
+    Paleta VICE del proyecto emulador VICE
+
+  Este software se publica bajo los términos de su licencia de código
+  abierto. Consulta el archivo LICENSE en la distribución para más
+  detalles.
+
+  @{" Volver al índice " link MAIN}
+
+@endnode

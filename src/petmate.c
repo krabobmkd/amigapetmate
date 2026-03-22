@@ -154,6 +154,7 @@ extern struct DiskObject *AppDiskObject;
 struct App *app = NULL;
 
 /* Forward declarations */
+void UpdateCarouselThumbNail();
 void cleanexit(const char *pmessage);
 void exitclose(void);
 
@@ -567,6 +568,7 @@ int main(int argc, char **argv)
         Object *charsetLayout;
         Object *rightPanelLayout;
         Object *workAreaLayout;
+        Object *canvhl;
 
         /* Charset toggle buttons (bottom of right panel) */
         charsetLayout = (Object *)NewObject(LAYOUT_GetClass(), NULL,
@@ -627,7 +629,7 @@ int main(int argc, char **argv)
 
         }
 
-        Object *canvhl = (Object *)NewObject(LAYOUT_GetClass(), NULL,
+        canvhl = (Object *)NewObject(LAYOUT_GetClass(), NULL,
             LAYOUT_Orientation,  LAYOUT_ORIENT_VERT,
             LAYOUT_InnerSpacing, 4,
             LAYOUT_TopSpacing,2,
@@ -1316,7 +1318,7 @@ int main(int argc, char **argv)
 
         if(app->doRefreshUI>0)
         {
-            printf("app->doRefreshUI:%d\n",app->doRefreshUI);
+            //printf("app->doRefreshUI:%d\n",app->doRefreshUI);
             refreshUI_Apply();
             app->doRefreshUI = 0;
         }
@@ -1456,13 +1458,7 @@ void updateCharSelectedLabel(ULONG ichar)
  void RefreshAllColorGadgets()
  {
       if(!CurrentMainWindow) return;
-/*was ok
-     SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
-         CHSA_Dirty,TRUE,TAG_END);
 
-     SetGadgetAttrs(app->carouselGadget,CurrentMainWindow,NULL,
-         SCA_Style,(ULONG)&app->style,TAG_END);
-*/
     /* we do a full RefreshGList on main layout just after, so use SetAttrs()
      *  and not SetGadgetAttrs) so state change without redraw
      or it would redraw twice for nothing. */
@@ -1472,27 +1468,10 @@ void updateCharSelectedLabel(ULONG ichar)
      SetAttrs(app->carouselGadget,
          SCA_Style,(ULONG)&app->style,TAG_END);
 
-//      SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
-//          PCA_Dirty,(ULONG)TRUE,TAG_END);
-
     /*force whole redraw*/
      RefreshGList((struct Gadget *)app->mainvlayout,
                   CurrentMainWindow, NULL, 1);
 
-//     RefreshGList((struct Gadget *)app->mainvlayout,
-//                  CurrentMainWindow, NULL, 1);
-     /* just those wouldn't refresh automatically at palette change */
-
-     // RefreshGList((struct Gadget *)app->colorPickerFgGadget,
-     //              CurrentMainWindow, NULL, 1);
-
-
-     // RefreshGList((struct Gadget *)app->toolbar.bgColorWatch,
-     //              CurrentMainWindow, NULL, 1);
-
-
-     // RefreshGList((struct Gadget *)app->toolbar.borderColorWatch,
-     //              CurrentMainWindow, NULL, 1);
 
  }
 void UpdateCarouselThumbNail()

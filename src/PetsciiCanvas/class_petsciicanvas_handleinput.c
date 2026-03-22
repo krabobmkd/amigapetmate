@@ -58,7 +58,7 @@ ULONG PetsciiCanvas_NotifyAttribChange(Class *cl,Object *Gad, struct GadgetInfo 
      0,0,
      TAG_DONE
     };
- bdbprintf("PetsciiCanvas_NotifyAttribChange %08x %08x\n",attrib,value);
+ //bdbprintf("PetsciiCanvas_NotifyAttribChange %08x %08x\n",attrib,value);
     /* build the boopsi message taglist in table messageTags and link it to opUpdate struct  */
 
     GetAttr(GA_ID,Gad,&messageTags[1]);

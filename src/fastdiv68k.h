@@ -24,18 +24,36 @@
 */
 
 /* ------------------------------------------------------------------ */
-/* 1. GCC 2.x / GCC 6.x "Bebbo" targeting mc68000 (not mc68020+)     */
+/* 1a. GCC 2.x (e.g. GCC 2.95 native Amiga)                          */
+/*     - no trailing empty clobber list                               */
+/*     - read/write operand split as "=d"/"0" (operand shifts to %2) */
 /* ------------------------------------------------------------------ */
-#if defined(__GNUC__)
+#if defined(__GNUC__) && (__GNUC__ < 3)
+
+static __inline__ int DivsW(int n, short dvs)
+{
+    __asm__ ("divs.w  %2,%0\n\text.l %0" : "=d"(n) : "0"(n), "d"(dvs));
+    return n;
+}
+static __inline__ unsigned int DivuW(unsigned int n, unsigned short dvs)
+{
+    __asm__ ("divu.w  %2,%0\n\tswap %0\n\tclr.w %0\n\tswap %0" : "=d"(n) : "0"(n), "d"(dvs));
+    return n;
+}
+
+/* ------------------------------------------------------------------ */
+/* 1b. GCC 3+ / GCC 6.x "Bebbo" targeting mc68000 (not mc68020+)     */
+/* ------------------------------------------------------------------ */
+#elif defined(__GNUC__)
 
 static inline int DivsW(int  n, short dvs)
 {
-    asm volatile ("divs.w  %1,%0\n\text.l %0\n" : "+d"(n) : "d"(dvs) : );
+    asm  ("divs.w  %1,%0\n\text.l %0\n" : "+d"(n) : "d"(dvs) : );
     return n;
 }
 static inline unsigned int DivuW(unsigned int  n,unsigned short dvs)
 {
-    asm volatile ("divu.w  %1,%0\n\tswap %0\n\tclr.w %0\n\tswap %0" : "+d"(n) : "d"(dvs) : );
+    asm  ("divu.w  %1,%0\n\tswap %0\n\tclr.w %0\n\tswap %0" : "+d"(n) : "d"(dvs) : );
     return n;
 }
 /* ------------------------------------------------------------------ */
@@ -76,7 +94,7 @@ INLINE ULONG DivuW(ULONG n, UWORD d)
 {
     return (LONG)(n / (LONG)d);
 }
-#endif /* compiler selection — DivW */
+#endif /* compiler selection - DivW */
 
 
 #endif /* FASTDIV_H */

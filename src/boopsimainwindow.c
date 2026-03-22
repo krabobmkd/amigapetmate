@@ -558,6 +558,7 @@ the full-blown "new look" graphics. If you want the 3D embossed look,
 void BMainWindow_SwitchToWB(struct BoopsiMainWindow *mw,Object *window_obj,struct AppSettings *appSettings)
 {
     ULONG backfill;
+    int x1,y1,w,h;
     if(!mw || !window_obj) return;
 
     PetsciiStyle_Release(&app->style );
@@ -601,7 +602,7 @@ void BMainWindow_SwitchToWB(struct BoopsiMainWindow *mw,Object *window_obj,struc
 
     backfill = BMainWindow_GetBackFillFromSettings(appSettings);
 
-    int x1,y1,w,h;
+
     /* if dimension has been kept by settings or screen switch, recover them */
     if(mw->width>0)
     {

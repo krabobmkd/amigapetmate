@@ -7,7 +7,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 option(AMIGA_USE_FLOAT "use any float or double" OFF)
 option(AMIGA_USE_HARDFLOAT "compile using direct 68882 FPU" OFF)
-option(AMIGA_USE_68000 "use 68000" ON)
+option(AMIGA_USE_68000 "use 68000" OFF)
 option(AMIGA_USE_68030 "use 68030" OFF)
 option(AMIGA_USE_68040 "use 68040" OFF)
 option(AMIGA_USE_68060 "use 68060" OFF)
@@ -100,7 +100,7 @@ set(PETMATE_FILEIO_SOURCES
 set(PETMATE_EXPORT_SOURCES
     petscii_export_bas.c
     petscii_export_asm.c
-    petscii_export_seq.c
+#    petscii_export_seq.c
     petscii_export_prg_asm.c
     petscii_export_prg_bas.c
     petscii_export_ilbm.c
@@ -111,6 +111,7 @@ set(PETMATE_EXPORT_SOURCES
 # Phase 12: Import formats (image -> PETSCII via picture.datatype)
 set(PETMATE_IMPORT_SOURCES
     petscii_import_image.c
+    petscii_import_prg.c
 )
 
 # Phase 4+6: PetsciiCanvas BOOPSI gadget class
@@ -185,7 +186,7 @@ if(AMIGA)
         PETSCIICANVAS_STATICLINK=1
         CHARSELECTOR_STATICLINK=1
         COLORPICKER_STATICLINK=1
-        USE_DEBUG_BDBPRINT=1
+#        USE_DEBUG_BDBPRINT=1
     )
 
     target_compile_options(PetMate PRIVATE

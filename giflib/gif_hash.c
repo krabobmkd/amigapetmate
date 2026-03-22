@@ -17,7 +17,7 @@
 *****************************************************************************/
 
 #include <unistd.h>
-#include <stdint.h>
+#include "gif_compat.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>

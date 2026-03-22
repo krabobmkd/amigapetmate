@@ -15,6 +15,9 @@
 
 #include <proto/exec.h>
 #include <proto/intuition.h>
+/* for CTRL_F */
+#include <dos/dos.h>
+
 #include <intuition/gadgetclass.h>
 #include <gadgets/button.h>
 

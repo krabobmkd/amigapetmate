@@ -474,8 +474,9 @@ static void drawHoverOverlay(struct RastPort *rp,
 
     /* state where we clicked brush, and wait for a lasso: don't draw brush hover */
    // bdbprintf("currentTool: %d inst->brush:%08x\n",inst->currentTool,inst->brush);
-    if(inst->currentTool == TOOL_LASSOBRUSH &&
-            inst->brush == NULL
+    if((inst->currentTool == TOOL_LASSOBRUSH &&
+            inst->brush == NULL )
+            || inst->currentTool == TOOL_REVERSE /* also don't draw hover sprite */
     )
     {
         return;
@@ -775,9 +776,12 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
 //                        inst->screenbuf->valid = 0;
 //                        inst->scaledBufDirty   = TRUE;
 
-    /* BackFill hook, tghe function that paint "EraseRect" regions
-     *  SHOULD be there... sometimes it's not, but there's a GA for this
-        This looks needed on OS3 if you aveer use EraseRect under GM_RENDER.
+    /* BackFill hook is the function pointer that paint "EraseRect" regions.
+     * This would draw color 0 or the image pattern you configured in prefs.
+     *  SHOULD be already attached to the RastPort... sometimes it's not,
+     *  but there's a GA_ (Gadget Attrib) for this
+        This looks needed on OS3 if you ever use EraseRect() under GM_RENDER.
+     * note InstallLayerHook() is from layers.library.
      */
     if(rp->Layer && rp->Layer->BackFill == NULL)
     {
@@ -893,7 +897,7 @@ ULONG PetsciiCanvas_OnRender(Class *cl, Object *o, struct gpRender *msg)
         /* Rebuild screenbuf chunky if stale */
         if (!inst->screenbuf->valid || inst->screenbuf->stylesync != inst->style->updateId)
         {
-            bdbprintf("PetsciiScreenBuf_RebuildFull from iirender\n");
+          //  bdbprintf("PetsciiScreenBuf_RebuildFull from iirender\n");
             PetsciiScreenBuf_RebuildFull(inst->screenbuf, inst->screen, inst->style);
 
         }

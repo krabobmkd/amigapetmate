@@ -8,7 +8,7 @@ PetMate
 MSG_ABOUT_TITLE
 O programie PetMate
 MSG_ABOUT_TEXT
-\x1bb\x1buAmiga PetMate - C64 PETSCII Art Editor \x1bn - v0.8\n\n\x1bcRysowanie przy u\xbfyciu zestaw\xf3w znak\xf3w zintegrowanych\nze starymi maszynami Commodore 8-bit.\nPierwsza z nich to "PET" - st\xb1d nazwa PETSCII\nnawi\xb1zuj\xb1ca do ASCII.\n\nRozwidlony i przeniesiony do C przez Krb\nz oryginalnego \xbcr\xf3d\xb3a TypeScript.\x1bn\n\n\x1bc\x1bb (c)2026 Licencja MIT, przeczytaj plik LICENSE.\x1bn\n\n\xacr\xf3d\xb3a Amiga PetMate s\xb1 dost\xeapne na:\nhttps://github.com/krabobmkd/amigapetmate\nZg\xb3o\xb6 b\xb3\xeady i pro\xb6by o funkcje na:\nhttps://github.com/krabobmkd/amigapetmate/issues\n\n \x1bbOryginalny projekt PetMate dost\xeapny na:\x1bn\n\x1bc\x1bbnurpax https://github.com/nurpax/petmate\x1bn\n\x1bc\x1bbwbochar https://github.com/wbochar/petmate9\x1bn\n\n\x1bcTo tak\xbfe projekt do eksploracji Intuition BOOPSI\ni nie powsta\xb3by bez oficjalnego forum programist\xf3w\nAmiga:\nhttps://developer.amigaos3.net/forum
+\x1bb\x1buAmiga PetMate - C64 PETSCII Art Editor \x1bn - v%s\n\n\x1bcRysowanie przy u\xbfyciu zestaw\xf3w znak\xf3w zintegrowanych\nze starymi maszynami Commodore 8-bit.\nPierwsza z nich to "PET" - st\xb1d nazwa PETSCII\nnawi\xb1zuj\xb1ca do ASCII.\n\nRozwidlony i przeniesiony do C przez Krb\nz oryginalnego \xbcr\xf3d\xb3a TypeScript.\x1bn\n\n\x1bc\x1bb (c)2026 Licencja MIT, przeczytaj plik LICENSE.\x1bn\n\n\xacr\xf3d\xb3a Amiga PetMate s\xb1 dost\xeapne na:\nhttps://github.com/krabobmkd/amigapetmate\nZg\xb3o\xb6 b\xb3\xeady i pro\xb6by o funkcje na:\nhttps://github.com/krabobmkd/amigapetmate/issues\n\n \x1bbOryginalny projekt PetMate dost\xeapny na:\x1bn\n\x1bc\x1bbnurpax https://github.com/nurpax/petmate\x1bn\n\x1bc\x1bbwbochar https://github.com/wbochar/petmate9\x1bn\n\n\x1bcTo tak\xbfe projekt do eksploracji Intuition BOOPSI\ni nie powsta\xb3by bez oficjalnego forum programist\xf3w\nAmiga:\nhttps://developer.amigaos3.net/forum
 MSG_MENU_PROJECT
 Projekt
 MSG_FILE_NEW
@@ -171,6 +171,10 @@ MSG_IMPORT_IMAGE
 Importuj obraz...
 MSG_IMPORT_NOMATCH
 Nie znaleziono dopasowania PETSCII (sprawd\xbc rozmiar i palet\xea).
+MSG_IMPORT_PRG
+Importuj PRG (eksport ASM)...
+MSG_IMPORT_PRG_BADFORMAT
+Nierozpoznany PRG eksportu ASM (nie znaleziono wzorca danych).
 MSG_MENU_GENERATE
 Generuj
 MSG_GENERATE_RANDOM_BRUSH

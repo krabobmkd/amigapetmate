@@ -27,7 +27,7 @@ extern "C" {
 #define GIF_ERROR   0
 #define GIF_OK      1
 
-#include <stdbool.h>
+#include "gif_compat.h"
 
 /* this is a backward-compatibility hack; these will go away in 5.0 */
 #ifndef TRUE
@@ -112,7 +112,9 @@ typedef int (*OutputFunc) (GifFileType *, const GifByteType *, int);
 /* Main entry points */
 GifFileType *EGifOpenFileName(const char *GifFileName,
                               bool GifTestExistance);
+#ifdef HAVE_POSIX_IO
 GifFileType *EGifOpenFileHandle(int GifFileHandle);
+#endif
 GifFileType *EGifOpen(void *userPtr, OutputFunc writeFunc);
 int EGifSpew(GifFileType * GifFile);
 void EGifSetGifVersion(const char *Version);
@@ -161,7 +163,9 @@ int EGifPutCodeNext(GifFileType * GifFile,
 
 /* Main entry points */
 GifFileType *DGifOpenFileName(const char *GifFileName);
+#ifdef HAVE_POSIX_IO
 GifFileType *DGifOpenFileHandle(int GifFileHandle);
+#endif
 int DGifSlurp(GifFileType * GifFile);
 GifFileType *DGifOpen(void *userPtr, InputFunc readFunc);    /* new one (TVT) */
 int DGifCloseFile(GifFileType * GifFile);

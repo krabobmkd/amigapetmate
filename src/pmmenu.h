@@ -7,8 +7,10 @@
  * The menu template is rebuilt dynamically before each CreateMenus() call
  * so the "Open Recent" sub-menu always reflects the current recent-file list.
  *
- * nm_UserData stores MSG_* IDs for NM_TITLE entries and ACTION_* IDs for
- * item/sub entries.  resolveMenuLabels() fills nm_Label accordingly.
+ * nm_UserData encoding: ACTION_* ids are stored in the upper 16 bits
+ * (via ACTION_UD macro).  MSG_* locale ids are stored in the lower 16 bits
+ * with upper bits clear.  resolveMenuLabels() uses the upper 16 bits to
+ * distinguish action items from label-only (branch/title) items.
  */
 
 #include <exec/types.h>

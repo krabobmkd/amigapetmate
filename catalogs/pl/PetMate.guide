@@ -1,0 +1,899 @@
+@database PetMate.guide
+@master PetMate.guide
+@width 72
+
+@node MAIN "PetMate dla AmigaOS - Podrêcznik u¿ytkownika"
+
+@{b}PetMate dla AmigaOS 3.x@{ub}
+@{b}Edytor grafiki PETSCII@{ub}
+
+                        Podrêcznik u¿ytkownika
+
+  PetMate to edytor grafiki PETSCII dla AmigaOS 3.x, przeniesiony z
+  oryginalnego projektu open-source Petmate. Umo¿liwia tworzenie i
+  edycjê dzie³ opartych na znakach z u¿yciem zestawu znaków PETSCII
+  komputera Commodore 64, z eksportem do wielu formatów, w tym
+  natywnych programów C64.
+
+  @{" Wprowadzenie         " link INTRO}       Czym jest PetMate?
+  @{" Requirements         " link REQUIRE}     Minimalne wymagania systemowe
+  @{" Interface Overview   " link INTERFACE}   Uk³ad g³ównego okna
+  @{" Drawing Tools        " link TOOLS}       Sze¶æ trybów rysowania
+  @{" Color Palettes       " link PALETTES}    Opcje palety kolorów C64
+  @{" Brush Operations     " link BRUSH}       Lasso, transformacje i u¿ycie
+  @{" Screen Management    " link SCREENS}     Praca z wieloma ekranami
+  @{" Generate Menu        " link GENERATE}    Proceduralne generowanie tre¶ci
+  @{" Menus Reference      " link MENUS}       Kompletny opis menu
+  @{" Keyboard Shortcuts   " link KEYS}        Wszystkie skróty klawiszowe
+  @{" Export Formats       " link EXPORT}      Eksport dzie³a
+  @{" Import               " link IMPORT}      Import obrazów
+  @{" File Format          " link FORMAT}      Format projektu .petmate
+  @{" Credits              " link CREDITS}     Autorzy i licencje
+
+@endnode
+
+
+@node INTRO "Wprowadzenie"
+
+@{b}Wprowadzenie@{ub}
+
+  PetMate to edytor grafiki PETSCII dzia³aj±cy natywnie na AmigaOS 3.x.
+  PETSCII (PET Standard Code of Information Interchange) to zestaw
+  znaków u¿ywany przez komputery Commodore 8-bitowe, przede wszystkim
+  Commodore 64.
+
+  Oryginalny Petmate zosta³ napisany w TypeScript/React dla systemów
+  operacyjnych na komputery stacjonarne. Ten port na Amigê jest napisany
+  w C89 z u¿yciem natywnych zestawów narzêdzi GUI BOOPSI i ReAction.
+
+  @{b}G³ówne funkcje:@{ub}
+
+    - Sze¶æ narzêdzi rysowania: Rysuj, Koloruj, RysujZnak, Pêdzel, Tekst, Odwróæ
+    - Pe³na paleta C64 z 16 kolorami i czterema wariantami palety
+    - Pêdzel lasso z transformacjami obrotu i odbicia
+    - Do 64 ekranów na projekt
+    - Cofnij / Ponów
+    - Generowanie proceduralne: Losowy pêdzel, Magiczna linia, Linie Tron
+    - Eksport do IFF ILBM, GIF, BASIC C64, ASM i plików PRG
+    - Import obrazów i konwersja do PETSCII
+    - Pliki projektu w formacie JSON .petmate (wieloplatformowy)
+
+  @{" Powrót do spisu tre¶ci " link MAIN}
+
+@endnode
+
+
+@node REQUIRE "Wymagania systemowe"
+
+@{b}Wymagania systemowe@{ub}
+
+  @{b}Minimalna konfiguracja:@{ub}
+
+    CPU       Motorola 68020 lub lepszy
+    OS        AmigaOS 3.9
+
+  @{b}Zalecana konfiguracja:@{ub}
+
+    OS        AmigaOS 3.2.3 lub nowszy
+
+  AmigaOS 3.2.3 zapewnia lepsz± obs³ugê bibliotek systemowych i jest
+  zalecan± platform± dla najlepszych wra¿eñ. Aplikacja dzia³a na OS 3.9,
+  ale niektóre funkcje systemowe mog± byæ ograniczone.
+
+  @{" Powrót do spisu tre¶ci " link MAIN}
+
+@endnode
+
+
+@node INTERFACE "Przegl±d interfejsu"
+
+@{b}Przegl±d interfejsu@{ub}
+
+  G³ówne okno jest podzielone na kilka obszarów:
+
+  @{b}P³ótno (centrum)@{ub}
+    G³ówny obszar edycji pokazuj±cy bie¿±cy ekran. Ka¿da komórka
+    wy¶wietla znak PETSCII z kolorem pierwszego planu na bie¿±cym
+    kolorze t³a. Kliknij lub przeci±gnij, aby rysowaæ.
+
+  @{b}Lewy pasek narzêdzi@{ub}
+    Pionowy pasek przycisków narzêdzi wzd³u¿ lewej krawêdzi:
+
+      Rysuj            - Wybierz narzêdzie Rysuj (F1)
+      Koloruj          - Wybierz narzêdzie Koloruj (F2)
+      RysujZnak        - Wybierz narzêdzie RysujZnak (F3)
+      Pêdzel           - Wybierz narzêdzie Pêdzel Lasso (F4)
+      Tekst            - Wybierz narzêdzie Tekst (F5)
+      Odwrócone rys.   - Wybierz narzêdzie Odwrócone rysowanie (F6)
+      Cofnij           - Cofnij ostatni± zmianê
+      Ponów            - Ponów ostatnio cofniêt± zmianê
+      Wyczy¶æ          - Wyczy¶æ bie¿±cy ekran
+
+  @{b}Selektor kolorów@{ub}
+    Wy¶wietla wszystkie 16 kolorów C64 z aktywnej palety. Kliknij kolor,
+    aby wybraæ go jako aktywny kolor pierwszego planu. Osobny wska¼nik
+    pokazuje bie¿±cy kolor t³a.
+
+  @{b}Selektor znaków@{ub}
+    Siatka 16x16 pokazuj±ca wszystkie 256 znaków PETSCII z aktywnego
+    zestawu znaków (wielkie lub ma³e litery). Kliknij znak, aby wybraæ
+    go jako aktywny znak rysowania.
+
+  @{b}Karuzela ekranów@{ub}
+    Pionowy pasek miniatur, jedna na ka¿dy ekran w projekcie. Kliknij
+    miniaturê, aby prze³±czyæ siê na ten ekran. Bie¿±cy ekran jest
+    pod¶wietlony.
+
+  @{b}Pasek stanu@{ub}
+    Wy¶wietla komunikaty zwrotne i stan operacji na dole okna.
+
+  @{b}Nak³adka siatki@{ub}
+    Opcjonalna siatka pikseli mo¿e byæ w³±czana/wy³±czana, aby pomóc
+    w precyzyjnym umieszczaniu znaków (menu Widok lub klawisz G).
+
+  @{" Powrót do spisu tre¶ci " link MAIN}
+
+@endnode
+
+
+@node TOOLS "Narzêdzia rysowania"
+
+@{b}Narzêdzia rysowania@{ub}
+
+  PetMate ma sze¶æ narzêdzi rysowania wybieranych przez menu Edycja lub
+  klawisze funkcyjne. Aktywne narzêdzie okre¶la, co siê dzieje po
+  klikniêciu lub przeci±gniêciu na p³ótnie.
+
+  ---------------------------------------------------------------
+
+  @{b}Rysuj  (F1)@{ub}
+
+    Standardowe narzêdzie rysowania. Klikniêcie komórki p³ótna umieszcza
+    aktualnie wybrany znak ORAZ stosuje aktualnie wybrany kolor pierwszego
+    planu. Zmienia siê zarówno znak, jak i kolor.
+
+    Jest to najczê¶ciej u¿ywane narzêdzie do tworzenia grafiki PETSCII
+    od podstaw.
+
+  ---------------------------------------------------------------
+
+  @{b}Koloruj  (F2)@{ub}
+
+    Stosuje bie¿±cy kolor pierwszego planu do komórek bez zmiany znaku
+    ju¿ w nich zawartego. U¿yj tego narzêdzia, aby przemalowaæ obszary
+    p³ótna innym kolorem, zachowuj±c znaki.
+
+  ---------------------------------------------------------------
+
+  @{b}RysujZnak  (F3)@{ub}
+
+    Umieszcza aktualnie wybrany znak bez zmiany istniej±cego koloru
+    komórki. Znak jest aktualizowany, ale kolor pierwszego planu ka¿dej
+    komórki pozostaje zachowany. Przydatne do uk³adania struktury przy
+    zachowaniu schematu kolorów.
+
+  ---------------------------------------------------------------
+
+  @{b}Pêdzel Lasso  (F4)@{ub}
+
+    Kliknij i przeci±gnij, aby wybraæ prostok±tny obszar p³ótna.
+    Zaznaczenie staje siê aktywnym @{"pêdzlem" link BRUSH}. Po przechwyceniu
+    pêdzla klikniêcie w innym miejscu p³ótna odbija kopiê pêdzla
+    w tej pozycji.
+
+    Gdy pêdzel jest aktywny, menu Pêdzel staje siê dostêpne, oferuj±c
+    transformacje odbicia i obrotu.
+
+  ---------------------------------------------------------------
+
+  @{b}Tekst  (F5)@{ub}
+
+    Umieszcza kursor na p³ótnie i umo¿liwia bezpo¶rednie wprowadzanie
+    tekstu z klawiatury. Wpisane znaki s± umieszczane z u¿yciem bie¿±cego
+    koloru pierwszego planu. Kursor przesuwa siê automatycznie po ka¿dym
+    znaku.
+
+  ---------------------------------------------------------------
+
+  @{b}Odwrócone rysowanie  (F6)@{ub}
+
+    Kliknij i przeci±gnij, aby wybraæ prostok±tny obszar p³ótna. Po
+    zwolnieniu przycisku myszy kolory pierwszego planu i t³a ka¿dej
+    komórki w zaznaczeniu s± zamienione. Znaki w tych komórkach nie
+    s± zmieniane.
+
+    Przydatne do szybkiego odwracania obszaru w celu tworzenia
+    pod¶wietlonych lub wygl±daj±cych na zaznaczone obszarów w grafice
+    PETSCII.
+
+  ---------------------------------------------------------------
+
+  @{" Operacje pêdzlem     " link BRUSH}
+  @{" Powrót do spisu tre¶ci " link MAIN}
+
+@endnode
+
+
+@node BRUSH "Operacje pêdzlem"
+
+@{b}Operacje pêdzlem@{ub}
+
+  Pêdzel to prostok±tny blok komórek PETSCII przechwycony z p³ótna za
+  pomoc± narzêdzia Pêdzel Lasso (F4). Zapamiêtuje zarówno znaki, jak
+  i kolory przechwyconego obszaru.
+
+  @{b}Przechwytywanie pêdzla@{ub}
+
+    1. Wybierz narzêdzie Pêdzel Lasso (F4 lub Edycja > Rysuj 4).
+    2. Kliknij i przeci±gnij na p³ótnie, aby narysowaæ prostok±t wyboru.
+    3. Zwolnij przycisk myszy. Wybrany obszar jest teraz aktywnym pêdzlem.
+
+  @{b}Odbijanie pêdzla@{ub}
+
+    Maj±c aktywny pêdzel, kliknij w dowolnym miejscu p³ótna, aby odbiæ
+    kopiê pêdzla w tej pozycji. Pêdzel respektuje aktywne narzêdzie
+    rysowania:
+
+      Tryb Rysuj      - umieszcza znaki ORAZ kolory z pêdzla
+      Tryb Koloruj    - umieszcza tylko kolory z pêdzla
+      Tryb RysujZnak  - umieszcza tylko znaki z pêdzla
+
+  @{b}Transformacje pêdzla@{ub}
+
+    Po przechwyceniu pêdzla menu Pêdzel staje siê aktywne.
+    Dostêpne s± nastêpuj±ce transformacje:
+
+      @{b}Odbij X@{ub}      Odbicie poziome pêdzla (lewa staje siê praw±)
+      @{b}Odbij Y@{ub}      Odbicie pionowe pêdzla (góra staje siê do³em)
+      @{b}Obróæ 90 PW@{ub}  Obrót pêdzla o 90 stopni zgodnie z ruchem wskazówek
+      @{b}Obróæ 180@{ub}    Obrót pêdzla o 180 stopni
+      @{b}Obróæ 90 PL@{ub}  Obrót o 90 stopni przeciwnie do wskazówek zegara
+
+    Uwaga: obroty równie¿ przemapowuj± znaki do ich odpowiedników
+    o prawid³owej orientacji (np. naro¿nik skierowany w jednym kierunku
+    jest zamieniany na pasuj±cy naro¿nik skierowany w obróconym kierunku).
+
+  @{b}Wype³nienie losowym pêdzlem@{ub}
+
+    Generuj > Losowy pêdzel wype³nia ca³y ekran losowo wybranymi
+    komórkami z aktywnego pêdzla. Je¶li ¿aden pêdzel nie jest aktywny,
+    u¿ywane s± znaki uko¶nego pó³bloku. Wype³nienie respektuje bie¿±cy
+    tryb narzêdzia rysowania.
+
+  @{" Narzêdzia rysowania      " link TOOLS}
+  @{" Powrót do spisu tre¶ci   " link MAIN}
+
+@endnode
+
+
+@node PALETTES "Palety kolorów"
+
+@{b}Palety kolorów@{ub}
+
+  C64 ma sta³y zestaw 16 kolorów. Ró¿ne emulatory i wersje sprzêtowe
+  renderuj± te kolory nieco inaczej. PetMate oferuje cztery warianty
+  palety odpowiadaj±ce popularnym standardom referencyjnym.
+
+  Wybierz paletê z menu Paleta. Aktywna paleta jest oznaczona
+  znacznikiem wyboru.
+
+  ---------------------------------------------------------------
+
+  @{b}Petmate@{ub}  (domy¶lna)
+
+    Domy¶lna paleta u¿ywana przez oryginalny edytor Petmate.
+    Dobrze wywa¿ona, ogólna paleta C64.
+
+  @{b}Colodore@{ub}
+
+    Paleta Colodore, powszechnie uwa¿ana za fizycznie dok³adny model
+    wyj¶cia kolorów VIC-II C64 oparty na pomiarach.
+
+  @{b}Pepto@{ub}
+
+    Paleta Pepto, kolejna paleta oparta na pomiarach autorstwa Tobiasa
+    Gubbera, powszechnie u¿ywana jako odniesienie w emulacji.
+
+  @{b}VICE@{ub}
+
+    Paleta u¿ywana przez emulator Commodore VICE.
+
+  ---------------------------------------------------------------
+
+  @{b}16 kolorów C64@{ub}
+
+    Indeks  Nazwa
+    ------  ----------
+      0     Czarny
+      1     Bia³y
+      2     Czerwony
+      3     Cyjan
+      4     Fioletowy
+      5     Zielony
+      6     Niebieski
+      7     ¯ó³ty
+      8     Pomarañczowy
+      9     Br±zowy
+     10     Jasny czerwony
+     11     Ciemny szary
+     12     Szary
+     13     Jasny zielony
+     14     Jasny niebieski
+     15     Jasny szary
+
+  Ka¿da komórka znaku ma niezale¿ny kolor pierwszego planu. Kolor t³a
+  i kolor obramowania s± wspólne dla ca³ego ekranu.
+
+  @{" Powrót do spisu tre¶ci " link MAIN}
+
+@endnode
+
+
+@node SCREENS "Zarz±dzanie ekranami"
+
+@{b}Zarz±dzanie ekranami@{ub}
+
+  Projekt PetMate mo¿e zawieraæ do 64 ekranów. Ka¿dy ekran to niezale¿ne
+  p³ótno znaków 40x25 z w³asnym kolorem t³a, kolorem obramowania i
+  wyborem zestawu znaków.
+
+  Ekranami zarz±dza siê z menu Ekran i karuzeli ekranów.
+
+  @{b}Nawigacja miêdzy ekranami@{ub}
+
+    Poprzedni ekran   klawisz [ lub Ekran > Poprzedni ekran
+    Nastêpny ekran    klawisz ] lub Ekran > Nastêpny ekran
+
+    Klikniêcie miniatury w karuzeli równie¿ nawiguje bezpo¶rednio
+    do tego ekranu.
+
+  @{b}Dodawanie i usuwanie ekranów@{ub}
+
+    Dodaj ekran      Dodaje nowy pusty ekran po bie¿±cym.
+    Sklonuj ekran    Dodaje kopiê bie¿±cego ekranu.
+    Usuñ ekran       Usuwa bie¿±cy ekran. Nie mo¿na wykonaæ, je¶li
+                     projekt zawiera tylko jeden ekran.
+
+  @{b}Kopiowanie i wklejanie ekranów@{ub}
+
+    Edycja > Kopiuj ekran    Kopiuje ca³y bie¿±cy ekran do wewnêtrznego
+                             schowka.
+    Edycja > Wklej ekran     Zastêpuje bie¿±cy ekran zawarto¶ci± schowka.
+
+  @{b}Przesuwanie zawarto¶ci ekranu@{ub}
+
+    Zawarto¶æ p³ótna mo¿e byæ przesuwana o jeden znak na raz w dowolnym
+    kierunku. Komórki, które wychodz± poza jedn± krawêd¼, zawijaj± siê
+    do przeciwnej krawêdzi.
+
+    Edycja > Przesuñ w lewo
+    Edycja > Przesuñ w prawo
+    Edycja > Przesuñ w górê
+    Edycja > Przesuñ w dó³
+
+  @{" Powrót do spisu tre¶ci " link MAIN}
+
+@endnode
+
+
+@node GENERATE "Menu Generuj"
+
+@{b}Menu Generuj@{ub}
+
+  Menu Generuj udostêpnia trzy generatory tre¶ci proceduralnych, które
+  wype³niaj± bie¿±cy ekran algorytmicznie tworzonymi wzorami. S±
+  przydatne jako punkty wyj¶cia dla dzie³ lub do szybkiego wype³niania
+  t³a.
+
+  ---------------------------------------------------------------
+
+  @{b}Losowy pêdzel@{ub}
+
+    Wype³nia ca³y ekran losowo wybranymi komórkami z aktywnego pêdzla.
+    Tryb wype³nienia odpowiada aktywnemu narzêdziu:
+
+      Rysuj      - umieszcza losowe znaki ORAZ kolory z pêdzla
+      Koloruj    - umieszcza tylko losowe kolory z pêdzla
+      RysujZnak  - umieszcza tylko losowe znaki z pêdzla
+
+    Je¶li ¿aden pêdzel nie jest przechwycony, wype³nienie u¿ywa losowego
+    wyboru znaków uko¶nego pó³bloku.
+
+  ---------------------------------------------------------------
+
+  @{b}Magiczna linia@{ub}
+
+    Rysuje ci±g³e, robakopodobne ¶cie¿ki na ekranie za pomoc± znaków
+    rysowania linii PETSCII. Trzy algorytmy s± cyklicznie prze³±czane
+    przy kolejnych wywo³aniach:
+
+      @{b}Algorytm A - Losowy robak@{ub}
+        Robak wêdruje po ekranie, zmieniaj±c kierunek oko³o 20% czasu.
+        Tworzy p³ynne, organiczne ¶lady linii.
+
+      @{b}Algorytm B - Robak ³±cz±cy siê@{ub}
+        Podobny do Algorytmu A, ale z tendencj± powrotn±: 40% kroków
+        jest ukierunkowanych w stronê pozycji startowej. Tworzy zamkniête
+        pêtle i wzory w kszta³cie ósemki.
+
+      @{b}Algorytm C - Fraktalny krzy¿@{ub}
+        Rekurencyjny algorytm fraktalny generuj±cy symetryczne wzory
+        krzy¿owe i rozga³êzienia.
+
+    Znaki skrzy¿owañ s± automatycznie wybierane, aby poprawnie
+    reprezentowaæ naro¿niki, skrzy¿owania T i proste odcinki.
+
+  ---------------------------------------------------------------
+
+  @{b}Linie Tron@{ub}
+
+    Zainspirowane cyklami ¶wietlnymi z filmu Tron. Czterech graczy
+    zaczyna w losowych pozycjach na ekranie i podró¿uje w prostych
+    liniach, skrêcaj±c o 90 stopni w losowych odstêpach od 2 do 7
+    kroków. Gracz jest eliminowany, gdy nie ma wolnych komórek do
+    których mo¿e siê poruszaæ.
+
+    Krzy¿uj±ce siê ¶cie¿ki automatycznie generuj± prawid³owe znaki
+    skrzy¿owañ w miejscach przeciêcia linii.
+
+  ---------------------------------------------------------------
+
+  @{" Powrót do spisu tre¶ci " link MAIN}
+
+@endnode
+
+
+@node MENUS "Opis menu"
+
+@{b}Opis menu@{ub}
+
+  @{" Menu Projekt    " link MENU_PROJECT}
+  @{" Menu Edycja     " link MENU_EDIT}
+  @{" Menu Ekran      " link MENU_SCREEN}
+  @{" Menu Widok      " link MENU_VIEW}
+  @{" Menu Generuj    " link MENU_GENERATE}
+  @{" Menu Pêdzel     " link MENU_BRUSH}
+  @{" Menu Paleta     " link MENU_PALETTE}
+
+  @{" Powrót do spisu tre¶ci " link MAIN}
+
+@endnode
+
+
+@node MENU_PROJECT "Menu Projekt"
+
+@{b}Menu Projekt@{ub}
+
+  @{b}Nowy@{ub}  (Ctrl+N)
+    Zamyka bie¿±cy projekt i uruchamia nowy pusty projekt z jednym
+    pustym ekranem. Niezapisane zmiany s± odrzucane.
+
+  @{b}Otwórz...@{ub}  (Ctrl+O)
+    Otwiera plik projektu .petmate za pomoc± systemowego selektora plików.
+
+  @{b}Zapisz@{ub}  (Ctrl+S)
+    Zapisuje projekt pod bie¿±c± ¶cie¿k± pliku. Je¶li projekt nie by³
+    wcze¶niej zapisywany, prosi o nazwê pliku.
+
+  @{b}Zapisz jako...@{ub}  (Ctrl+A)
+    Zapisuje projekt pod now± ¶cie¿k± pliku wybran± przez selektor plików.
+
+  @{b}Ostatnie pliki@{ub}
+    Podmenu z czterema ostatnio otwartymi plikami projektu. Kliknij
+    wpis, aby bezpo¶rednio otworzyæ ten plik.
+
+  @{b}Eksportuj jako@{ub}
+    Podmenu do eksportu bie¿±cego ekranu. Zobacz @{"Formaty eksportu" link EXPORT}.
+
+  @{b}Importuj@{ub}
+    Podmenu do importu plików zewnêtrznych. Zobacz @{"Import" link IMPORT}.
+
+  @{b}Ikonifikuj@{ub}
+    Minimalizuje okno aplikacji do AppIcon na Workbench.
+
+  @{b}O programie@{ub}
+    Wy¶wietla informacje o wersji i prawach autorskich.
+
+  @{b}Zakoñcz@{ub}  (Q)
+    Koñczy dzia³anie PetMate.
+
+  @{" Powrót do opisu menu " link MENUS}
+
+@endnode
+
+
+@node MENU_EDIT "Menu Edycja"
+
+@{b}Menu Edycja@{ub}
+
+  @{b}Rysuj 1@{ub}  (F1)
+    Aktywuj narzêdzie Rysuj. Umieszcza znaki i kolory.
+
+  @{b}Rysuj 2@{ub}  (F2)
+    Aktywuj narzêdzie Koloruj. Zmienia tylko kolory.
+
+  @{b}Rysuj 3@{ub}  (F3)
+    Aktywuj narzêdzie RysujZnak. Umieszcza tylko znaki.
+
+  @{b}Rysuj 4@{ub}  (F4)
+    Aktywuj narzêdzie Pêdzel Lasso. Przechwytuj i odbijaj pêdzle.
+
+  @{b}Rysuj 5@{ub}  (F5)
+    Aktywuj narzêdzie Tekst. Wpisuj tekst bezpo¶rednio na p³ótnie.
+
+  @{b}Rysuj 6@{ub}  (F6)
+    Aktywuj narzêdzie Odwrócone rysowanie. Przeci±gnij prostok±t, aby
+    zamieniæ kolory pierwszego planu i t³a w wybranym obszarze.
+
+  @{b}Cofnij@{ub}  (Z)
+    Cofnij ostatni± operacjê edycji. PetMate przechowuje ko³owy bufor
+    migawek ekranu.
+
+  @{b}Ponów@{ub}  (Y)
+    Ponów ostatnio cofniêt± operacjê.
+
+  @{b}Kopiuj ekran@{ub}
+    Kopiuje ca³y bie¿±cy ekran do wewnêtrznego schowka.
+
+  @{b}Wklej ekran@{ub}
+    Zastêpuje bie¿±cy ekran zawarto¶ci± wewnêtrznego schowka.
+
+  @{b}Wyczy¶æ ekran@{ub}
+    Wype³nia ca³y ekran bie¿±cym kolorem obramowania, usuwaj±c wszystkie
+    znaki i resetuj±c kolory komórek.
+
+  @{b}Przesuñ w lewo@{ub}
+    Przesuwa ca³± zawarto¶æ ekranu o jeden znak w lewo. Zawarto¶æ
+    wychodz±ca poza lew± krawêd¼ zawija siê do prawej.
+
+  @{b}Przesuñ w prawo@{ub}
+    Przesuwa ca³± zawarto¶æ ekranu o jeden znak w prawo.
+
+  @{b}Przesuñ w górê@{ub}
+    Przesuwa ca³± zawarto¶æ ekranu o jeden znak w górê. Zawarto¶æ
+    wychodz±ca poza górn± krawêd¼ zawija siê na dó³.
+
+  @{b}Przesuñ w dó³@{ub}
+    Przesuwa ca³± zawarto¶æ ekranu o jeden znak w dó³.
+
+  @{" Powrót do opisu menu " link MENUS}
+
+@endnode
+
+
+@node MENU_SCREEN "Menu Ekran"
+
+@{b}Menu Ekran@{ub}
+
+  @{b}Dodaj ekran@{ub}
+    Dodaje nowy pusty ekran do projektu po bie¿±cym i nawiguje do niego.
+
+  @{b}Sklonuj ekran@{ub}
+    Dodaje dok³adn± kopiê bie¿±cego ekranu i nawiguje do niej.
+
+  @{b}Usuñ ekran@{ub}
+    Usuwa bie¿±cy ekran z projektu. Tej akcji nie mo¿na wykonaæ, je¶li
+    projekt zawiera tylko jeden ekran.
+
+  @{b}Poprzedni ekran@{ub}  ([)
+    Nawiguje do poprzedniego ekranu w projekcie.
+
+  @{b}Nastêpny ekran@{ub}  (])
+    Nawiguje do nastêpnego ekranu w projekcie.
+
+  @{" Powrót do opisu menu " link MENUS}
+
+@endnode
+
+
+@node MENU_VIEW "Menu Widok"
+
+@{b}Menu Widok@{ub}
+
+  @{b}Prze³±cz siatkê@{ub}  (G)
+    Pokazuje lub ukrywa nak³adkê siatki pikseli na p³ótnie. Siatka
+    rysuje linie wokó³ ka¿dej granicy komórki znaku, pomagaj±c w
+    precyzyjnym wyrównaniu.
+
+  @{b}Zestaw znaków - wielkie litery@{ub}
+    Prze³±cza selektor znaków i renderowanie p³ótna na zestaw znaków
+    PETSCII z wielkimi literami.
+
+  @{b}Zestaw znaków - ma³e litery@{ub}
+    Prze³±cza na zestaw znaków PETSCII z ma³ymi literami.
+
+  @{b}Prze³±cz pe³ny ekran@{ub}  (F10)
+    Prze³±cza miêdzy trybem okienkowym a trybem pe³noekranowym.
+
+  @{b}Otwórz ustawienia@{ub}  (P)
+    Otwiera okno ustawieñ projektu, w którym mo¿na skonfigurowaæ
+    wymiary ekranu i inne w³a¶ciwo¶ci projektu.
+
+  @{" Powrót do opisu menu " link MENUS}
+
+@endnode
+
+
+@node MENU_GENERATE "Menu Generuj"
+
+@{b}Menu Generuj@{ub}
+
+  Zobacz sekcjê @{"Generuj" link GENERATE} po pe³ne opisy.
+
+  @{b}Losowy pêdzel@{ub}
+    Wype³nia ekran losowymi komórkami z aktywnego pêdzla.
+
+  @{b}Magiczna linia@{ub}
+    Rysuje algorytmiczn±, robakopodobn± grafikê liniow± na ekranie.
+
+  @{b}Linie Tron@{ub}
+    Generuje wzory korytarzy w stylu Tron ze ¶wietlnymi cyklami.
+
+  @{" Powrót do opisu menu " link MENUS}
+
+@endnode
+
+
+@node MENU_BRUSH "Menu Pêdzel"
+
+@{b}Menu Pêdzel@{ub}
+
+  Menu Pêdzel jest aktywne tylko wtedy, gdy pêdzel zosta³ przechwycony
+  narzêdziem Pêdzel Lasso. Zobacz @{"Operacje pêdzlem" link BRUSH}.
+
+  @{b}Odbij X@{ub}
+    Poziome odbicie aktywnego pêdzla (lewa-prawa).
+
+  @{b}Odbij Y@{ub}
+    Pionowe odbicie aktywnego pêdzla (góra-dó³).
+
+  @{b}Obróæ 90 PW@{ub}
+    Obrót aktywnego pêdzla o 90 stopni zgodnie z ruchem wskazówek.
+
+  @{b}Obróæ 180@{ub}
+    Obrót aktywnego pêdzla o 180 stopni.
+
+  @{b}Obróæ 90 PL@{ub}
+    Obrót aktywnego pêdzla o 90 stopni przeciwnie do wskazówek zegara.
+
+  @{" Powrót do opisu menu " link MENUS}
+
+@endnode
+
+
+@node MENU_PALETTE "Menu Paleta"
+
+@{b}Menu Paleta@{ub}
+
+  Wybierz aktywn± paletê kolorów C64. Znacznik wyboru wskazuje
+  aktualnie aktywn± paletê. Zobacz @{"Palety kolorów" link PALETTES} po szczegó³y.
+
+  @{b}Petmate@{ub}     Oryginalna paleta Petmate (domy¶lna)
+  @{b}Colodore@{ub}    Fizycznie dok³adna paleta oparta na pomiarach
+  @{b}Pepto@{ub}       Referencyjna paleta Pepto oparta na pomiarach
+  @{b}VICE@{ub}        Paleta u¿ywana przez emulator VICE
+
+  @{" Powrót do opisu menu " link MENUS}
+
+@endnode
+
+
+@node KEYS "Skróty klawiszowe"
+
+@{b}Skróty klawiszowe@{ub}
+
+  @{b}Operacje na plikach@{ub}
+
+    Ctrl+N    Nowy projekt
+    Ctrl+O    Otwórz projekt
+    Ctrl+S    Zapisz projekt
+    Ctrl+A    Zapisz jako
+    Q         Zakoñcz
+
+  @{b}Narzêdzia rysowania@{ub}
+
+    F1        Narzêdzie Rysuj
+    F2        Narzêdzie Koloruj
+    F3        Narzêdzie RysujZnak
+    F4        Narzêdzie Pêdzel Lasso
+    F5        Narzêdzie Tekst
+    F6        Narzêdzie Odwrócone rysowanie
+
+  @{b}Edycja@{ub}
+
+    Z         Cofnij
+    Y         Ponów
+
+  @{b}Nawigacja po ekranach@{ub}
+
+    [         Poprzedni ekran
+    ]         Nastêpny ekran
+
+  @{b}Widok@{ub}
+
+    G         Prze³±cz siatkê
+    P         Otwórz ustawienia
+    F10       Pe³ny ekran
+
+  @{" Powrót do spisu tre¶ci " link MAIN}
+
+@endnode
+
+
+@node EXPORT "Formaty eksportu"
+
+@{b}Formaty eksportu@{ub}
+
+  PetMate mo¿e eksportowaæ bie¿±cy ekran do kilku formatów przez
+  Projekt > Eksportuj jako. Selektor plików zapyta o ¶cie¿kê i nazwê
+  pliku wyj¶ciowego.
+
+  ---------------------------------------------------------------
+
+  @{b}IFF ILBM  (.ilbm)@{ub}
+
+    Eksportuje jako plik obrazu Amiga IFF ILBM z 4 bitplanami (16
+    kolorów). Chunk CMAP zawiera kolory aktywnej palety. Obraz ma
+    320x200 pikseli (lub 384x272 z opcjonaln± ramk± C64). Ten format
+    mo¿e byæ otwierany bezpo¶rednio przez wiêkszo¶æ przegl±darek
+    obrazów i programów malarskich Amiga.
+
+  ---------------------------------------------------------------
+
+  @{b}GIF  (.gif)@{ub}
+
+    Eksportuje jako obraz GIF87a z globaln± map± kolorów 16-kolorow±
+    odpowiadaj±c± aktywnej palecie. Obraz ma 320x200 pikseli (lub
+    384x272 z ramk± C64). Nadaje siê do udostêpniania na nowoczesnych
+    systemach.
+
+  ---------------------------------------------------------------
+
+  @{b}BASIC  (.bas)@{ub}
+
+    Eksportuje plik ¼ród³owy BASIC zawieraj±cy instrukcje DATA z kodami
+    ekranu i warto¶ciami kolorów dla ka¿dego wiersza ekranu. Plik mo¿e
+    byæ za³adowany na C64 i u¿yty w programie BASIC z instrukcjami POKE
+    do wy¶wietlenia obrazu.
+
+  ---------------------------------------------------------------
+
+  @{b}ASM  (.asm)@{ub}
+
+    Eksportuje plik ¼ród³owy asemblera ACME z dyrektywami @{b}!byte@{ub} i
+    etykietami. Dane s± u³o¿one jako dane znaków ekranu i dane RAM
+    kolorów, gotowe do w³±czenia do projektu asemblerowego 6510.
+
+  ---------------------------------------------------------------
+
+  @{b}PRG BASIC  (.prg)@{ub}
+
+    Eksportuje gotowy do uruchomienia plik programu Commodore 64. PRG
+    zawiera minimalny stub BASIC (SYS), który przeskakuje do kodu
+    maszynowego kopiuj±cego dane ekranu i kolorów do pamiêci wy¶wietlania
+    C64, a nastêpnie zatrzymuje siê. Za³aduj i uruchom na prawdziwym C64
+    lub w emulatorze.
+
+  ---------------------------------------------------------------
+
+  @{b}PRG ASM  (.prg)@{ub}
+
+    Eksportuje gotowy do uruchomienia plik programu Commodore 64 z
+    czystym programem ³aduj±cym w kodzie maszynowym (bez BASIC). PRG
+    kopiuje dane ekranu i RAM kolorów do pamiêci wy¶wietlania C64.
+
+  ---------------------------------------------------------------
+
+  @{b}Wymiary obrazu@{ub}
+
+    Standardowy:  320 x 200 pikseli  (40 x 25 znaków po 8x8)
+    Z ramk±:      384 x 272 pikseli  (z 8-pikselowymi paskami ramki C64)
+
+  @{" Import               " link IMPORT}
+  @{" Powrót do spisu tre¶ci " link MAIN}
+
+@endnode
+
+
+@node IMPORT "Import"
+
+@{b}Import@{ub}
+
+  PetMate mo¿e importowaæ istniej±cy obraz i automatycznie konwertowaæ
+  go do reprezentacji PETSCII.
+
+  @{b}Projekt > Importuj > Obraz@{ub}
+
+    Otwiera selektor plików. Wybierz plik obrazu do zaimportowania.
+
+    @{b}Obs³ugiwane formaty obrazów:@{ub}
+      PNG, GIF, BMP, IFF, ILBM, JPG, JPEG
+
+    Importer u¿ywa systemu picture.datatype Amigi do za³adowania obrazu.
+    Wymaga to datatypes.library w wersji 40 lub wy¿szej (AmigaOS 3.5 lub
+    nowszy, lub równowa¿na instalacja datatype od strony trzeciej).
+
+    @{b}Obs³ugiwane wymiary wej¶ciowe:@{ub}
+      320 x 200  (ekran C64 bez ramki)
+      384 x 272  (ekran C64 z 8-pikselow± ramk±)
+
+    @{b}Proces konwersji:@{ub}
+
+      1. Obraz jest ³adowany przez picture.datatype.
+      2. Obraz jest kwantyzowany do 16-kolorowej palety C64.
+      3. Wszystkie 16 mo¿liwych kolorów t³a s± kolejno próbowane, aby
+         znale¼æ kombinacjê najlepiej odtwarzaj±c± oryginalny obraz
+         w PETSCII.
+      4. Wynikowy ekran 40x25 jest wstawiany jako bie¿±cy ekran.
+
+    Jako¶æ konwersji silnie zale¿y od tego, czy obraz ¼ród³owy by³
+    pierwotnie tworzony jako grafika PETSCII, czy jest zrzutem ekranu
+    z wyj¶cia C64. Obrazy fotograficzne dadz± przybli¿one wyniki.
+
+  @{" Formaty eksportu        " link EXPORT}
+  @{" Powrót do spisu tre¶ci  " link MAIN}
+
+@endnode
+
+
+@node FORMAT "Format pliku"
+
+@{b}Format pliku@{ub}
+
+  Projekty PetMate s± zapisywane jako pliki @{b}.petmate@{ub}. S± to zwyk³e pliki
+  tekstowe JSON kompatybilne z oryginalnym edytorem Petmate na Windows,
+  macOS i Linux.
+
+  @{b}Zawarto¶æ pliku .petmate:@{ub}
+
+    - Wszystkie ekrany w projekcie (do 64)
+    - Dla ka¿dego ekranu: kod znaku i kolor ka¿dej komórki, plus
+      kolor t³a, kolor obramowania i wybór zestawu znaków
+    - Aktywny wybór palety
+    - Metadane projektu
+
+  @{b}Wymiary ekranu:@{ub}
+
+    Domy¶lny rozmiar ekranu to 40 x 25 znaków (standardowy ekran
+    tekstowy C64). Okno ustawieñ pozwala na inne wymiary do 80 x 50
+    znaków do niestandardowego u¿ytku.
+
+  Poniewa¿ format to zwyk³y JSON, mo¿e byæ przegl±dany i edytowany
+  dowolnym edytorem tekstu, a projekty utworzone na dowolnej platformie
+  mo¿na otwieraæ na Amidze bez konwersji.
+
+  @{" Powrót do spisu tre¶ci " link MAIN}
+
+@endnode
+
+
+@node CREDITS "Podziêkowania"
+
+@{b}Podziêkowania@{ub}
+
+  @{b}PetMate dla AmigaOS@{ub}
+    Port na Amigê w C89 z BOOPSI i ReAction autorstwa Krb.
+
+  @{b}Oryginalny Petmate@{ub}
+    Napisany w TypeScript/React przez Hannu Hartikainena (nurpax)
+    https://github.com/nurpax/petmate
+
+  @{b}Petmate 9@{ub}
+    Rozszerzona wersja autorstwa wbochar
+    https://github.com/wbochar/petmate9
+
+  @{b}Biblioteki zewnêtrzne:@{ub}
+    cJSON   - parser JSON (fork Amiga)
+    giflib  - zapis obrazów GIF
+
+  @{b}Referencje palet:@{ub}
+    Paleta Colodore autorstwa pepto & others
+    Paleta Pepto autorstwa Tobiasa Gubbera
+    Paleta VICE z projektu emulatora VICE
+
+  To oprogramowanie jest wydane na warunkach licencji open-source.
+  Szczegó³y znajdziesz w pliku LICENSE w dystrybucji.
+
+  @{" Powrót do spisu tre¶ci " link MAIN}
+
+@endnode

@@ -8,7 +8,7 @@ PetMate
 MSG_ABOUT_TITLE
 Om PetMate
 MSG_ABOUT_TEXT
-\x1bb\x1buAmiga PetMate - C64 PETSCII Art Editor \x1bn - v0.8\n\n\x1bcDette handler om at tegne med tegns\xe6ttene fra\ngamle Commodore 8-bit maskiner. Den f\xf8rste var\n"PET" - deraf navnet PETSCII i relation til ASCII.\n\nForgrenet og porteret til C af Krb fra den originale\nTypeScript-kilde.\x1bn\n\n\x1bc\x1bb (c)2026 Licens er MIT, l\xe6s filen LICENSE.\x1bn\n\nKilden til Amiga PetMate er hostet p\xe5:\nhttps://github.com/krabobmkd/amigapetmate\nRapporter fejl og anmod om funktioner p\xe5:\nhttps://github.com/krabobmkd/amigapetmate/issues\n\n \x1bbOriginale PetMate-projekter er hostet p\xe5:\x1bn\n\x1bc\x1bbnurpax https://github.com/nurpax/petmate\x1bn\n\x1bc\x1bbwbochar https://github.com/wbochar/petmate9\x1bn\n\n\x1bcDette er ogs\xe5 et projekt til at udforske Intuition BOOPSI\nog ville ikke eksistere uden det officielle\nAmiga-udviklerForum:\nhttps://developer.amigaos3.net/forum
+\x1bb\x1buAmiga PetMate - C64 PETSCII Art Editor \x1bn - v%s\n\n\x1bcDette handler om at tegne med tegns\xe6ttene fra\ngamle Commodore 8-bit maskiner. Den f\xf8rste var\n"PET" - deraf navnet PETSCII i relation til ASCII.\n\nForgrenet og porteret til C af Krb fra den originale\nTypeScript-kilde.\x1bn\n\n\x1bc\x1bb (c)2026 Licens er MIT, l\xe6s filen LICENSE.\x1bn\n\nKilden til Amiga PetMate er hostet p\xe5:\nhttps://github.com/krabobmkd/amigapetmate\nRapporter fejl og anmod om funktioner p\xe5:\nhttps://github.com/krabobmkd/amigapetmate/issues\n\n \x1bbOriginale PetMate-projekter er hostet p\xe5:\x1bn\n\x1bc\x1bbnurpax https://github.com/nurpax/petmate\x1bn\n\x1bc\x1bbwbochar https://github.com/wbochar/petmate9\x1bn\n\n\x1bcDette er ogs\xe5 et projekt til at udforske Intuition BOOPSI\nog ville ikke eksistere uden det officielle\nAmiga-udviklerForum:\nhttps://developer.amigaos3.net/forum
 MSG_MENU_PROJECT
 Projekt
 MSG_FILE_NEW
@@ -171,6 +171,10 @@ MSG_IMPORT_IMAGE
 Importer billede...
 MSG_IMPORT_NOMATCH
 Ingen PETSCII-match fundet (tjek st\xf8rrelse og palet).
+MSG_IMPORT_PRG
+Importer PRG (ASM-eksport)...
+MSG_IMPORT_PRG_BADFORMAT
+Ikke et genkendt ASM-eksport-PRG (intet datam\xf8nster fundet).
 MSG_MENU_GENERATE
 Generer
 MSG_GENERATE_RANDOM_BRUSH

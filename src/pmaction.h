@@ -111,6 +111,7 @@ enum {
 
     /* Import */
     ACTION_IMPORT_IMAGE,
+    ACTION_IMPORT_PRG,
 
     /* Generate */
     ACTION_GENERATE_RANDOM_BRUSH,
@@ -123,6 +124,7 @@ enum {
     ACTION_OPEN_RECENT_2,
     ACTION_OPEN_RECENT_3,
 
+    ACTION_EXPORT_AS,
     /* Must be last */
     ACTION_COUNT
 };
@@ -191,6 +193,7 @@ BOOL Action_ExportGif(PmActionContext *ctx);
 BOOL Action_ExportPng(PmActionContext *ctx);
 
 BOOL Action_ImportImage(PmActionContext *ctx);
+BOOL Action_ImportPrg(PmActionContext *ctx);
 
 BOOL Action_OpenRecent0(PmActionContext *ctx);
 BOOL Action_OpenRecent1(PmActionContext *ctx);
