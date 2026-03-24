@@ -24,7 +24,7 @@
 #include "screen_carousel.h"
 
 //#define HELP_USE_AGLIB 1
-#define HELP_USE_DATATYPE_AND_WINDOW 1
+//#define HELP_USE_DATATYPE_AND_WINDOW 1
 
 #define PETMATE_VERSION "0.8"
 

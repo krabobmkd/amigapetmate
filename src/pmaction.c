@@ -392,7 +392,7 @@ BOOL Action_ProjectHelp(PmActionContext *ctx)
 #elif defined(HELP_USE_DATATYPE_AND_WINDOW)
     PmHelpView_Open(&app->helpView);
 #else
-    SystemTagList("multiview PetMate.guide",TAG_END);
+    SystemTagList("Multiview PetMate.guide",TAG_END);
 #endif
 
 

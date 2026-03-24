@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 #include <proto/cybergraphics.h>
-#include <cybergraphics/cybergraphics.h>
+#include <cybergraphx/cybergraphics.h> hics/cybergraphics.h>
 
 extern struct Library *CyberGfxBase;
 

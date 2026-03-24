@@ -77,7 +77,7 @@ set(PETMATE_FRAMEWORK_SOURCES
     boopsimainwindow.c
     appsettings.c
     pmsettingsview.c
-    pmhelpview.c
+#    pmhelpview.c
     tooltypepref.c
     class_charlayout.c
     class_colorswatch.c

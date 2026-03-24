@@ -22,6 +22,9 @@
 #include <proto/exec.h>
 #include <proto/intuition.h>
 #include <proto/datatypes.h>
+#include <proto/utility.h>
+#include <proto/alib.h>
+
 #include <datatypes/datatypes.h>
 #include <intuition/classusr.h>
 #include <intuition/icclass.h>
@@ -37,7 +40,7 @@
 
 #include "pmhelpview.h"
 #include "petmate.h"
-#include <stdio.h>
+#include "pmlocale.h"
 extern struct Screen  *CurrentMainScreen;
 extern struct Library *DataTypesBase;
 
@@ -83,7 +86,7 @@ BOOL PmHelpView_Init(PmHelpView *phv, const char *title, const char *guidePath)
     if (!phv) return FALSE;
 
     memset(phv, 0, sizeof(PmHelpView));
-printf("DataTypesBase:%08x\n",(int)DataTypesBase);
+
     /*
      * Try to load the guide file as a datatype object.
      * NewDTObject() auto-detects the amigaguide.datatype from the file.
@@ -96,23 +99,21 @@ printf("DataTypesBase:%08x\n",(int)DataTypesBase);
 						GA_Immediate, TRUE,
 						GA_RelVerify, TRUE,
            // DTA_GROUP, GID_DOCUMENT, // GID_TEXT,
-           // ICA_TARGET, ICTARGET_IDCMP,
+           ICA_TARGET, ICTARGET_IDCMP,
            GA_ID,          GAD_HELP_DT,
           // DTA_Name,(ULONG)"PetMate.guide",
 
             TAG_END);
             printf("dt:%08x\n",(int) phv->dtObj);
     }
-
+    if(!phv->dtObj)
+    {
+        return FALSE;
+    }
+#ifdef AMIGAGUIDE_USE_BOOPSIWINDOW
     /* Build the main layout */
     if (phv->dtObj) {
 
-        Object *msgLabel = NewObject(BUTTON_GetClass(), NULL,
-            GA_ReadOnly,          TRUE,
-            BUTTON_BevelStyle,    BVS_NONE,
-            BUTTON_Justification, BCJ_CENTER,
-            GA_Text, (ULONG)"Help file.",
-            TAG_END);
 
         /*
          * The datatype object fills the whole layout area.
@@ -124,14 +125,13 @@ printf("DataTypesBase:%08x\n",(int)DataTypesBase);
             LAYOUT_BevelStyle,    BVS_NONE,
             LAYOUT_SpaceOuter,    FALSE,
             LAYOUT_SpaceInner,    FALSE,
-            LAYOUT_AddChild,      (ULONG)msgLabel,
-            CHILD_WeightedHeight, 0,
-
             LAYOUT_AddChild,      (ULONG)phv->dtObj,
-            CHILD_WeightedHeight, 1,
             CHILD_DataType, TRUE,
             TAG_END);
+
+
     } else {
+
         /* Fallback: plain message when guide is missing or DT unavailable */
         Object *msgLabel = NewObject(BUTTON_GetClass(), NULL,
             GA_ReadOnly,          TRUE,
@@ -150,6 +150,7 @@ printf("DataTypesBase:%08x\n",(int)DataTypesBase);
             LAYOUT_AddChild,      (ULONG)msgLabel,
             CHILD_WeightedHeight, 0,
             TAG_END);
+
     }
 
     if (!phv->mainLayout) {
@@ -162,17 +163,21 @@ printf("DataTypesBase:%08x\n",(int)DataTypesBase);
 
     /* BOOPSI window object */
     phv->windowObj = NewObject(WINDOW_GetClass(), NULL,
-//        WA_Left,    80,
-//        WA_Top,     60,
-        WA_Width,   320,
+       WA_Left,    80,
+        WA_Top,     60,
+        WA_Width,   400,
         WA_Height,  200,
-        WA_IDCMP, IDCMP_CLOSEWINDOW | IDCMP_MENUPICK | IDCMP_RAWKEY |
-                  IDCMP_GADGETDOWN | IDCMP_GADGETUP | IDCMP_MOUSEMOVE,
+         WA_IDCMP, IDCMP_CLOSEWINDOW | IDCMP_MENUPICK | IDCMP_RAWKEY |
+                   IDCMP_GADGETDOWN | IDCMP_GADGETUP | IDCMP_MOUSEMOVE
+                   | IDCMP_REFRESHWINDOW | IDCMP_IDCMPUPDATE
+                   ,
 /*        WA_Flags, WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET |
                   WFLG_SIZEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH
                   ,
 */
-        WA_IDCMP,   IDCMP_CLOSEWINDOW | IDCMP_RAWKEY,
+      //  WA_Backdrop,NULL,
+      //  WA_IDCMP,   IDCMP_CLOSEWINDOW | IDCMP_RAWKEY,
+
         WA_Flags,   WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET |
                     WFLG_SIZEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH,
         WA_Title,   (ULONG)title,
@@ -185,12 +190,14 @@ printf("DataTypesBase:%08x\n",(int)DataTypesBase);
         phv->dtObj      = NULL;
         return FALSE;
     }
+#endif
 
     return TRUE;
 }
 
 void PmHelpView_Open(PmHelpView *phv)
 {
+#ifdef AMIGAGUIDE_USE_BOOPSIWINDOW
     if (!phv || !phv->windowObj) return;
     if (phv->window) return; /* already open */
 
@@ -198,55 +205,70 @@ void PmHelpView_Open(PmHelpView *phv)
         SetAttrs(phv->windowObj,
                  WA_CustomScreen, (ULONG)CurrentMainScreen,
                  TAG_END);
+
     }
 
     phv->window = (struct Window *)DoMethod(phv->windowObj, WM_OPEN, NULL);
+    if(phv->window && phv->dtObj)
+    {
+        RefreshDTObject(phv->dtObj,phv->window,NULL,TAG_END);
+     /*   SetDTAttrs(phv->dtObj,
+                 DTA_Screen, (ULONG)CurrentMainScreen,
+                 TAG_END);
+*/
+    }
+#else
+if(!phv->dtObj) return;
 
-//    if(phv->dtObj && phv->window)
-//    {
-//         struct FrameInfo		 gd_FrameInfo;
-//        struct FrameInfo *fri = &gd_FrameInfo;
-//        struct DisplayInfo di;
-//        struct dtFrameBox dtf;
-//        ULONG modeid;
+phv->window = OpenWindowTags(NULL,
+        WA_Left,20,
+        WA_Top,20,
+        WA_Width,CurrentMainScreen->Width/2,
+        WA_Height,CurrentMainScreen->Height*3/4,
 
-//        /* Get the display information */
-//        modeid = GetVPModeID (&(CurrentMainScreen->ViewPort));
-//        GetDisplayInfoData (NULL, (APTR) & di, sizeof (struct DisplayInfo), DTAG_DISP, modeid);
+        WA_RptQueue,0, // no rawkey repeat messages
+        WA_IDCMP,/* IDCMP_GADGETUP | IDCMP_GADGETDOWN |*/
+            IDCMP_MOUSEBUTTONS |  IDCMP_RAWKEY | IDCMP_CHANGEWINDOW |
+            IDCMP_NEWSIZE /*| IDCMP_INTUITICKS*/ | IDCMP_CLOSEWINDOW
+            | IDCMP_REFRESHWINDOW | IDCMP_IDCMPUPDATE,
 
-//        /* Fill in the frame info */
-//        fri->fri_PropertyFlags = di.PropertyFlags;
-//        fri->fri_Resolution = *(&di.Resolution);
-//        fri->fri_RedBits = di.RedBits;
-//        fri->fri_GreenBits = di.GreenBits;
-//        fri->fri_BlueBits = di.BlueBits;
-//        fri->fri_Dimensions.Width = CurrentMainScreen->Width;
-//        fri->fri_Dimensions.Height =CurrentMainScreen->Height;
-//        fri->fri_Dimensions.Depth = CurrentMainScreen->BitMap.Depth;
-//        fri->fri_Screen = CurrentMainScreen;
-//        fri->fri_ColorMap = CurrentMainScreen->ViewPort.ColorMap;
+        WA_Flags, WFLG_SIZEGADGET | /*| WFLG_SIZEBRIGHT | WFLG_SIZEBBOTTOM |*/
+             WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET | WFLG_ACTIVATE
+            | WFLG_SMART_REFRESH // important for direct draw optimisation.
+            | WFLG_GIMMEZEROZERO
+            ,
+        WA_Title,(ULONG)LOC(MSG_MENU_HELP),
+        WA_CustomScreen,(ULONG)CurrentMainScreen,
+        TAG_DONE
+                    );
 
-//        /* Send the message */
-//        dtf.MethodID = DTM_FRAMEBOX;
-//        dtf.dtf_ContentsInfo = fri;
-//        dtf.dtf_SizeFrameInfo = sizeof (struct FrameInfo);
-//        dtf.dtf_FrameFlags = FRAMEF_SPECIFY;
-//        DoDTMethodA (phv->dtObj, phv->window, NULL, (Msg)&dtf);
-//    }
-
-
+    if(phv->window)
+    {
+        AddDTObject(phv->window,NULL,phv->dtObj,-1);
+        RefreshDTObject(phv->dtObj,phv->window,NULL,TAG_END);
+    }
+#endif
 }
 
 void PmHelpView_Close(PmHelpView *phv)
 {
+#ifdef AMIGAGUIDE_USE_BOOPSIWINDOW
     if (!phv || !phv->windowObj || !phv->window) return;
 
     DoMethod(phv->windowObj, WM_CLOSE, NULL);
     phv->window = NULL;
+#else
+    if(!phv->window || !phv->dtObj) return;
+    RemoveDTObject(phv->window,phv->dtObj);
+    CloseWindow(phv->window);
+    phv->window = NULL;
+
+#endif
 }
 
 BOOL PmHelpView_HandleInput(PmHelpView *phv)
 {
+#ifdef AMIGAGUIDE_USE_BOOPSIWINDOW
     ULONG result;
 
     if (!phv || !phv->windowObj) return FALSE;
@@ -272,7 +294,80 @@ BOOL PmHelpView_HandleInput(PmHelpView *phv)
                 break;
         }
     }
+#else
+    struct IntuiMessage *msg;
+    if (!phv || !phv->window) return FALSE;
 
+    while( (msg = (struct IntuiMessage *)GetMsg(phv->window->UserPort))!= NULL )
+    {
+        struct TagItem *MsgTags,*List,*This;
+        ULONG imclass = msg->Class;
+        UWORD imcode  = msg->Code;
+        UWORD imqual  = msg->Qualifier;
+        MsgTags = msg->IAddress;
+
+        switch(imclass)
+        {
+            case IDCMP_RAWKEY:
+            if(!(imqual & IEQUALIFIER_REPEAT) )
+            {
+            // imqual &(IEQUALIFIER_LSHIFT|IEQUALIFIER_RSHIFT)
+                UWORD finalkeycode = imcode & 0x7f;
+                if(imcode & IECODE_UP_PREFIX)
+                {
+                   if(finalkeycode == 0x45) PmHelpView_Close(phv);
+                }
+                else
+                {
+
+                }
+            }
+            break;
+            case IDCMP_CLOSEWINDOW:
+                PmHelpView_Close(phv);
+            break;
+            case IDCMP_IDCMPUPDATE:
+            {
+            List = MsgTags;
+            while((This = NextTagItem(&List)) != NULL)
+            {
+                switch(This->ti_Tag)
+                {
+                    case DTA_Busy:
+
+                        if(This->ti_Data)
+                        {
+                            SetWindowPointer(phv->window,
+                                WA_BusyPointer,	TRUE,
+                            TAG_DONE);
+                        }
+                        else
+                        {
+                            SetWindowPointerA(phv->window,NULL);
+                        }
+                        break;
+
+                    case DTA_Sync:
+                        if(phv->dtObj) RefreshDTObjects(phv->dtObj,phv->window,NULL,NULL);
+                        break;
+                }
+            }
+            }
+            break;
+
+            case IDCMP_REFRESHWINDOW:
+                BeginRefresh(phv->window);
+                EndRefresh(phv->window,TRUE);
+                break;
+             default:
+             break;
+        }
+        ReplyMsg((struct Message *) msg); // the faster the better.
+
+
+    }
+
+#endif
     return TRUE;
 }
 
@@ -280,12 +375,13 @@ ULONG PmHelpView_GetSignalMask(PmHelpView *phv)
 {
     if (!phv || !phv->window) return 0;
     return (1L << phv->window->UserPort->mp_SigBit);
+
 }
 
 void PmHelpView_Dispose(PmHelpView *phv)
 {
     if (!phv) return;
-
+#ifdef AMIGAGUIDE_USE_BOOPSIWINDOW
     if (phv->window) {
         DoMethod(phv->windowObj, WM_CLOSE, NULL);
         phv->window = NULL;
@@ -297,4 +393,9 @@ void PmHelpView_Dispose(PmHelpView *phv)
         phv->mainLayout = NULL;
         phv->dtObj      = NULL;
     }
+#else
+    PmHelpView_Close(phv);
+    if(phv->dtObj) DisposeDTObject(phv->dtObj);
+    phv->dtObj = NULL;
+#endif
 }

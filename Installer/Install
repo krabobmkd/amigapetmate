@@ -1,0 +1,237 @@
+; PetMate Installer Script
+; For use with the standard Amiga 'Installer' tool.
+;
+; All strings are plain ASCII so this file is encoding-agnostic (LF or CR/LF).
+;
+; Catalog files must be pre-compiled with FlexCat before running this installer:
+;   cd ../catalogs && make all
+;
+
+(set #app-name    "PetMate")
+(set #app-version "v0.1")
+(set #app-default "Work:")
+
+; ---------------------------------------------------------------------------
+; Welcome
+; ---------------------------------------------------------------------------
+(message
+    (cat
+        "Welcome to the " #app-name " " #app-version " installer!\n\n"
+        "PetMate is a C64 PETSCII art editor for the Amiga.\n\n"
+        "Click Proceed to continue."
+    )
+    (all)
+)
+
+; ---------------------------------------------------------------------------
+; Choose parent drawer - a PetMate sub-drawer will be created inside it
+; ---------------------------------------------------------------------------
+(set #parent
+    (askdir
+        (prompt
+            (cat "Where would you like to install " #app-name "?")
+        )
+        (help
+            (cat
+                "Choose a location for the installation.\n"
+                "A '" #app-name "' drawer will be created there.\n\n"
+                "Default: " #app-default #app-name
+            )
+        )
+        (default #app-default)
+    )
+)
+
+(set #dest (tackon #parent #app-name))
+
+(complete 10)
+
+; ---------------------------------------------------------------------------
+; Choose language catalog
+; ---------------------------------------------------------------------------
+(set #lang
+    (askchoice
+        (prompt "Which language would you like for the interface?")
+        (help
+            (cat
+                "Choose the language for PetMate menus and messages.\n\n"
+                "English is built into the program (no extra file needed).\n"
+                "For other languages a catalog file will be copied to LOCALE:."
+            )
+        )
+        (choices
+            "English (built-in)"
+            "Francais"
+            "Deutsch"
+            "Espanol"
+            "Italiano"
+            "Dansk"
+            "Polski"
+        )
+        (default 0)
+    )
+)
+
+(complete 20)
+
+; ---------------------------------------------------------------------------
+; Ask whether to install examples
+; ---------------------------------------------------------------------------
+(set #install-examples
+    (askbool
+        (prompt "Do you want to install example files?")
+        (help
+            (cat
+                "Installs a small collection of example .petmate files\n"
+                "into the 'examples' drawer inside your PetMate installation.\n\n"
+                "These are useful for getting started."
+            )
+        )
+        (default 1)
+    )
+)
+
+(complete 25)
+
+; ---------------------------------------------------------------------------
+; Create the PetMate drawer (Installer also creates the drawer icon)
+; ---------------------------------------------------------------------------
+(working (cat "Creating " #dest " drawer..."))
+(makedir #dest)
+
+(complete 30)
+
+; ---------------------------------------------------------------------------
+; Copy main program binary and its icon
+; (infos) copies PetMate.info alongside PetMate in one step
+; ---------------------------------------------------------------------------
+(working (cat "Copying " #app-name "..."))
+
+(copyfiles
+    (source "PetMate")
+    (dest #dest)
+    (infos)
+)
+
+(complete 40)
+
+; ---------------------------------------------------------------------------
+; Copy documentation
+; ---------------------------------------------------------------------------
+(working "Copying documentation...")
+
+(copyfiles
+    (source "PetMate.guide")
+    (dest #dest)
+)
+
+(copyfiles
+    (source "PetMate.readme")
+    (dest #dest)
+)
+
+(copyfiles
+    (source "LICENSE")
+    (dest #dest)
+)
+
+(complete 50)
+
+; ---------------------------------------------------------------------------
+; Install language catalog and localized guide (skip when English selected)
+;
+; NOTE: Catalog directory names use plain ASCII spellings ("francais",
+; "espanol").  If your Workbench locale uses accented names, copy the
+; .catalog file manually to the correct LOCALE:Catalogs/<language>/ drawer.
+; ---------------------------------------------------------------------------
+(if (> #lang 0)
+    (
+        (set #cat-src
+            (select #lang
+                ""
+                "catalogs/fr/PetMate.catalog"
+                "catalogs/de/PetMate.catalog"
+                "catalogs/es/PetMate.catalog"
+                "catalogs/it/PetMate.catalog"
+                "catalogs/da/PetMate.catalog"
+                "catalogs/pl/PetMate.catalog"
+            )
+        )
+
+        (set #cat-dir
+            (select #lang
+                ""
+                "LOCALE:Catalogs/français"
+                "LOCALE:Catalogs/deutsch"
+                "LOCALE:Catalogs/español"
+                "LOCALE:Catalogs/italiano"
+                "LOCALE:Catalogs/dansk"
+                "LOCALE:Catalogs/polski"
+            )
+        )
+
+        (working (cat "Creating " #cat-dir "..."))
+        (makedir #cat-dir)
+
+        (working (cat "Installing catalog to " #cat-dir "..."))
+        (copyfiles
+            (source #cat-src)
+            (dest #cat-dir)
+        )
+
+        (copyfiles
+            (source "catalogs/PetMate.cd")
+            (dest #cat-dir)
+        )
+
+        (set #guide-src
+            (select #lang
+                ""
+                "catalogs/fr/PetMate.guide"
+                "catalogs/de/PetMate.guide"
+                "catalogs/es/PetMate.guide"
+                "catalogs/it/PetMate.guide"
+                "catalogs/da/PetMate.guide"
+                "catalogs/pl/PetMate.guide"
+            )
+        )
+
+        (working "Installing localized documentation...")
+        (copyfiles
+            (source #guide-src)
+            (dest #dest)
+        )
+    )
+)
+
+; ---------------------------------------------------------------------------
+; Install examples (optional)
+; ---------------------------------------------------------------------------
+(if (= #install-examples 1)
+    (
+        (set #examples-dest (tackon #dest "examples"))
+        (working "Creating examples drawer...")
+        (makedir #examples-dest)
+        (working "Copying example files...")
+        (copyfiles
+            (source "examples")
+            (dest #examples-dest)
+            (all)
+        )
+    )
+)
+
+(complete 100)
+
+; ---------------------------------------------------------------------------
+; Done
+; ---------------------------------------------------------------------------
+(exit
+    (cat
+        #app-name " " #app-version " has been installed in:\n\n"
+        #dest "\n\n"
+        "Double-click the PetMate icon to start.\n\n"
+        "Enjoy!"
+    )
+    (quiet)
+)

@@ -17,12 +17,19 @@
 #include <intuition/classusr.h>
 #include <intuition/intuition.h>
 
+//
+#define AMIGAGUIDE_USE_BOOPSIWINDOW 1
+
+
 typedef struct PmHelpView
 {
+#ifdef AMIGAGUIDE_USE_BOOPSIWINDOW
     Object         *windowObj;       /* BOOPSI window object (persistent) */
+    Object         *mainLayout;      /* top-level layout*/
+#endif
     struct Window  *window;          /* Intuition window (NULL when hidden) */
 
-    Object         *mainLayout;      /* top-level layout                   */
+
     Object         *dtObj;           /* AmigaGuide datatype object, or NULL */
 
 } PmHelpView;
