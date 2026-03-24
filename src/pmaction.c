@@ -35,7 +35,9 @@
 
 #include "boopsimainwindow.h"
 #include "pmsettingsview.h"
+#ifdef HELP_USE_DATATYPE_AND_WINDOW
 #include "pmhelpview.h"
+#endif
 #include "pmmenu.h"
 #include "petscii_canvas.h"  /* PCA_TransformBrush, PCA_Brush, BRUSH_TRANSFORM_* */
 #include "petscii_brush.h"   /* PetsciiBrush */
@@ -44,6 +46,10 @@
 /* External globals from petmate.c */
 extern struct Library *AslBase;
 extern struct IntuitionBase *IntuitionBase;
+
+#ifdef HELP_USE_AGLIB
+extern struct Library          *AmigaGuideBase;
+#endif
 
 extern void refreshUI();
 void SetStatusBarMessage(int enumMessage);
@@ -334,8 +340,64 @@ BOOL Action_ProjectHelp(PmActionContext *ctx)
 {
     (void)ctx;
 
+#ifdef HELP_USE_AGLIB
+
+    if(!AmigaGuideBase)
+    {
+        AmigaGuideBase = OpenLibrary("amigaguide.library", 39);
+    }
+    if(!AmigaGuideBase) return;
+
+    if(!app->amigaGuideHandle && CurrentMainScreen != NULL)
+    {
+       // app->nAmigaGuide= {0};
+     // app->nAmigaGuide.nag_PubScreen = "Workbench";
+        app->nAmigaGuide.nag_Screen = CurrentMainScreen;
+        app->nAmigaGuide.nag_Name = "PetMate.guide";
+        app->nAmigaGuide.nag_BaseName = "PetMate";
+        app->nAmigaGuide.nag_Context = &app->agcontext;
+        app->agcontext[0] = "MAIN";
+        app->agcontext[1] = NULL;
+
+        app->amigaGuideHandle = OpenAmigaGuideAsync( &app->nAmigaGuide,
+        //    AGA_Path,(ULONG)"PROGDIR:",
+            AGA_Activate,TRUE,
+            TAG_END
+                                );
+        //AGA_Path
+
+        printf("amigaGuideHandle:%08x\n",app->amigaGuideHandle);
+    }
+
+ /* Allocation description structure */
+//struct NewAmigaGuide
+//{
+//    BPTR		 nag_Lock;			/* Lock on the document directory */
+//    STRPTR		 nag_Name;			/* Name of document file */
+//    struct Screen	*nag_Screen;			/* Screen to place windows within */
+//    STRPTR		 nag_PubScreen;			/* Public screen name to open on */
+//    STRPTR		 nag_HostPort;			/* Application's ARexx port name */
+//    STRPTR		 nag_ClientPort;		/* Name to assign to the clients ARexx port */
+//    STRPTR		 nag_BaseName;			/* Base name of the application */
+//    ULONG		 nag_Flags;			/* Flags */
+//    STRPTR		*nag_Context;			/* NULL terminated context table */
+//    STRPTR		 nag_Node;			/* Node to align on first (defaults to Main) */
+//    LONG		 nag_Line;			/* Line to align on */
+//    struct TagItem	*nag_Extens;			/* Tag array extension */
+//    VOID		*nag_Client;			/* Private! MUST be NULL */
+//};
+
+
+
+#elif defined(HELP_USE_DATATYPE_AND_WINDOW)
+    PmHelpView_Open(&app->helpView);
+#else
     SystemTagList("multiview PetMate.guide",TAG_END);
-/*    PmHelpView_Open(&app->helpView);*/
+#endif
+
+
+
+
     return TRUE;
 }
 
@@ -594,33 +656,26 @@ BOOL Action_ViewToggleGrid(PmActionContext *ctx)
     ts = (ToolState *)ctx->toolState;
     ts->showGrid = (UBYTE)(ts->showGrid ? 0 : 1);
 
-    if(CurrentMainWindow)
-        SetGadgetAttrs(app->canvasGadget, CurrentMainWindow,NULL,
-                    PCA_ShowGrid,ts->showGrid,TAG_END);
+    SetGdAttrs(app->canvasGadget,
+                PCA_ShowGrid,ts->showGrid,TAG_END);
 
     return TRUE;
 }
 
 BOOL Action_ViewCharsetUpper(PmActionContext *ctx)
 {
-
-    if(CurrentMainWindow)
-        SetGadgetAttrs(
-            (struct Gadget *)app->charsetUpperBtn,
-            CurrentMainWindow, NULL,
-            GA_Selected, TRUE, TAG_END);
-
+    SetGdAttrs(
+        (struct Gadget *)app->charsetUpperBtn,
+        GA_Selected, TRUE, TAG_END);
 
     return TRUE;
 }
 
 BOOL Action_ViewCharsetLower(PmActionContext *ctx)
 {
-    if(CurrentMainWindow)
-        SetGadgetAttrs(
-            (struct Gadget *)app->charsetLowerBtn,
-            CurrentMainWindow, NULL,
-            GA_Selected, TRUE, TAG_END);
+    SetGdAttrs(
+        (struct Gadget *)app->charsetLowerBtn,
+        GA_Selected, TRUE, TAG_END);
     return TRUE;
 }
 

@@ -23,6 +23,8 @@
 #include <proto/intuition.h>
 #include <proto/datatypes.h>
 #include <datatypes/datatypes.h>
+#include <intuition/classusr.h>
+#include <intuition/icclass.h>
 
 #include <proto/window.h>
 #include <classes/window.h>
@@ -39,6 +41,39 @@
 extern struct Screen  *CurrentMainScreen;
 extern struct Library *DataTypesBase;
 
+
+//ULONG frameobject (struct GlobalData * gd)
+//{
+//    struct FrameInfo *fri = &gd->gd_FrameInfo;
+//    struct DisplayInfo di;
+//    struct dtFrameBox dtf;
+//    ULONG modeid;
+
+//    /* Get the display information */
+//    modeid = GetVPModeID (&(gd->gd_Screen->ViewPort));
+//    GetDisplayInfoData (NULL, (APTR) & di, sizeof (struct DisplayInfo), DTAG_DISP, modeid);
+
+//    /* Fill in the frame info */
+//    fri->fri_PropertyFlags = di.PropertyFlags;
+//    fri->fri_Resolution = *(&di.Resolution);
+//    fri->fri_RedBits = di.RedBits;
+//    fri->fri_GreenBits = di.GreenBits;
+//    fri->fri_BlueBits = di.BlueBits;
+//    fri->fri_Dimensions.Width = gd->gd_Screen->Width;
+//    fri->fri_Dimensions.Height = gd->gd_Screen->Height;
+//    fri->fri_Dimensions.Depth = gd->gd_Screen->BitMap.Depth;
+//    fri->fri_Screen = gd->gd_Screen;
+//    fri->fri_ColorMap = gd->gd_Screen->ViewPort.ColorMap;
+
+//    /* Send the message */
+//    dtf.MethodID = DTM_FRAMEBOX;
+//    dtf.dtf_ContentsInfo = &gd->gd_FrameInfo;
+//    dtf.dtf_SizeFrameInfo = sizeof (struct FrameInfo);
+//    dtf.dtf_FrameFlags = FRAMEF_SPECIFY;
+//    return (DoDTMethodA (gd->gd_DisplayObject, gd->gd_Window, NULL, (Msg)&dtf));
+//}
+
+
 /* ------------------------------------------------------------------ */
 /* Public API                                                          */
 /* ------------------------------------------------------------------ */
@@ -54,17 +89,31 @@ printf("DataTypesBase:%08x\n",(int)DataTypesBase);
      * NewDTObject() auto-detects the amigaguide.datatype from the file.
      * The returned object IS a BOOPSI gadget and can be added to a layout.
      */
+
     if (DataTypesBase && guidePath) {
         phv->dtObj = NewDTObject((APTR)guidePath,
-        //   GA_ID,          GAD_HELP_DT,
-        //   GA_RelVerify,   TRUE,
+                       //     DTA_Class,GID_DOCUMENT,
+						GA_Immediate, TRUE,
+						GA_RelVerify, TRUE,
+           // DTA_GROUP, GID_DOCUMENT, // GID_TEXT,
+           // ICA_TARGET, ICTARGET_IDCMP,
+           GA_ID,          GAD_HELP_DT,
+          // DTA_Name,(ULONG)"PetMate.guide",
+
             TAG_END);
             printf("dt:%08x\n",(int) phv->dtObj);
-
     }
 
     /* Build the main layout */
     if (phv->dtObj) {
+
+        Object *msgLabel = NewObject(BUTTON_GetClass(), NULL,
+            GA_ReadOnly,          TRUE,
+            BUTTON_BevelStyle,    BVS_NONE,
+            BUTTON_Justification, BCJ_CENTER,
+            GA_Text, (ULONG)"Help file.",
+            TAG_END);
+
         /*
          * The datatype object fills the whole layout area.
          * It manages its own scrolling and rendering.
@@ -75,7 +124,11 @@ printf("DataTypesBase:%08x\n",(int)DataTypesBase);
             LAYOUT_BevelStyle,    BVS_NONE,
             LAYOUT_SpaceOuter,    FALSE,
             LAYOUT_SpaceInner,    FALSE,
+            LAYOUT_AddChild,      (ULONG)msgLabel,
+            CHILD_WeightedHeight, 0,
+
             LAYOUT_AddChild,      (ULONG)phv->dtObj,
+            CHILD_WeightedHeight, 1,
             CHILD_DataType, TRUE,
             TAG_END);
     } else {
@@ -109,10 +162,16 @@ printf("DataTypesBase:%08x\n",(int)DataTypesBase);
 
     /* BOOPSI window object */
     phv->windowObj = NewObject(WINDOW_GetClass(), NULL,
-        WA_Left,    80,
-        WA_Top,     60,
-        WA_Width,   540,
-        WA_Height,  420,
+//        WA_Left,    80,
+//        WA_Top,     60,
+        WA_Width,   320,
+        WA_Height,  200,
+        WA_IDCMP, IDCMP_CLOSEWINDOW | IDCMP_MENUPICK | IDCMP_RAWKEY |
+                  IDCMP_GADGETDOWN | IDCMP_GADGETUP | IDCMP_MOUSEMOVE,
+/*        WA_Flags, WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET |
+                  WFLG_SIZEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH
+                  ,
+*/
         WA_IDCMP,   IDCMP_CLOSEWINDOW | IDCMP_RAWKEY,
         WA_Flags,   WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET |
                     WFLG_SIZEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH,
@@ -142,6 +201,40 @@ void PmHelpView_Open(PmHelpView *phv)
     }
 
     phv->window = (struct Window *)DoMethod(phv->windowObj, WM_OPEN, NULL);
+
+//    if(phv->dtObj && phv->window)
+//    {
+//         struct FrameInfo		 gd_FrameInfo;
+//        struct FrameInfo *fri = &gd_FrameInfo;
+//        struct DisplayInfo di;
+//        struct dtFrameBox dtf;
+//        ULONG modeid;
+
+//        /* Get the display information */
+//        modeid = GetVPModeID (&(CurrentMainScreen->ViewPort));
+//        GetDisplayInfoData (NULL, (APTR) & di, sizeof (struct DisplayInfo), DTAG_DISP, modeid);
+
+//        /* Fill in the frame info */
+//        fri->fri_PropertyFlags = di.PropertyFlags;
+//        fri->fri_Resolution = *(&di.Resolution);
+//        fri->fri_RedBits = di.RedBits;
+//        fri->fri_GreenBits = di.GreenBits;
+//        fri->fri_BlueBits = di.BlueBits;
+//        fri->fri_Dimensions.Width = CurrentMainScreen->Width;
+//        fri->fri_Dimensions.Height =CurrentMainScreen->Height;
+//        fri->fri_Dimensions.Depth = CurrentMainScreen->BitMap.Depth;
+//        fri->fri_Screen = CurrentMainScreen;
+//        fri->fri_ColorMap = CurrentMainScreen->ViewPort.ColorMap;
+
+//        /* Send the message */
+//        dtf.MethodID = DTM_FRAMEBOX;
+//        dtf.dtf_ContentsInfo = fri;
+//        dtf.dtf_SizeFrameInfo = sizeof (struct FrameInfo);
+//        dtf.dtf_FrameFlags = FRAMEF_SPECIFY;
+//        DoDTMethodA (phv->dtObj, phv->window, NULL, (Msg)&dtf);
+//    }
+
+
 }
 
 void PmHelpView_Close(PmHelpView *phv)

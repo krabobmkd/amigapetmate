@@ -24,7 +24,7 @@
 #include "screen_carousel.h"
 
 //#define HELP_USE_AGLIB 1
-//#define HELP_USE_DATATYPE_AND_WINDOW 1
+#define HELP_USE_DATATYPE_AND_WINDOW 1
 
 #define PETMATE_VERSION "0.8"
 
@@ -49,7 +49,6 @@ struct App {
     BoopsiMainWindow mainwindow;
 
     PmSettingsView settingsView; /* Project Settings window */
-    //PmHelpView     helpView;     /* Help window (PetMate.guide via datatype) */
 
     Object *mainvlayout;
 
@@ -98,10 +97,10 @@ struct App {
     /* amigaguide for help */
     struct NewAmigaGuide nAmigaGuide;
     void    *amigaGuideHandle;
+    STRPTR  agcontext[2];
 #endif
 #ifdef HELP_USE_DATATYPE_AND_WINDOW
-    Object         *help_winObj;           /* BOOPSI window object (persistent) */
-    struct Window  *help_window;              /* Intuition window (NULL when hidden) */
+   PmHelpView     helpView;     /* Help window (PetMate.guide via datatype) */
 #endif
 
     /* Application-level settings (temp dir, recent files) */

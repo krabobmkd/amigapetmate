@@ -6,6 +6,7 @@
 #include <intuition/screens.h>
 #include <intuition/classusr.h>
 #include "pmmenu.h"
+#include "compilers.h"
 // to get recent menu list
 //#include "appsettings.h"
 
@@ -60,6 +61,11 @@ void BMainWindow_Close(struct BoopsiMainWindow *mw,Object *window_obj, int iconi
 
 /* Get value for WA_BackFill and GA_BackFill, return a Layer drawing hook casted as ULONG */
 ULONG BMainWindow_GetBackFillFromSettings(struct AppSettings *appSettings);
+
+/* SetGadgetAttrs, but check CurrentMainWindow is currently opened, use SetGadgetAttrs() or SetAttrs() accordingly. */
+void SetGdAttrsA(struct Gadget *g, CONST struct TagItem * tags);
+void SetGdAttrs(Object *g, ULONG tag, ... );
+
 
 /* Intuition level Window */
 extern struct Window *CurrentMainWindow;

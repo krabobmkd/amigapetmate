@@ -1,8 +1,10 @@
 #ifndef BDBPRINTF_H
 #define BDBPRINTF_H
 /*
- * Buffered Debug Printf for Amiga C89
- * Adapted from aukboopsi for Petmate.
+ * Buffered and delayed Debug Printf forprinting from BOOPSI methods
+ *  HandleInput and Render often are executed from a device or interupt-like context.
+ * using your process Printf/printf will crash in that case.
+ * bdbprintf() will work. need flushbdbprint() in some main loop in the safe process main().
  */
 #include "compilers.h"
 

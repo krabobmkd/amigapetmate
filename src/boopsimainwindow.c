@@ -161,6 +161,7 @@ void BMainWindow_Close(struct BoopsiMainWindow *mw,Object *window_obj, int iconi
     PetsciiStyle_Release(&app->style );
     CloseSettingsWindow();
 
+
     if(CurrentMainWindow)
     {
         // todo save window position
@@ -653,4 +654,20 @@ void BMainWindow_SwitchToWB(struct BoopsiMainWindow *mw,Object *window_obj,struc
     /* There may exists more screens than just WB when closing fs. make sure WB the visible screen. */
     ScreenToFront(CurrentMainScreen);
 
+}
+
+void SetGdAttrsA(struct Gadget *g, CONST struct TagItem * tags)
+{
+    if(CurrentMainWindow)
+    {
+        SetGadgetAttrsA(g,CurrentMainWindow,NULL,tags);
+    } else
+    {
+        //bdbprintf("some call with no window\n");
+        SetAttrsA(g,tags);
+    }
+}
+
+void SetGdAttrs(Object *g, ULONG tag, ... ) {
+    SetGdAttrsA(g, ( struct TagItem *)&tag);
 }

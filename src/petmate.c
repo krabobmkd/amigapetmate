@@ -111,7 +111,6 @@ struct Library *WindowBase = NULL;
 struct Library *LayoutBase = NULL;
 struct Library *ButtonBase = NULL;
 struct Library *LabelBase  = NULL;
-//struct Library *ScrollerBase=NULL;
 struct Library *CheckBoxBase=NULL;
 struct Library *GetFileBase=NULL;
 struct Library *RequesterBase=NULL;
@@ -123,6 +122,21 @@ typedef struct {
     struct Library **base;
 } LibraryEntry;
 
+/* Note, for library we need a minimal version number.
+ *  It's the library OS number which goes more or less like that:
+ * v34 -> OS2.x (Commodore)
+ * v39 ->OS3.0
+ * v40 ->OS3.1 (1993, commodore)
+ * v44 ->OS3.5 (1998, Haage&p)
+ * v45 ->OS3.9 (1999, Haage&p)  -> nowadays the base for some free distributions. (Coffin?)
+ * v46 ->OS3.14 (2019, Hyperion)
+ * v47 ->OS3.2 (2021, Hyperion) -note you can always upgrade -
+ * (v50>= are meant to beOS4 PowerPC)
+
+ But watch out, if we want to have BOOPSI classes OS3.9 compatible:
+ OS3.9 consider it just upgrades OS3.5, so a few BOOPSI class version are still "44".
+*/
+/* In this table are "mandatory" library and minimal versions */
 static LibraryEntry libraryTable[] = {
     /* System libraries */
     {"intuition.library", 39, (struct Library **)&IntuitionBase},
@@ -132,16 +146,14 @@ static LibraryEntry libraryTable[] = {
     {"icon.library",      39, &IconBase},
     {"asl.library",       39, &AslBase},
     {"gadtools.library",  39, &GadToolsBase},
-    /* BOOPSI class libraries */
-    {"window.class",           45, &WindowBase},
-    {"images/label.image",     45, &LabelBase},
-    {"gadgets/layout.gadget",  45, &LayoutBase},
-    {"gadgets/button.gadget",  45, &ButtonBase},
-    {"gadgets/checkbox.gadget",  45, &CheckBoxBase},
-
-//    {"gadgets/scroller.gadget", 45, &ScrollerBase},
-    {"gadgets/getfile.gadget", 45, &GetFileBase},
-    {"requester.class", 45, &RequesterBase},
+    /* BOOPSI class libraries - with minimal version of OS3.9 (not related to os!) */
+    {"window.class",           42, &WindowBase},
+    {"images/label.image",     42, &LabelBase},
+    {"gadgets/layout.gadget",  42, &LayoutBase},
+    {"gadgets/button.gadget",  42, &ButtonBase},
+    {"gadgets/checkbox.gadget",  42, &CheckBoxBase},
+    {"gadgets/getfile.gadget", 42, &GetFileBase},
+    {"requester.class", 42, &RequesterBase},
     {NULL, 0, NULL} /* Terminator */
 };
 
@@ -194,7 +206,7 @@ void refreshUI_Apply(void)
     charset = scr->charset;
 
     /* Sync canvas to the current screen */
-    SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+    SetGdAttrs(app->canvasGadget,
         PCA_Screen,   (ULONG)scr,
         PCA_ShowGrid, (ULONG)(BOOL)app->toolState.showGrid,
 
@@ -202,39 +214,34 @@ void refreshUI_Apply(void)
         TAG_END);
 
     /* Sync CharSelector charset and background color */
-    SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
+    SetGdAttrs(app->charSelectorGadget,
         CHSA_Charset,  (ULONG)charset,
         CHSA_BgColor,  (ULONG)scr->backgroundColor,
         TAG_END);
 
     /* Sync charset toggle buttons */
     if (CurrentMainWindow && app->charsetUpperBtn && app->charsetLowerBtn) {
-        SetGadgetAttrs((struct Gadget *)app->charsetUpperBtn,
-            CurrentMainWindow, NULL,
+        SetGdAttrs(app->charsetUpperBtn,
             GA_Selected, (ULONG)(charset == PETSCII_CHARSET_UPPER),
             TAG_END);
-        SetGadgetAttrs((struct Gadget *)app->charsetLowerBtn,
-            CurrentMainWindow, NULL,
+        SetGdAttrs(app->charsetLowerBtn,
             GA_Selected, (ULONG)(charset == PETSCII_CHARSET_LOWER),
             TAG_END);
     }
 
     /* Sync bg/border color watches to the current screen's colors */
     if (CurrentMainWindow && app->toolbar.bgColorWatch && app->toolbar.borderColorWatch) {
-        SetGadgetAttrs((struct Gadget *)app->toolbar.bgColorWatch,
-            CurrentMainWindow, NULL,
+        SetGdAttrs(app->toolbar.bgColorWatch,
             CSW_ColorIndex, (ULONG)scr->backgroundColor,
             TAG_END);
-        SetGadgetAttrs((struct Gadget *)app->toolbar.borderColorWatch,
-            CurrentMainWindow, NULL,
+        SetGdAttrs(app->toolbar.borderColorWatch,
             CSW_ColorIndex, (ULONG)scr->borderColor,
             TAG_END);
     }
 
     /* Sync screen carousel: update current highlight and all thumbnails */
     if (app->carouselGadget) {
-        SetGadgetAttrs((struct Gadget *)app->carouselGadget,
-            CurrentMainWindow, NULL,
+        SetGdAttrs(app->carouselGadget,
             SCA_CurrentScreen, (ULONG)app->project->currentScreen,
             SCA_AllModified,   TRUE,
             TAG_END);
@@ -253,19 +260,12 @@ void refreshUI_Apply(void)
 void SetStatusBarMessage(int enumMessage)
 {
     if(!app) return;
-    if(CurrentMainWindow)
-    {
-        SetGadgetAttrs(app->statusBarLabel,CurrentMainWindow,NULL,
-            GA_Text,(ULONG)LOC(enumMessage),
-            TAG_END
-        );
-    } else
-    {
-        SetAttrs(app->statusBarLabel,
-            GA_Text,(ULONG)LOC(enumMessage),
-            TAG_END
-        );
-    }
+
+    SetGdAttrs(app->statusBarLabel,
+        GA_Text,(ULONG)LOC(enumMessage),
+        TAG_END
+    );
+
 }
 
 void setTool(ULONG newTool)
@@ -278,7 +278,7 @@ void setTool(ULONG newTool)
 
     app->toolState.currentTool = newTool;
 
-    SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+    SetGdAttrs(app->canvasGadget,
         PCA_CurrentTool, (ULONG)newTool,TAG_END);
 
     PmToolbar_SetActiveTool(&app->toolbar, newTool,
@@ -739,8 +739,9 @@ int main(int argc, char **argv)
     }
 
     /* Initialize Help window (loads PetMate.guide via datatypes) */
-   /* PmHelpView_Init(&app->helpView, "PetMate Help", "PROGDIR:PetMate.guide");
-*/
+#ifdef HELP_USE_DATATYPE_AND_WINDOW
+   PmHelpView_Init(&app->helpView, "PetMate Help", "PROGDIR:PetMate.guide");
+#endif
 
     PmSettingsView_SetFSModeIdLikeWorkbench(&app->settingsView,app->appSettings.screenModeIdLikeWorkbench);
     PmSettingsView_SetModeId(&app->settingsView,app->appSettings.screenModeId);
@@ -766,20 +767,21 @@ int main(int argc, char **argv)
             struct AmigaGuideMsg *agm;
         #endif
             ULONG aGuideSignal = 0;
-
-            ULONG result, waitedSignals, currentSignals, settingsSig, helpSig;
+            ULONG helpWinSig = 0;
+            ULONG result, waitedSignals, currentSignals, settingsSig;
 
             flushbdbprint();
         #ifdef HELP_USE_AGLIB
             aGuideSignal = (app->amigaGuideHandle)?(AmigaGuideSignal(app->amigaGuideHandle)):0;
         #endif
-
+        #ifdef HELP_USE_DATATYPE_AND_WINDOW
+            helpWinSig   = PmHelpView_GetSignalMask(&app->helpView);
+        #endif
             settingsSig = PmSettingsView_GetSignalMask(&app->settingsView);
-           /* helpSig     = PmHelpView_GetSignalMask(&app->helpView);*/
 
             waitedSignals = winsignal |
                 settingsSig |
-           //     helpSig |
+                helpWinSig |
                 (1L << app->app_port->mp_SigBit) |
                 aGuideSignal |
                 SIGBREAKF_CTRL_C |
@@ -787,21 +789,22 @@ int main(int argc, char **argv)
 
             currentSignals = Wait(waitedSignals);
 
+            /* exit app at any moment from Ctrl-C signal, atexit() magic does anything needed. */
+            if(currentSignals & SIGBREAKF_CTRL_C) exit(0);
+
             /* Handle settings window input when its signal fires */
             if (settingsSig && (currentSignals & settingsSig)) {
                 PmSettingsView_HandleInput(&app->settingsView);
             }
 
             /* Handle help window input when its signal fires */
-            // if (helpSig && (currentSignals & helpSig)) {
-            //     PmHelpView_HandleInput(&app->helpView);
-            // }
+            #ifdef HELP_USE_DATATYPE_AND_WINDOW
+            if (currentSignals & helpWinSig) {
+                PmHelpView_HandleInput(&app->helpView);
+            }
+            #endif
 
-            /* exit app at any moment from Ctrl-C signal, atexit() magic does anything needed. */
-            if(currentSignals & SIGBREAKF_CTRL_C) exit(0);
-
-
-            /* Process AmigaGuide messages */
+            /* Process AmigaGuide messages using amigaguide.library (experimental doesnt work) */
             #ifdef HELP_USE_AGLIB
             if (currentSignals & aGuideSignal)
             {
@@ -814,11 +817,19 @@ int main(int argc, char **argv)
                     case ShutdownMsgID:
                      printf("aguide down\n");
                         //app->ai_AmigaGuide = NULL;
+//                        if (agm->agm_Pri_Ret)
+//                            DisplayError (agm->agm_Sec_Ret);
                     break;
                         case ToolStatusID:
                         if (agm->agm_Pri_Ret)
                             printf("aguide ToolStatusID:%d\n", (agm->agm_Sec_Ret));
                         break;
+                        case ActiveToolID: // say hello ?
+                        {
+
+                        }
+                        break;
+
 
                     default:
                     break;
@@ -1022,16 +1033,16 @@ int main(int argc, char **argv)
                                             );
 
                                     /* set popup label */
-                                    SetGadgetAttrs(app->colorPickerPopUpLabel,CurrentMainWindow,NULL,
+                                    SetGdAttrs(app->colorPickerPopUpLabel,
                                         GA_TEXT,(ULONG)LOC(labelEnum),
                                         TAG_END);
                                     // open the popup
-                                    SetGadgetAttrs(app->mainvlayout,CurrentMainWindow,NULL,
-                                    LAYOUTWP_SENDERID,sender_ID,
-                                    LAYOUTWP_POPUPX,x,
-                                    LAYOUTWP_POPUPY,y-64,
-                                    LAYOUTWP_POPUPVISIBLE,TRUE,
-                                    TAG_END
+                                    SetGdAttrs(app->mainvlayout,
+                                        LAYOUTWP_SENDERID,sender_ID,
+                                        LAYOUTWP_POPUPX,x,
+                                        LAYOUTWP_POPUPY,y-64,
+                                        LAYOUTWP_POPUPVISIBLE,TRUE,
+                                        TAG_END
                                             );
                                     /* to be sure inactivation of this close the popup*/
                                     //noActivateGadget(app->colorPickerPopUp,CurrentMainWindow,NULL);
@@ -1072,7 +1083,7 @@ int main(int argc, char **argv)
                                     newChar = ptag->ti_Data;
 
                                     app->toolState.selectedChar = (UBYTE)newChar;
-                                    SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+                                    SetGdAttrs(app->canvasGadget,
                                         PCA_SelectedChar, newChar,
                                         TAG_END);
                                     /* to be clear, set draw if was brush/lasso tool */
@@ -1095,10 +1106,10 @@ int main(int argc, char **argv)
                                              app->colorPickerFgGadget, &newColor);
                                 app->toolState.fgColor = (UBYTE)newColor;
 
-                                SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+                                SetGdAttrs(app->canvasGadget,
                                     PCA_FgColor, newColor,
                                     TAG_END);
-                                SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
+                                SetGdAttrs(app->charSelectorGadget,
                                     CHSA_FgColor, newColor,
                                     TAG_END);
 
@@ -1113,7 +1124,7 @@ int main(int argc, char **argv)
                                     ULONG newColor = ptag->ti_Data;
 
                                     /* close the popup first */
-                                    SetGadgetAttrs(app->mainvlayout,CurrentMainWindow,NULL,
+                                    SetGdAttrs(app->mainvlayout,
                                             LAYOUTWP_POPUPVISIBLE,FALSE,
                                             TAG_END);
 
@@ -1124,13 +1135,13 @@ int main(int argc, char **argv)
                                         if(role == GAD_COLORWATCH_BG)
                                         {
                                             app->toolState.bgColor = (UBYTE)newColor;
-                                            SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+                                            SetGdAttrs(app->canvasGadget,
                                                 PCA_BgColor, newColor,
                                                 TAG_END);
-                                            SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
+                                            SetGdAttrs(app->charSelectorGadget,
                                                 CHSA_BgColor, newColor,
                                                 TAG_END);
-                                            SetGadgetAttrs(app->toolbar.bgColorWatch,CurrentMainWindow,NULL,
+                                            SetGdAttrs(app->toolbar.bgColorWatch,
                                                 CSW_ColorIndex, newColor,
                                                 TAG_END);
 
@@ -1138,10 +1149,10 @@ int main(int argc, char **argv)
                                         if(role == GAD_COLORWATCH_BD)
                                         {
                                             app->toolState.bdColor = (UBYTE)newColor;
-                                            SetGadgetAttrs(app->toolbar.borderColorWatch,CurrentMainWindow,NULL,
+                                            SetGdAttrs(app->toolbar.borderColorWatch,
                                                 CSW_ColorIndex, newColor,
                                                 TAG_END);
-                                            SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+                                            SetGdAttrs(app->canvasGadget,
                                                 PCA_BdColor, newColor,
                                                 TAG_END);
 
@@ -1152,36 +1163,11 @@ int main(int argc, char **argv)
                                      }
 
                                 } // end if message is CPA_SelectedColor
-                                // ptag = FindTagItem(CPA_Deactivated, msg);
-                                // if (ptag)
-                                // {
-                                //     /* must close popup in that case */
-                                //     SetGadgetAttrs(app->mainvlayout,CurrentMainWindow,NULL,
-                                //             LAYOUTWP_POPUPVISIBLE,FALSE,
-                                //             TAG_END);
 
-                                // }
                                 break;
                             }
                             break;
-/*old
-                            case GAD_COLORPICKER_BG:
-                            {
-                                ULONG newColor = 0;
-                                ptag = FindTagItem(CPA_SelectedColor, msg);
-                                if (ptag) newColor = ptag->ti_Data;
-                                else GetAttr(CPA_SelectedColor,
-                                             app->colorPickerBgGadget, &newColor);
-                                app->toolState.bgColor = (UBYTE)newColor;
-                               SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
-                                    PCA_BgColor, newColor,
-                                    TAG_END);
-                                SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
-                                    CHSA_BgColor, newColor,
-                                    TAG_END);
-                                break;
-                            }
-*/
+
                             case GAD_CHARSET_UPPER:
                             {
                                 /* note message is bursted when keepping the bt click down */
@@ -1197,17 +1183,15 @@ int main(int argc, char **argv)
                                             scr->charset = PETSCII_CHARSET_UPPER;
                                             app->project->modified = 1;
 
-                                            SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
+                                            SetGdAttrs(app->charSelectorGadget,
                                                 CHSA_Charset, PETSCII_CHARSET_UPPER,
                                                 TAG_END);
                                                 bdbprintf("PCA_Dirty from GAD_CHARSET_UPPER\n");
-                                            SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+                                            SetGdAttrs(app->canvasGadget,
                                                 PCA_Dirty, (ULONG)TRUE,
                                                 TAG_END);
-
-                                            SetGadgetAttrs(
-                                                (struct Gadget *)app->charsetLowerBtn,
-                                                CurrentMainWindow, NULL,
+                                            SetGdAttrs(
+                                                app->charsetLowerBtn,
                                                 GA_Selected, FALSE, TAG_END);
 
                                         }
@@ -1217,7 +1201,7 @@ int main(int argc, char **argv)
                                         GetAttr(CHSA_Charset,app->charSelectorGadget,&charsetSate);
                                         if(charsetSate == PETSCII_CHARSET_UPPER)
                                         {
-                                            SetGadgetAttrs(app->charsetUpperBtn,CurrentMainWindow,NULL,
+                                            SetGdAttrs(app->charsetUpperBtn,
                                                 GA_Selected, (ULONG)TRUE,TAG_END);
                                         }
 
@@ -1240,18 +1224,15 @@ int main(int argc, char **argv)
                                         if (scr && scr->charset != PETSCII_CHARSET_LOWER) {
                                             scr->charset = PETSCII_CHARSET_LOWER;
                                             app->project->modified = 1;
-                                            SetGadgetAttrs(app->charSelectorGadget,CurrentMainWindow,NULL,
+                                            SetGdAttrs(app->charSelectorGadget,
                                                 CHSA_Charset, (ULONG)PETSCII_CHARSET_LOWER,
                                                 TAG_END);
                                                 bdbprintf("PCA_Dirty from GAD_CHARSET_LOWER\n");
-                                            SetGadgetAttrs(app->canvasGadget,CurrentMainWindow,NULL,
+                                            SetGdAttrs(app->canvasGadget,
                                                 PCA_Dirty, (ULONG)TRUE,
                                                 TAG_END);
-
-
-                                            SetGadgetAttrs(
+                                            SetGdAttrs(
                                                 (struct Gadget *)app->charsetUpperBtn,
-                                                CurrentMainWindow, NULL,
                                                 GA_Selected, FALSE, TAG_END);
                                         }
                                     } else
@@ -1261,7 +1242,7 @@ int main(int argc, char **argv)
                                         GetAttr(CHSA_Charset,app->charSelectorGadget,&charsetSate);
                                         if(charsetSate == PETSCII_CHARSET_LOWER)
                                         {
-                                            SetGadgetAttrs(app->charsetLowerBtn,CurrentMainWindow,NULL,
+                                            SetGdAttrs(app->charsetLowerBtn,
                                                 GA_Selected, (ULONG)TRUE,TAG_END);
                                         }
 
@@ -1344,7 +1325,6 @@ void exitclose(void)
         AppSettings_Save(&app->appSettings);
         AppSettings_Close(&app->appSettings);
 
-
         /* Destroy project */
         if (app->project) {
             PetsciiProject_Destroy(app->project);
@@ -1353,13 +1333,17 @@ void exitclose(void)
 
 
         PmSettingsView_Dispose(&app->settingsView);
-        /*PmHelpView_Dispose(&app->helpView);*/
+
+        #ifdef HELP_USE_DATATYPE_AND_WINDOW
+            PmHelpView_Dispose(&app->helpView);
+        #endif
 
         if(app->aboutRequester)
         {
             DisposeObject(app->aboutRequester);
             app->aboutRequester = NULL;
         }
+
 
         if(app->window_obj)
         {
@@ -1369,18 +1353,11 @@ void exitclose(void)
         }
 
 
-        // /* Close menus */
-        // PmMenu_Close(&app->menu, CurrentMainWindow);
+        /* Close the BOOPSI message target */
+        closeMessageTargetModel();
 
-        // /* Dispose window (cascades to all attached BOOPSI objects) */
-        // if (app->window_obj) {
-        //     DisposeObject(app->window_obj);
-        //     app->window_obj = NULL;
-        // }
-        // CurrentMainWindow = NULL;
 
         /* Free BOOPSI classes (instances disposed by window cascade above) */
-
         LayoutWithPopup_Exit();
         ColorSwatch_Exit();
         CharLayout_Exit();
@@ -1389,15 +1366,11 @@ void exitclose(void)
         ColorPicker_Exit();
         ScreenCarousel_Exit();
 
-        /* Close the BOOPSI message target */
-        closeMessageTargetModel();
-
-        /* Release C64 color pens */
-        PetsciiStyle_Release(&app->style);
 
         /* Delete message port */
         if (app->app_port)
             DeleteMsgPort(app->app_port);
+
 
         FreeVec(app);
         app = NULL;
@@ -1424,8 +1397,9 @@ void exitclose(void)
 
     if(CyberGfxBase) CloseLibrary(CyberGfxBase);
     if(DataTypesBase) CloseLibrary(DataTypesBase);
+#ifdef HELP_USE_AGLIB
     if(AmigaGuideBase) CloseLibrary(AmigaGuideBase);
-
+#endif
     /* Close all other libraries in reverse order */
     {
         LibraryEntry *entry;
@@ -1449,7 +1423,7 @@ void updateCharSelectedLabel(ULONG ichar)
     if(!app || !app->currentCharLabel) return;
 
     snprintf(&app->selectedCharLabelText[0],31,"C: $%02x / %d",ichar,ichar);
-    SetGadgetAttrs(app->currentCharLabel,CurrentMainWindow,NULL,
+    SetGdAttrs(app->currentCharLabel,
                 GA_TEXT,&app->selectedCharLabelText[0], TAG_END);
 
 
@@ -1469,6 +1443,7 @@ void updateCharSelectedLabel(ULONG ichar)
          SCA_Style,(ULONG)&app->style,TAG_END);
 
     /*force whole redraw*/
+    if(CurrentMainWindow)
      RefreshGList((struct Gadget *)app->mainvlayout,
                   CurrentMainWindow, NULL, 1);
 
@@ -1477,7 +1452,7 @@ void updateCharSelectedLabel(ULONG ichar)
 void UpdateCarouselThumbNail()
 {
     if(!app->carouselGadget) return;
-        SetGadgetAttrs(app->carouselGadget,CurrentMainWindow,NULL,
-        SCA_ScreenModified,app->project->currentScreen,TAG_END);
+        SetGdAttrs(app->carouselGadget,
+            SCA_ScreenModified,app->project->currentScreen,TAG_END);
 
 }
