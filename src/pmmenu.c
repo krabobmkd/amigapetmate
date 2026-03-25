@@ -340,7 +340,7 @@ void PmMenu_UpdatePaletteCheck(PmMenu *pm, struct Window *window, UBYTE paletteI
 
     for (m = pm->menu; m; m = m->NextMenu) {
         for (item = m->FirstItem; item; item = item->NextItem) {
-            ULONG aid = (ULONG)GTMENUITEM_USERDATA(item) >> 16;
+            ULONG aid = ((ULONG)GTMENUITEM_USERDATA(item)-(1<<16)) >> 16;
             int i;
             for (i = 0; i < 4; i++) {
                 if (aid == paletteActions[i]) {
@@ -360,14 +360,19 @@ void PmMenu_UpdatePaletteCheck(PmMenu *pm, struct Window *window, UBYTE paletteI
 LONG PmMenu_ToActionID(PmMenu *pm, UWORD menuCode)
 {
     struct MenuItem *item;
-
+    ULONG i;
     if (!pm || !pm->menu) return -1;
     if (menuCode == MENUNULL) return -1;
 
     item = ItemAddress(pm->menu, menuCode);
     if (!item) return -1;
 
-    return (LONG)((ULONG)GTMENUITEM_USERDATA(item) >> 16);
+    i = (ULONG)GTMENUITEM_USERDATA(item);
+    if(i>65535)
+    {
+        return (LONG)( (i-(1<<16)) >> 16);
+    }
+    return 0;
 }
 
 
@@ -390,7 +395,7 @@ void PmMenu_UpdateBrushMenu(PmMenu *pm, struct Window *window, Object *canvasGad
     for (menu = pm->menu; menu; menu = menu->NextMenu) {
         item = menu->FirstItem;
         if (!item) continue;
-        if (((ULONG)GTMENUITEM_USERDATA(item) >> 16) != ACTION_BRUSH_FLIP_X) continue;
+        if ((((ULONG)GTMENUITEM_USERDATA(item)-(1<<16)) >> 16) != ACTION_BRUSH_FLIP_X) continue;
 
         /* Found it update menu title and every item atomically.
          * ClearMenuStrip/ResetMenuStrip is required while modifying flags
