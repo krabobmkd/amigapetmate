@@ -40,6 +40,8 @@
 #include <proto/datatypes.h>
 #include <datatypes/datatypes.h>
 #include <datatypes/pictureclass.h>
+#include "compilers.h"
+
 
 /* Screen geometry */
 #define SCREEN_W  320
@@ -55,7 +57,7 @@
 /* ------------------------------------------------------------------ */
 
 /* Find the nearest C64 color index for an RGB triple. */
-static UBYTE nearestC64Color(UBYTE r, UBYTE g, UBYTE b,
+INLINE UBYTE nearestC64Color(UBYTE r, UBYTE g, UBYTE b,
                               const PetsciiStyle *style)
 {
     ULONG minDist = (ULONG)3 * 256UL * 256UL;
@@ -204,7 +206,7 @@ static void findContentRect(const UBYTE *idx, ULONG imgW, ULONG imgH,
  * Returns FALSE if the block contains more than two colors
  * (background + more than one distinct foreground color).
  */
-static BOOL getBlockBits(const UBYTE *pixels, ULONG stride,
+INLINE BOOL getBlockBits(const UBYTE *pixels, ULONG stride,
                           int startX, int startY,
                           UBYTE bg,
                           UBYTE *outBits, UBYTE *outFgColor)
@@ -282,12 +284,18 @@ static BOOL tryBackground(const UBYTE *pixels, ULONG stride,
 
             code = matchGlyph(charset, blockBits);
             if (code < 0)
+            {
+              //  printf("code escape at:%d %d\n",bx,by);
                 return FALSE;
+            }
+            //printf("%02x ",(int)code);
+
 
             idx = by * CELLS_W + bx;
             tmpCodes [idx] = (UBYTE)code;
             tmpColors[idx] = fgColor;
         }
+           // printf("\n");
     }
 
     /* All 1000 blocks matched — commit to screen. */
@@ -295,6 +303,7 @@ static BOOL tryBackground(const UBYTE *pixels, ULONG stride,
         scr->framebuf[idx].code  = tmpCodes [idx];
         scr->framebuf[idx].color = tmpColors[idx];
     }
+
     return TRUE;
 }
 
@@ -318,6 +327,8 @@ int PetsciiImport_FromImage(const char        *path,
     ULONG   contentW, contentH;
     ULONG   maxOx, maxOy;
     int     ox, oy, bg, result;
+
+ printf("PetsciiImport_FromImage1\n");
 
     if (!path || !scr || !style) return PETSCII_IMPORT_EOPEN;
 
@@ -344,12 +355,13 @@ int PetsciiImport_FromImage(const char        *path,
     }
     imgW = (ULONG)bmh->bmh_Width;
     imgH = (ULONG)bmh->bmh_Height;
-
+ printf("imgW %d imgH %d \n",imgW,imgH);
     /* Minimum size: must be at least a full C64 screen. */
     if (imgW < (ULONG)SCREEN_W || imgH < (ULONG)SCREEN_H) {
         DisposeDTObject(dto);
         return PETSCII_IMPORT_ESIZE;
     }
+ printf("PetsciiImport_FromImage2\n");
 
     /* --- Allocate 24-bit RGB buffer and read pixels --------------------- */
     rgbBuf = (UBYTE *)AllocVec(imgW * imgH * 3UL, MEMF_ANY);
@@ -394,12 +406,14 @@ int PetsciiImport_FromImage(const char        *path,
 
     contentW = (contentRight  > contentLeft) ? contentRight  - contentLeft : 0;
     contentH = (contentBottom > contentTop ) ? contentBottom - contentTop  : 0;
+ printf("PetsciiImport_FromImage3 contentW %d contentH %d\n",contentW,contentH);
 
     /* Content area must accommodate at least one full 320x200 screen. */
     if (contentW < (ULONG)SCREEN_W || contentH < (ULONG)SCREEN_H) {
         FreeVec(idxBuf);
         return PETSCII_IMPORT_ESIZE;
     }
+ printf("PetsciiImport_FromImage4\n");
 
     /* --- Try all sub-pixel alignment offsets and all backgrounds --------- */
     /*
@@ -430,7 +444,7 @@ int PetsciiImport_FromImage(const char        *path,
             }
         }
     }
-
+ printf("PetsciiImport_FromImage5\n");
     /* --- Cleanup -------------------------------------------------------- */
     FreeVec(idxBuf);
     return result;

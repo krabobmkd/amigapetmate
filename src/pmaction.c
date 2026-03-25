@@ -987,7 +987,7 @@ BOOL Action_ExportPng(PmActionContext *ctx)
     return FALSE;
 }
 
-
+void UpdateCarouselThumbNail();
 BOOL Action_ImportImage(PmActionContext *ctx)
 {
     char               *rawpath;
@@ -1009,13 +1009,18 @@ BOOL Action_ImportImage(PmActionContext *ctx)
     err = PetsciiImport_FromImage(pathbuf, scr, style);
     PmStr_Free(rawpath);
 
+    /*force redraw */
+    refreshUI();
+/*    if (app && app->canvasGadget)
+        SetGdAttrs(app->canvasGadget,PCA_Dirty,TRUE,TAG_END);    UpdateCarouselThumbNail();
+*/
     if (err == PETSCII_IMPORT_ENOMATCH || err == PETSCII_IMPORT_ESIZE) {
         SetStatusBarMessage(MSG_IMPORT_NOMATCH);
         return FALSE;
     }
     SetStatusBarMessage(err == PETSCII_IMPORT_OK
-                        ? MSG_PETSCII_FILEIO_WRITEOK
-                        : MSG_PETSCII_FILEIO_EWRITE);
+                        ? MSG_PETSCII_FILEIO_OK
+                        : MSG_IMPORT_NOMATCH);
     return (BOOL)(err == PETSCII_IMPORT_OK);
 }
 

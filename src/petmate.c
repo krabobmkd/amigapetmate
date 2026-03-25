@@ -303,6 +303,34 @@ int testGadgetRect(Object *o, int x, int y)
             y < (int)(g->TopEdge+g->Height)
             );
 }
+void SetCurrentScreen_BgColor(ULONG c)
+{
+    if(!app) return;
+    app->toolState.bgColor = (UBYTE)c;
+
+    SetGdAttrs(app->canvasGadget,
+        PCA_BgColor, c,
+        TAG_END);
+    SetGdAttrs(app->charSelectorGadget,
+        CHSA_BgColor, c,
+        TAG_END);
+    SetGdAttrs(app->toolbar.bgColorWatch,
+        CSW_ColorIndex, c,
+        TAG_END);
+}
+void SetCurrentScreen_BdColor(ULONG c)
+{
+    if(!app) return;
+    app->toolState.bdColor = (UBYTE)c;
+
+    SetGdAttrs(app->toolbar.borderColorWatch,
+        CSW_ColorIndex, c,
+        TAG_END);
+
+    SetGdAttrs(app->canvasGadget,
+        PCA_BdColor, c,
+        TAG_END);
+}
 
 
 /* - - - - - - - - - MAIN - - - - - - - - - */
@@ -1134,28 +1162,11 @@ int main(int argc, char **argv)
                                         ULONG role = ptag->ti_Data; /* the colorwatch id */
                                         if(role == GAD_COLORWATCH_BG)
                                         {
-                                            app->toolState.bgColor = (UBYTE)newColor;
-                                            SetGdAttrs(app->canvasGadget,
-                                                PCA_BgColor, newColor,
-                                                TAG_END);
-                                            SetGdAttrs(app->charSelectorGadget,
-                                                CHSA_BgColor, newColor,
-                                                TAG_END);
-                                            SetGdAttrs(app->toolbar.bgColorWatch,
-                                                CSW_ColorIndex, newColor,
-                                                TAG_END);
-
+                                            SetCurrentScreen_BgColor(newColor);
                                         }else
                                         if(role == GAD_COLORWATCH_BD)
                                         {
-                                            app->toolState.bdColor = (UBYTE)newColor;
-                                            SetGdAttrs(app->toolbar.borderColorWatch,
-                                                CSW_ColorIndex, newColor,
-                                                TAG_END);
-                                            SetGdAttrs(app->canvasGadget,
-                                                PCA_BdColor, newColor,
-                                                TAG_END);
-
+                                           SetCurrentScreen_BdColor(newColor);
                                         }
 
                                         UpdateCarouselThumbNail();

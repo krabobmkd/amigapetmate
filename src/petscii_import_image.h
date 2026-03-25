@@ -36,7 +36,7 @@
 /*
  * Load an image file and convert it to a PETSCII screen.
  *
- *   path    - full path to the image file (any format with a picture DT)
+ *   path    - full path to the image file (any format with a picture DT)JE
  *   scr     - destination screen: framebuf, backgroundColor, borderColor
  *             are updated on success; width and height must be 40x25
  *   style   - current style providing the 16-color RGB palette for quantization
