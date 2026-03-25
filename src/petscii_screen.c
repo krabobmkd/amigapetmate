@@ -148,7 +148,8 @@ void PetsciiScreen_CopyData(PetsciiScreen *dst, const PetsciiScreen *src)
 
     bufSize = (ULONG)src->width * (ULONG)src->height * sizeof(PetsciiPixel);
     memcpy(dst->framebuf, src->framebuf, bufSize);
-
+    dst->backgroundColor = src->backgroundColor;
+    dst->borderColor = src->borderColor;
    refreshUI();
 }
 

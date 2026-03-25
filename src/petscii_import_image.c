@@ -90,7 +90,7 @@ static void quantizeBuffer(const UBYTE *rgb, UBYTE *idx,
 }
 
 /* ------------------------------------------------------------------ */
-/* Border detection                                                    */
+/* Border detection and alignment                                      */
 /* ------------------------------------------------------------------ */
 
 /*
@@ -126,13 +126,13 @@ static UBYTE detectBorderColor(const UBYTE *idx, ULONG w, ULONG h)
 }
 
 /*
- * Compute the content bounding box by stripping rows/columns that are
- * entirely the given border color.
+ * Conservative content bounding box.
  *
- * outLeft, outTop   : first pixel column / row that is NOT all-border.
- * outRight, outBottom: one past the last such column / row.
- *
- * If the image is entirely one color, outRight == outLeft (empty rect).
+ * Strips leading/trailing rows/columns that are entirely the given border
+ * color, but STOPS before the remaining content area would fall below the
+ * minimum 320x200 screen size.  This prevents stripping valid PETSCII
+ * content rows that happen to be entirely background (space chars), which
+ * the aggressive version incorrectly removed.
  */
 static void findContentRect(const UBYTE *idx, ULONG imgW, ULONG imgH,
                              UBYTE borderColor,
@@ -148,8 +148,9 @@ static void findContentRect(const UBYTE *idx, ULONG imgW, ULONG imgH,
     *outRight  = imgW;
     *outBottom = imgH;
 
-    /* Shrink top: skip rows that are entirely the border color */
+    /* Shrink top: stop before content height would drop below SCREEN_H */
     for (y = 0; y < imgH; y++) {
+        if (*outBottom - (*outTop + 1UL) < (ULONG)SCREEN_H) break;
         allBorder = TRUE;
         for (x = 0; x < imgW; x++) {
             if (idx[y * imgW + x] != borderColor) { allBorder = FALSE; break; }
@@ -161,6 +162,7 @@ static void findContentRect(const UBYTE *idx, ULONG imgW, ULONG imgH,
     /* Shrink bottom */
     for (y = imgH; y > *outTop; ) {
         y--;
+        if ((*outBottom - 1UL) - *outTop < (ULONG)SCREEN_H) break;
         allBorder = TRUE;
         for (x = 0; x < imgW; x++) {
             if (idx[y * imgW + x] != borderColor) { allBorder = FALSE; break; }
@@ -171,6 +173,7 @@ static void findContentRect(const UBYTE *idx, ULONG imgW, ULONG imgH,
 
     /* Shrink left (only within the already-narrowed vertical range) */
     for (x = 0; x < imgW; x++) {
+        if (*outRight - (*outLeft + 1UL) < (ULONG)SCREEN_W) break;
         allBorder = TRUE;
         for (y = *outTop; y < *outBottom; y++) {
             if (idx[y * imgW + x] != borderColor) { allBorder = FALSE; break; }
@@ -182,6 +185,7 @@ static void findContentRect(const UBYTE *idx, ULONG imgW, ULONG imgH,
     /* Shrink right */
     for (x = imgW; x > *outLeft; ) {
         x--;
+        if ((*outRight - 1UL) - *outLeft < (ULONG)SCREEN_W) break;
         allBorder = TRUE;
         for (y = *outTop; y < *outBottom; y++) {
             if (idx[y * imgW + x] != borderColor) { allBorder = FALSE; break; }
@@ -189,6 +193,61 @@ static void findContentRect(const UBYTE *idx, ULONG imgW, ULONG imgH,
         if (!allBorder) break;
         *outRight = x;
     }
+}
+
+/*
+ * Find the X alignment phase of the 8-pixel character grid using color
+ * transitions.  For each pixel column phase p = x mod 8, count the number
+ * of horizontal transitions (adjacent pixels with different C64 color index)
+ * across all rows.  The phase with the most transitions sits just before a
+ * character cell boundary, so the char grid starts at (peak+1) mod 8.
+ *
+ * This works independently of the background color and is robust even when
+ * the image has a uniform-color border (those regions contribute zero
+ * transitions).
+ */
+static int findAlignX(const UBYTE *idx, ULONG w, ULONG h)
+{
+    ULONG freq[8];
+    ULONG x, y;
+    int   peak, p;
+
+    for (p = 0; p < 8; p++) freq[p] = 0;
+
+    for (y = 0; y < h; y++)
+        for (x = 0; x + 1 < w; x++)
+            if (idx[y * w + x] != idx[y * w + x + 1])
+                freq[x & 7UL]++;
+
+    peak = 0;
+    for (p = 1; p < 8; p++)
+        if (freq[p] > freq[peak]) peak = p;
+
+    return (peak + 1) & 7;
+}
+
+/*
+ * Find the Y alignment phase of the 8-pixel character grid (same method,
+ * applied to vertical transitions).
+ */
+static int findAlignY(const UBYTE *idx, ULONG w, ULONG h)
+{
+    ULONG freq[8];
+    ULONG x, y;
+    int   peak, p;
+
+    for (p = 0; p < 8; p++) freq[p] = 0;
+
+    for (x = 0; x < w; x++)
+        for (y = 0; y + 1 < h; y++)
+            if (idx[y * w + x] != idx[(y + 1) * w + x])
+                freq[y & 7UL]++;
+
+    peak = 0;
+    for (p = 1; p < 8; p++)
+        if (freq[p] > freq[peak]) peak = p;
+
+    return (peak + 1) & 7;
 }
 
 /* ------------------------------------------------------------------ */
@@ -285,17 +344,13 @@ static BOOL tryBackground(const UBYTE *pixels, ULONG stride,
             code = matchGlyph(charset, blockBits);
             if (code < 0)
             {
-              //  printf("code escape at:%d %d\n",bx,by);
                 return FALSE;
             }
-            //printf("%02x ",(int)code);
-
 
             idx = by * CELLS_W + bx;
             tmpCodes [idx] = (UBYTE)code;
             tmpColors[idx] = fgColor;
         }
-           // printf("\n");
     }
 
     /* All 1000 blocks matched — commit to screen. */
@@ -327,8 +382,9 @@ int PetsciiImport_FromImage(const char        *path,
     ULONG   contentW, contentH;
     ULONG   maxOx, maxOy;
     int     ox, oy, bg, result;
-
- printf("PetsciiImport_FromImage1\n");
+    int     alignOx, alignOy;
+    int     tryOx[8], tryOy[8], nTryOx, nTryOy, dox, doy;
+    int     i;
 
     if (!path || !scr || !style) return PETSCII_IMPORT_EOPEN;
 
@@ -355,13 +411,12 @@ int PetsciiImport_FromImage(const char        *path,
     }
     imgW = (ULONG)bmh->bmh_Width;
     imgH = (ULONG)bmh->bmh_Height;
- printf("imgW %d imgH %d \n",imgW,imgH);
+
     /* Minimum size: must be at least a full C64 screen. */
     if (imgW < (ULONG)SCREEN_W || imgH < (ULONG)SCREEN_H) {
         DisposeDTObject(dto);
         return PETSCII_IMPORT_ESIZE;
     }
- printf("PetsciiImport_FromImage2\n");
 
     /* --- Allocate 24-bit RGB buffer and read pixels --------------------- */
     rgbBuf = (UBYTE *)AllocVec(imgW * imgH * 3UL, MEMF_ANY);
@@ -395,9 +450,9 @@ int PetsciiImport_FromImage(const char        *path,
     /* --- Detect border and find content bounding box -------------------- */
     /*
      * The border color is detected from the outermost pixel frame.
-     * Rows and columns that are entirely that color are stripped on all
-     * four sides.  This handles any border width (fixed VICE borders,
-     * arbitrary web-exported borders, or no border at all).
+     * Rows/columns that are entirely that color are stripped (conservatively:
+     * we never reduce the content area below 320x200 so that valid content
+     * rows that happen to be all-background are not accidentally removed).
      */
     borderColor = detectBorderColor(idxBuf, imgW, imgH);
     findContentRect(idxBuf, imgW, imgH, borderColor,
@@ -406,31 +461,54 @@ int PetsciiImport_FromImage(const char        *path,
 
     contentW = (contentRight  > contentLeft) ? contentRight  - contentLeft : 0;
     contentH = (contentBottom > contentTop ) ? contentBottom - contentTop  : 0;
- printf("PetsciiImport_FromImage3 contentW %d contentH %d\n",contentW,contentH);
 
     /* Content area must accommodate at least one full 320x200 screen. */
     if (contentW < (ULONG)SCREEN_W || contentH < (ULONG)SCREEN_H) {
         FreeVec(idxBuf);
         return PETSCII_IMPORT_ESIZE;
     }
- printf("PetsciiImport_FromImage4\n");
+
+    /*
+     * --- Find character-grid alignment phase via color transitions --------
+     *
+     * Count horizontal/vertical transitions grouped by pixel position mod 8.
+     * The phase with the most transitions is just before a character cell
+     * boundary, so the grid starts at (peakPhase + 1) mod 8.
+     * This gives the correct (ox, oy) without needing to know the background
+     * color, and handles images where border rows look like content rows.
+     */
+    alignOx = findAlignX(idxBuf, imgW, imgH);
+    alignOy = findAlignY(idxBuf, imgW, imgH);
 
     /* --- Try all sub-pixel alignment offsets and all backgrounds --------- */
     /*
-     * The character grid might not start exactly at the first non-border
-     * pixel: the content origin may be shifted by up to 7 pixels in X or Y.
-     * We try all (ox, oy) in [0..min(7, contentW-320)] x [0..min(7, contentH-200)]
-     * and for each, all 16 background colors.  tryBackground() aborts as soon
-     * as a single block fails, so wrong offsets are rejected very quickly.
+     * Build priority lists: try the transition-derived phase first, then
+     * the remaining phases in order.  For each (ox, oy), try all 16
+     * background colors.  tryBackground() aborts on the first failed block
+     * so wrong combinations are rejected very quickly.
      */
     maxOx = contentW - (ULONG)SCREEN_W;
     maxOy = contentH - (ULONG)SCREEN_H;
     if (maxOx > (ULONG)MAX_OFFSET) maxOx = (ULONG)MAX_OFFSET;
     if (maxOy > (ULONG)MAX_OFFSET) maxOy = (ULONG)MAX_OFFSET;
 
+    nTryOx = 0;
+    tryOx[nTryOx++] = alignOx;
+    for (i = 0; i < 8 && nTryOx < 8; i++)
+        if (i != alignOx) tryOx[nTryOx++] = i;
+
+    nTryOy = 0;
+    tryOy[nTryOy++] = alignOy;
+    for (i = 0; i < 8 && nTryOy < 8; i++)
+        if (i != alignOy) tryOy[nTryOy++] = i;
+
     result = PETSCII_IMPORT_ENOMATCH;
-    for (oy = 0; oy <= (int)maxOy && result != PETSCII_IMPORT_OK; oy++) {
-        for (ox = 0; ox <= (int)maxOx && result != PETSCII_IMPORT_OK; ox++) {
+    for (doy = 0; doy < nTryOy && result != PETSCII_IMPORT_OK; doy++) {
+        oy = tryOy[doy];
+        if ((ULONG)oy > maxOy) continue;
+        for (dox = 0; dox < nTryOx && result != PETSCII_IMPORT_OK; dox++) {
+            ox = tryOx[dox];
+            if ((ULONG)ox > maxOx) continue;
             for (bg = 0; bg < 16; bg++) {
                 if (tryBackground(idxBuf, imgW,
                                   (int)contentLeft + ox,
@@ -444,7 +522,7 @@ int PetsciiImport_FromImage(const char        *path,
             }
         }
     }
- printf("PetsciiImport_FromImage5\n");
+
     /* --- Cleanup -------------------------------------------------------- */
     FreeVec(idxBuf);
     return result;

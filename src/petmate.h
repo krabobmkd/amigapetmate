@@ -26,7 +26,7 @@
 //#define HELP_USE_AGLIB 1
 //#define HELP_USE_DATATYPE_AND_WINDOW 1
 
-#define PETMATE_VERSION "0.8"
+#define PETMATE_VERSION "0.8.2"
 
 /* Current tool state */
 

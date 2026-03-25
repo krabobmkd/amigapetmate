@@ -90,8 +90,6 @@ int PetsciiStyle_Apply(PetsciiStyle *style, struct Screen *scr)
     /* Release any previously obtained pens first */
     PetsciiStyle_Release(style);
 
-    style->screen = scr; /* now screen optional can be null */
-
     isRGB = (CyberGfxBase && scr &&
        (GetCyberMapAttr(scr->RastPort.BitMap, CYBRMATTR_ISCYBERGFX) != 0) &&
        (GetCyberMapAttr(scr->RastPort.BitMap, CYBRMATTR_DEPTH) > 8)
@@ -170,11 +168,10 @@ void PetsciiStyle_Release(PetsciiStyle *style)
     struct ColorMap *cm;
     UWORD i;
 
-    if (!style || !style->screen) return;
+    if (!style || !CurrentMainScreen) return;
 
-    cm = style->screen->ViewPort.ColorMap;
+    cm = CurrentMainScreen->ViewPort.ColorMap;
     for (i = 0; i < C64_COLOR_COUNT; i++) {
         ReleasePenIfValid(cm, &style->c64pens[i]);
     }
-    style->screen = NULL;
 }

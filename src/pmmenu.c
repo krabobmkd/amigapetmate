@@ -40,7 +40,7 @@ void cleanexit(const char *pmessage);
  */
 
 /* Pack an ACTION_* id into nm_UserData (upper 16 bits). */
-#define ACTION_UD(a)  ((ULONG)(a) << 16)
+#define ACTION_UD(a)  ((ULONG)(a+1) << 16)
 
 #define MENU_TEMPLATE_MAX 80   /* enough for all static entries + 4 recent */
 
@@ -210,9 +210,8 @@ static void resolveMenuLabels(struct NewMenu *tmpl)
 
         {
             ULONG udata    = (ULONG)tmpl[i].nm_UserData;
-            ULONG actionID = udata >> 16;
-
-            if (actionID != 0) {
+            if (udata>65535) {
+                ULONG actionID = (udata-(1<<16)) >> 16;
                 /* Upper 16 bits set: ACTION_* id */
                 PmAction *action = PmAction_Get(actionID);
                 if (action && action->name)
