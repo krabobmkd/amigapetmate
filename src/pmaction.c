@@ -32,6 +32,7 @@
 #include <proto/requester.h>
 #include <classes/requester.h>
 
+#include <dos/dostags.h>
 
 #include "boopsimainwindow.h"
 #include "pmsettingsview.h"
@@ -397,10 +398,14 @@ BOOL Action_ProjectHelp(PmActionContext *ctx)
     if(fh)
     {
         fclose(fh);
-        SystemTagList("Sys:Utilities/Multiview PetMate.guide",TAG_END);
+        SystemTags("Sys:Utilities/Multiview PetMate.guide",
+                    SYS_Asynch,TRUE,SYS_UserShell,TRUE,
+                    TAG_END);
     } else
     {
-        SystemTagList("Multiview PetMate.guide",TAG_END);
+        SystemTags("Multiview PetMate.guide",
+                    SYS_Asynch,TRUE,SYS_UserShell,TRUE,
+                    TAG_END);
     }
 
 #endif
