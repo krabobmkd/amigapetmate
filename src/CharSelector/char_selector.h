@@ -33,6 +33,7 @@
 #define CHSA_BgColor      (CHSA_Dummy + 5)  /* (UBYTE) 0-15    new/set        */
 #define CHSA_Dirty        (CHSA_Dummy + 6)  /* (BOOL) force rebuild   set     */
 #define CHSA_KeepRatio    (CHSA_Dummy + 7)  /* (BOOL) preserve 1:1 ratio      */
+#define CHSA_ArrowKey    (CHSA_Dummy + 8) /* UBYTE arrow + shift change selected char by moving from keyboard */
 
 extern Class *CharSelectorClass;
 

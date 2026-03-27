@@ -876,15 +876,34 @@ int main(int argc, char **argv)
                 flushbdbprint();
                 switch (result & WMHI_CLASSMASK)
                 {
-
-
                     case WMHI_RAWKEY:
                     {
                         /* keys managed at mainwindow level */
-                        ULONG key = (result & WMHI_KEYMASK);
+                        ULONG key = (result & 0x7f);
+                        ULONG isup =  (result & 0x80);
+                        ULONG qualifiers = 0;
+                        if(WindowBase->lib_Version>=47)
+                        {
+                            GetAttr(app->window_obj,WINDOW_Qualifier,&qualifiers);
+                        }
+
                         if(key>=0x50 && key<=0x55)
                         {
                             setTool( TOOL_DRAW + key - 0x50);
+                        } else
+                        /* arrows and tab apply to the char selector in all cases */
+                        if((key>=0x4c && key<=0x4f) && !isup )
+                        {
+                            ULONG c = key;
+                            if(qualifiers & (IEQUALIFIER_LSHIFT|IEQUALIFIER_RSHIFT)) c|=128;
+                            if(app->charSelectorGadget)
+                                SetGdAttrs(app->charSelectorGadget,CHSA_ArrowKey,c,TAG_END);
+                        } else
+                        if(( key == 0x42) && isup)
+                        {
+                            ULONG c = key;
+                            if(app->charSelectorGadget)
+                                SetGdAttrs(app->charSelectorGadget,CHSA_ArrowKey,c,TAG_END);
                         } else
                         switch(key)
                         {

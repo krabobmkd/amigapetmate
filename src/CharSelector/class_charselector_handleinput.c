@@ -28,7 +28,7 @@
 /* ColorPicker_NotifyAttribChange).                                    */
 /* ------------------------------------------------------------------ */
 
-static ULONG CharSelector_NotifyAttribChange(Class *cl, Object *o,
+ULONG CharSelector_NotifyAttribChange(Class *cl, Object *o,
                                              struct GadgetInfo *gi,
                                              ULONG attrib, ULONG value)
 {

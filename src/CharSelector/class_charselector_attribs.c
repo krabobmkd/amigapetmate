@@ -7,10 +7,16 @@
 #include <proto/graphics.h>
 #include <proto/utility.h>
 #include "char_selector_private.h"
+#include "petmate_charset.h"
+#include "petscii_types.h"
 #include <bdbprintf.h>
 #define CBUF_SIZE  ((ULONG)CHARSELECTOR_NATIVE_W * CHARSELECTOR_NATIVE_H)
 
 ULONG CharSelector_OnSet(Class *cl, Object *o, struct opSet *msg);
+ULONG CharSelector_NotifyAttribChange(Class *cl, Object *o,
+                                             struct GadgetInfo *gi,
+                                             ULONG attrib, ULONG value);
+
 /* ------------------------------------------------------------------ */
 /* OM_NEW                                                               */
 /* ------------------------------------------------------------------ */
@@ -85,6 +91,7 @@ ULONG CharSelector_OnSet(Class *cl, Object *o, struct opSet *msg)
     struct TagItem   *tag;
     ULONG             result = 0;
     ULONG           redraw = 0;
+    ULONG notifChar =0;
 
     inst   = (CharSelectorData *)INST_DATA(cl, o);
     state  = msg->ops_AttrList;
@@ -149,6 +156,64 @@ ULONG CharSelector_OnSet(Class *cl, Object *o, struct opSet *msg)
                 inst->scaledH   = 0;
                 result = 1;
                 break;
+            case CHSA_ArrowKey:
+            {
+                const int *order;
+                int gridRow,gridCol,applied=0,newchar;
+                ULONG b =  (BOOL)tag->ti_Data;
+                ULONG c = b & 127;
+                ULONG shift = (b & 128)?2:1;
+
+                order = (inst->charset == PETSCII_CHARSET_LOWER)
+                        ? petmate_char_order_lower
+                        : petmate_char_order_upper;
+                if (petmate_grid_from_screencode(order, (int)inst->selectedChar,
+                                         &gridRow, &gridCol))
+                {
+
+                    if(c==0x4c) /* arrow up */
+                    {
+                        gridRow +=  CHARSELECTOR_ROWS-shift;
+                        gridRow %= CHARSELECTOR_ROWS;
+                        applied = 1;
+                    } else
+                    if(c==0x4d) /* arrow down */
+                    {
+                        gridRow += shift;
+                        gridRow %= CHARSELECTOR_ROWS;
+                        applied = 1;
+                    } else
+                    if(c==0x4f)  /* arrow left */
+                    {
+                        gridCol += CHARSELECTOR_COLS -shift ;
+                        gridCol %= CHARSELECTOR_COLS;
+                        applied = 1;
+                    } else
+                    if(c==0x4e) /* arrow right */
+                    {
+                        gridCol += shift;
+                        gridCol %= CHARSELECTOR_COLS;
+                        applied = 1;
+                    } else
+                    if(c==0x42) /* tab */
+                    {
+                        gridRow += CHARSELECTOR_ROWS/2;
+                        gridRow %= CHARSELECTOR_ROWS;
+                        applied = 1;
+                    }
+                }
+                newchar = petmate_screencode_from_grid(order,gridRow,gridCol);
+
+                if(applied && newchar>=0)
+                {
+                    inst->selectedChar = newchar;
+                    inst->valid   = 0;
+                    redraw = 1;
+                    result = 1;
+                    notifChar = 1;
+                }
+            }
+            break;
             default:
                 break;
         }
@@ -175,6 +240,12 @@ ULONG CharSelector_OnSet(Class *cl, Object *o, struct opSet *msg)
 
             ReleaseGIRPort(rp);
         }
+    }
+    if(notifChar)
+    {
+        CharSelector_NotifyAttribChange(cl, o, msg->ops_GInfo,
+                                        CHSA_SelectedChar,
+                                        (ULONG)inst->selectedChar);
     }
 
     return result;

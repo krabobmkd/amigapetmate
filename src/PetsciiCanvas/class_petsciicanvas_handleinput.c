@@ -531,25 +531,25 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
                 inst->textCursorCol &= ~3;
                 justRender = TRUE;
             } else
-            if((ie->ie_Code & 0x7f)==0x4c)
+            if((ie->ie_Code & 0x7f)==0x4c) /* arrow up */
             {
                 inst->textCursorRow--;
                 if(inst->textCursorRow==0) inst->textCursorRow = (WORD)inst->screen->height-1;
                 justRender = TRUE;
             } else
-            if((ie->ie_Code & 0x7f)==0x4d)
+            if((ie->ie_Code & 0x7f)==0x4d) /* arrow down */
             {
                 inst->textCursorRow++;
                 if(inst->textCursorRow==(WORD)inst->screen->height) inst->textCursorRow = 0;
                 justRender = TRUE;
             }else
-            if((ie->ie_Code & 0x7f)==0x4f)
+            if((ie->ie_Code & 0x7f)==0x4f)  /* arrow left */
             {
                 inst->textCursorCol--;
                 if(inst->textCursorCol==0) inst->textCursorCol = (WORD)inst->screen->width-1;
                 justRender = TRUE;
             } else
-            if((ie->ie_Code & 0x7f)==0x4e)
+            if((ie->ie_Code & 0x7f)==0x4e) /* arrow right */
             {
                 inst->textCursorCol++;
                 if(inst->textCursorCol==(WORD)inst->screen->width) inst->textCursorCol = 0;
