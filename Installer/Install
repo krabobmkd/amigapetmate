@@ -8,7 +8,7 @@
 ;
 
 (set #app-name    "PetMate")
-(set #app-version "v0.1")
+(set #app-version "v0.8.3")
 (set #app-default "Work:")
 
 ; ---------------------------------------------------------------------------

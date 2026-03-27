@@ -17,6 +17,7 @@
 
   @{" Introduction        " link INTRO}       Qu'est-ce que PetMate ?
   @{" Requirements        " link REQUIRE}     Configuration minimale requise
+  @{" Amiga Settings      " link TOOLTYPES}   Tooltypes et paramètres
   @{" Interface Overview  " link INTERFACE}   La disposition de la fenêtre principale
   @{" Drawing Tools       " link TOOLS}       Les six modes de dessin
   @{" Color Palettes      " link PALETTES}    Options de palette de couleurs C64
@@ -79,6 +80,61 @@
   AmigaOS 3.2.3 offre un meilleur support des bibliothèques système et
   est la plateforme recommandée. L'application fonctionne sur OS 3.9
   mais certaines fonctionnalités système peuvent être limitées.
+
+  @{" Retour au sommaire " link MAIN}
+
+@endnode
+
+
+@node TOOLTYPES "Paramètres Amiga (Tooltypes)"
+
+@{b}Paramètres Amiga (Tooltypes)@{ub}
+
+  Les tooltypes sont une façon très Amiga de stocker les paramètres,
+  dans la page d'information de l'icône de l'application. PetMate
+  enregistre ses paramètres automatiquement via les tooltypes. Vous
+  pouvez aussi les modifier manuellement en sélectionnant l'icône
+  PetMate sur le Workbench, en ouvrant Icônes > Informations depuis
+  le menu, et en accédant à la page des tooltypes.
+
+  Tous les tooltypes sont optionnels. Les tooltypes inconnus sont
+  silencieusement ignorés.
+
+  ---------------------------------------------------------------
+
+  @{b}Mode écran@{ub}
+
+    FSUSEWBMODEID
+      Quand défini, le mode plein écran utilise le même mode
+      d'écran que le Workbench. Prend la priorité sur SCREENMODEID.
+
+    SCREENMODEID=<hex>
+      Valeur hexadécimale du mode d'écran à utiliser en plein écran.
+      Exemple : SCREENMODEID=0x00029000
+
+  ---------------------------------------------------------------
+
+  @{b}Apparence de l'interface@{ub}
+
+    USEONECLORBG
+      Quand défini, les zones vides de l'interface sont dessinées
+      avec une seule couleur unie. Sinon, le motif de préférence
+      BOOPSI défini dans Sys:Prefs/Reaction est utilisé.
+
+    BGIMAGE=<chemin>
+      Chemin absolu d'un fichier image lisible par le système
+      datatypes, utilisé comme image de fond de l'interface.
+      Exemple : BGIMAGE=Work:Images/monfond.png
+
+  ---------------------------------------------------------------
+
+  @{b}Palette@{ub}
+
+    PALETTE=(PetMate|Colodore|Pepto|VICE)
+      Définit la palette de couleurs active au démarrage.
+      Exemple : PALETTE=Colodore
+
+  ---------------------------------------------------------------
 
   @{" Retour au sommaire " link MAIN}
 
@@ -720,6 +776,18 @@
     G         Activer/désactiver la grille
     P         Ouvrir les paramètres
     F10       Plein écran
+
+  @{b}Sélecteur de caractères@{ub}
+
+    Flèches      Naviguer dans le sélecteur de caractères pour
+                 modifier le caractère de dessin sélectionné.
+    Tab          Remplacer le caractère courant par son inverse.
+    Entrée       Remplacer le caractère courant par son inverse.
+
+  @{b}Sélection de couleur@{ub}
+
+    Pavé num.    Les touches du pavé numérique sélectionnent l'une
+                 des 16 couleurs de dessin de la palette courante.
 
   @{" Retour au sommaire " link MAIN}
 

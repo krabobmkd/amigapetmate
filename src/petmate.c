@@ -880,12 +880,13 @@ int main(int argc, char **argv)
                     {
                         /* keys managed at mainwindow level */
                         ULONG key = (result & 0x7f);
-                        ULONG isup =  (result & 0x80);
-                        ULONG qualifiers = 0;
-                        if(WindowBase->lib_Version>=47)
-                        {
-                            GetAttr(app->window_obj,WINDOW_Qualifier,&qualifiers);
-                        }
+                        ULONG isup =  (result & 0x80); /* it's reencoded like that against the intuimessage way */
+                        /*that thing crash on OS3.2.3 .. */
+                        //  ULONG qualifiers = 0;
+                        // if(WindowBase->lib_Version>=47)
+                        // {
+                        //     GetAttr(app->window_obj,WINDOW_Qualifier,&qualifiers);
+                        // }
 
                         if(key>=0x50 && key<=0x55)
                         {
@@ -895,16 +896,28 @@ int main(int argc, char **argv)
                         if((key>=0x4c && key<=0x4f) && !isup )
                         {
                             ULONG c = key;
-                            if(qualifiers & (IEQUALIFIER_LSHIFT|IEQUALIFIER_RSHIFT)) c|=128;
+                           /*bad if(qualifiers & (IEQUALIFIER_LSHIFT|IEQUALIFIER_RSHIFT)) c|=128;*/
                             if(app->charSelectorGadget)
                                 SetGdAttrs(app->charSelectorGadget,CHSA_ArrowKey,c,TAG_END);
                         } else
-                        if(( key == 0x42) && isup)
+                        /* numpad used for palette */
+                        if( ((key>=0x5a && key<=0x5e) ||
+                            (key>=0x3d && key<=0x3f) ||
+                            (key>=0x2d && key<=0x2f) ||
+                            (key>=0x1d && key<=0x1f) ||
+                            key==0x4a || key==0x43
+                            ) && !isup )
+                        {
+                            if(app->colorPickerFgGadget)
+                                SetGdAttrs(app->colorPickerFgGadget,CPA_NumPadKeys,key,TAG_END);
+                        } else
+                        if(( key == 0x42 || key == 0x44) && isup) /* tab and return inverse char */
                         {
                             ULONG c = key;
                             if(app->charSelectorGadget)
-                                SetGdAttrs(app->charSelectorGadget,CHSA_ArrowKey,c,TAG_END);
+                                SetGdAttrs(app->charSelectorGadget,CHSA_ArrowKey,0x42,TAG_END);
                         } else
+                        if(isup)
                         switch(key)
                         {
                             /* F10 */

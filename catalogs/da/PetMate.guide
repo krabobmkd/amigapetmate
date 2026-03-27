@@ -16,6 +16,7 @@
 
   @{" Introduktion         " link INTRO}       Hvad er PetMate?
   @{" Requirements         " link REQUIRE}     Minimale systemkrav
+  @{" Amiga Settings       " link TOOLTYPES}   Tooltypes og indstillinger
   @{" Interface Overview   " link INTERFACE}   Hovedvinduets layout
   @{" Drawing Tools        " link TOOLS}       De seks tegnemetoder
   @{" Color Palettes       " link PALETTES}    C64-farvepalettens muligheder
@@ -77,6 +78,60 @@
   AmigaOS 3.2.3 giver bedre systembiblioteksunderstøttelse og er den
   anbefalede platform for den bedste oplevelse. Programmet kører på
   OS 3.9, men nogle systemfunktioner kan være begrænsede.
+
+  @{" Tilbage til indhold " link MAIN}
+
+@endnode
+
+
+@node TOOLTYPES "Amiga-indstillinger (Tooltypes)"
+
+@{b}Amiga-indstillinger (Tooltypes)@{ub}
+
+  Tooltypes er en meget Amiga-specifik måde at gemme indstillinger
+  på, inde i ikonets informationsside. PetMate gemmer sine
+  indstillinger automatisk via tooltypes. Du kan også ændre dem
+  manuelt: Vælg PetMate-ikonet på Workbench, åbn Ikoner >
+  Oplysninger fra menuen, og naviger til tooltypes-siden.
+
+  Alle tooltypes er valgfrie. Ukendte tooltypes ignoreres.
+
+  ---------------------------------------------------------------
+
+  @{b}Skærmtilstand@{ub}
+
+    FSUSEWBMODEID
+      Når angivet, bruger fuldskærmstilstand samme skærmtilstand
+      som Workbench. Har forrang over SCREENMODEID.
+
+    SCREENMODEID=<hex>
+      Hexadecimal værdi for den skærmtilstand der bruges i
+      fuldskærmstilstand.
+      Eksempel: SCREENMODEID=0x00029000
+
+  ---------------------------------------------------------------
+
+  @{b}Grænsefladeudseende@{ub}
+
+    USEONECLORBG
+      Når angivet, tegnes grænsefladens tomme områder med én
+      enkelt farve. Ellers bruges BOOPSI-præferencemsmønsteret
+      defineret i Sys:Prefs/Reaction.
+
+    BGIMAGE=<sti>
+      Absolut sti til en billedfil læselig af datatypes-systemet,
+      brugt som baggrundsbillede i grænsefladen.
+      Eksempel: BGIMAGE=Work:Images/baggrund.png
+
+  ---------------------------------------------------------------
+
+  @{b}Palette@{ub}
+
+    PALETTE=(PetMate|Colodore|Pepto|VICE)
+      Angiver den aktive farvepalette ved start.
+      Eksempel: PALETTE=Colodore
+
+  ---------------------------------------------------------------
 
   @{" Tilbage til indhold " link MAIN}
 
@@ -709,6 +764,18 @@
     G         Slå gitter til/fra
     P         Åbn indstillinger
     F10       Fuldskærm til/fra
+
+  @{b}Tegnvælger@{ub}
+
+    Piletaster   Naviger i tegnvælgeren for at ændre det aktive
+                 tegn.
+    Tab          Erstat det aktuelle tegn med dets inverse.
+    Retur        Erstat det aktuelle tegn med dets inverse.
+
+  @{b}Farvevælger@{ub}
+
+    Numpad       Numpad-tasterne vælger én af de 16 tegnefarver
+                 fra den aktuelle palette.
 
   @{" Tilbage til indhold " link MAIN}
 

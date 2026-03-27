@@ -23,6 +23,8 @@
 #include <intuition/intuition.h>
 #include <intuition/classusr.h>
 #include <intuition/gadgetclass.h>
+#include <dos/dos.h>
+#include <dos/dostags.h>
 #include <proto/asl.h>
 #include <libraries/asl.h>
 
@@ -397,14 +399,24 @@ BOOL Action_ProjectHelp(PmActionContext *ctx)
     FILE *fh = fopen("Sys:Utilities/Multiview","rb");
     if(fh)
     {
+        // BPTR nin = Open("NIL:", MODE_READ);
+        // BPTR nout = Open("NIL:", MODE_WRITE);
         fclose(fh);
         SystemTags("Sys:Utilities/Multiview PetMate.guide",
-                    SYS_Asynch,TRUE,SYS_UserShell,TRUE,
+                    SYS_Asynch,TRUE,
+                     SYS_Input, NULL,
+                     SYS_Output, NULL,
+                    SYS_UserShell,TRUE,
                     TAG_END);
     } else
     {
+        // BPTR nin = Open("NIL:", MODE_READ);
+        // BPTR nout = Open("NIL:", MODE_WRITE);
         SystemTags("Multiview PetMate.guide",
-                    SYS_Asynch,TRUE,SYS_UserShell,TRUE,
+                    SYS_Asynch,TRUE,
+                     SYS_Input, NULL,
+                     SYS_Output,  NULL,
+                    SYS_UserShell,TRUE,
                     TAG_END);
     }
 

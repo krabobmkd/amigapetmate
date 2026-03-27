@@ -17,6 +17,7 @@
 
   @{" Einführung           " link INTRO}       Was ist PetMate?
   @{" Requirements         " link REQUIRE}     Mindestsystemanforderungen
+  @{" Amiga Settings       " link TOOLTYPES}   Tooltypes und Einstellungen
   @{" Interface Overview   " link INTERFACE}   Das Hauptfensterlayout
   @{" Drawing Tools        " link TOOLS}       Die sechs Zeichenmodi
   @{" Color Palettes       " link PALETTES}    C64-Farbpaletten-Optionen
@@ -80,6 +81,60 @@
   AmigaOS 3.2.3 bietet bessere Systembibliothekenunterstützung und ist
   die empfohlene Plattform für das beste Erlebnis. Die Anwendung läuft
   auf OS 3.9, aber einige Systemfunktionen können eingeschränkt sein.
+
+  @{" Zurück zum Inhaltsverzeichnis " link MAIN}
+
+@endnode
+
+
+@node TOOLTYPES "Amiga-Einstellungen (Tooltypes)"
+
+@{b}Amiga-Einstellungen (Tooltypes)@{ub}
+
+  Tooltypes sind eine typisch amigaspezifische Möglichkeit,
+  Einstellungen in der Informationsseite des Anwendungssymbols zu
+  speichern. PetMate speichert seine Einstellungen automatisch über
+  Tooltypes. Sie können diese auch manuell ändern: Wählen Sie das
+  PetMate-Symbol auf dem Workbench aus, öffnen Sie Icons > Information
+  im Menü und navigieren Sie zur Tooltypes-Seite.
+
+  Alle Tooltypes sind optional. Unbekannte Tooltypes werden ignoriert.
+
+  ---------------------------------------------------------------
+
+  @{b}Bildschirmmodus@{ub}
+
+    FSUSEWBMODEID
+      Wenn gesetzt, verwendet der Vollbildmodus denselben
+      Bildschirmmodus wie der Workbench. Hat Vorrang vor SCREENMODEID.
+
+    SCREENMODEID=<hex>
+      Hexadezimalwert des Bildschirmmodus für den Vollbildbetrieb.
+      Beispiel: SCREENMODEID=0x00029000
+
+  ---------------------------------------------------------------
+
+  @{b}Erscheinungsbild der Benutzeroberfläche@{ub}
+
+    USEONECLORBG
+      Wenn gesetzt, werden leere Bereiche der Benutzeroberfläche
+      mit einer einzigen Farbe gefüllt. Andernfalls wird das
+      BOOPSI-Präferenzmuster aus Sys:Prefs/Reaction verwendet.
+
+    BGIMAGE=<Pfad>
+      Absoluter Pfad einer über das Datatypes-System lesbaren
+      Bilddatei als Hintergrundbild der Benutzeroberfläche.
+      Beispiel: BGIMAGE=Work:Images/hintergrund.png
+
+  ---------------------------------------------------------------
+
+  @{b}Palette@{ub}
+
+    PALETTE=(PetMate|Colodore|Pepto|VICE)
+      Legt die aktive Farbpalette beim Start fest.
+      Beispiel: PALETTE=Colodore
+
+  ---------------------------------------------------------------
 
   @{" Zurück zum Inhaltsverzeichnis " link MAIN}
 
@@ -733,6 +788,18 @@
     G         Raster umschalten
     P         Einstellungen öffnen
     F10       Vollbild umschalten
+
+  @{b}Zeichenauswahl@{ub}
+
+    Pfeiltasten  Im Zeichenselektor navigieren um das aktive
+                 Zeichen zu ändern.
+    Tab          Das aktuelle Zeichen durch sein Inverses ersetzen.
+    Eingabe      Das aktuelle Zeichen durch sein Inverses ersetzen.
+
+  @{b}Farbauswahl@{ub}
+
+    Numpad       Die Numpadtasten wählen eine der 16 Zeichenfarben
+                 aus der aktuellen Palette.
 
   @{" Zurück zum Inhaltsverzeichnis " link MAIN}
 

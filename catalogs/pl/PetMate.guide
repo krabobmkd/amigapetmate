@@ -17,6 +17,7 @@
 
   @{" Wprowadzenie         " link INTRO}       Czym jest PetMate?
   @{" Requirements         " link REQUIRE}     Minimalne wymagania systemowe
+  @{" Amiga Settings       " link TOOLTYPES}   Tooltypes i ustawienia
   @{" Interface Overview   " link INTERFACE}   Uk³ad g³ównego okna
   @{" Drawing Tools        " link TOOLS}       Sze¶æ trybów rysowania
   @{" Color Palettes       " link PALETTES}    Opcje palety kolorów C64
@@ -79,6 +80,60 @@
   AmigaOS 3.2.3 zapewnia lepsz± obs³ugê bibliotek systemowych i jest
   zalecan± platform± dla najlepszych wra¿eñ. Aplikacja dzia³a na OS 3.9,
   ale niektóre funkcje systemowe mog± byæ ograniczone.
+
+  @{" Powrót do spisu tre¶ci " link MAIN}
+
+@endnode
+
+
+@node TOOLTYPES "Ustawienia Amiga (Tooltypes)"
+
+@{b}Ustawienia Amiga (Tooltypes)@{ub}
+
+  Tooltypes to typowo Amigowy sposób zapisywania ustawieñ,
+  wewn±trz strony informacyjnej ikony aplikacji. PetMate zapisuje
+  ustawienia automatycznie przez tooltypes. Mo¿na je równie¿
+  zmieniaæ rêcznie: zaznacz ikonê PetMate na Workbenchu,
+  otwórz Ikony > Informacje z menu i przejd¼ do strony tooltypes.
+
+  Wszystkie tooltypes s± opcjonalne. Nieznane tooltypes s±
+  ignorowane.
+
+  ---------------------------------------------------------------
+
+  @{b}Tryb ekranu@{ub}
+
+    FSUSEWBMODEID
+      Gdy ustawiony, tryb pe³nego ekranu u¿ywa tego samego
+      trybu ekranu co Workbench. Ma pierwszeñstwo przed SCREENMODEID.
+
+    SCREENMODEID=<hex>
+      Szesnastkowa warto¶æ trybu ekranu dla trybu pe³nego ekranu.
+      Przyk³ad: SCREENMODEID=0x00029000
+
+  ---------------------------------------------------------------
+
+  @{b}Wygl±d interfejsu@{ub}
+
+    USEONECLORBG
+      Gdy ustawiony, puste obszary interfejsu s± rysowane jednym
+      kolorem. W przeciwnym razie u¿ywany jest wzorzec BOOPSI
+      zdefiniowany w Sys:Prefs/Reaction.
+
+    BGIMAGE=<¶cie¿ka>
+      Bezwzglêdna ¶cie¿ka do pliku obrazu odczytywanego przez
+      system datatypes, u¿ywany jako obraz t³a interfejsu.
+      Przyk³ad: BGIMAGE=Work:Images/tlo.png
+
+  ---------------------------------------------------------------
+
+  @{b}Paleta@{ub}
+
+    PALETTE=(PetMate|Colodore|Pepto|VICE)
+      Ustawia aktywn± paletê kolorów przy uruchomieniu.
+      Przyk³ad: PALETTE=Colodore
+
+  ---------------------------------------------------------------
 
   @{" Powrót do spisu tre¶ci " link MAIN}
 
@@ -714,6 +769,18 @@
     G         Prze³±cz siatkê
     P         Otwórz ustawienia
     F10       Pe³ny ekran
+
+  @{b}Selektor znaków@{ub}
+
+    Strza³ki     Nawiguj w selektorze znaków, aby zmieniæ aktywny
+                 znak rysowania.
+    Tab          Zast±p bie¿±cy znak jego odwrotno¶ci±.
+    Enter        Zast±p bie¿±cy znak jego odwrotno¶ci±.
+
+  @{b}Wybór koloru@{ub}
+
+    Klaw. num.   Klawisze klawiaturki numerycznej wybieraj± jeden
+                 z 16 kolorów rysowania z aktualnej palety.
 
   @{" Powrót do spisu tre¶ci " link MAIN}
 

@@ -490,15 +490,18 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
         if (inst->currentTool == TOOL_TEXT &&
             !(ie->ie_Code & IECODE_UP_PREFIX)) {
             BOOL justRender=FALSE;
+            UWORD k = ie->ie_Code & 0x7f;
            // / bdbprintf("code:%02x\n",(int)(ie->ie_Code & 0x7f));
-            if((ie->ie_Code & 0x7f)==0x45) // esc key,ask to quit text mode
+           /* esc key,ask to quit text mode, back to previous draw tool*/
+           /* also if touch function keys defined for tools */
+            if(k==0x45 || (k>=0x50 && k<=0x55))
             {
                // bdbprintf("ESC KEY ->PCA_SignalStopTool\n");
                 PetsciiCanvas_NotifyAttribChange(cl,o, msg->gpi_GInfo,
                                         PCA_SignalStopTool,TRUE);
                 return GMR_NOREUSE;
             }
-            if((ie->ie_Code & 0x7f)==0x44 || (ie->ie_Code & 0x7f)==0x43) // the 2 return
+            if(k==0x44 || k==0x43) // the 2 return
             {
                 /*Cursor start of next line */
                 inst->textCursorCol=0;
@@ -508,7 +511,7 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
                 }
                 justRender=TRUE;
             } else
-            if((ie->ie_Code & 0x7f)==0x42) // the tab key, with shift
+            if(k==0x42) // the tab key, with shift
             {
                 /*Cursor start of next line */
                 if(ie->ie_Qualifier & (IEQUALIFIER_LSHIFT|IEQUALIFIER_RSHIFT))
@@ -531,31 +534,31 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
                 inst->textCursorCol &= ~3;
                 justRender = TRUE;
             } else
-            if((ie->ie_Code & 0x7f)==0x4c) /* arrow up */
+            if(k==0x4c) /* arrow up */
             {
                 inst->textCursorRow--;
                 if(inst->textCursorRow==0) inst->textCursorRow = (WORD)inst->screen->height-1;
                 justRender = TRUE;
             } else
-            if((ie->ie_Code & 0x7f)==0x4d) /* arrow down */
+            if(k==0x4d) /* arrow down */
             {
                 inst->textCursorRow++;
                 if(inst->textCursorRow==(WORD)inst->screen->height) inst->textCursorRow = 0;
                 justRender = TRUE;
             }else
-            if((ie->ie_Code & 0x7f)==0x4f)  /* arrow left */
+            if(k==0x4f)  /* arrow left */
             {
                 inst->textCursorCol--;
                 if(inst->textCursorCol==0) inst->textCursorCol = (WORD)inst->screen->width-1;
                 justRender = TRUE;
             } else
-            if((ie->ie_Code & 0x7f)==0x4e) /* arrow right */
+            if(k==0x4e) /* arrow right */
             {
                 inst->textCursorCol++;
                 if(inst->textCursorCol==(WORD)inst->screen->width) inst->textCursorCol = 0;
                 justRender = TRUE;
             }else
-            if((ie->ie_Code & 0x7f)==0x41)
+            if(k==0x41)
             {
                 /* delete key (backspace): move cursor left, shift rest of line left */
                 inst->textCursorCol--;
@@ -581,7 +584,7 @@ ULONG PetsciiCanvas_OnInput(Class *cl, Object *o, struct gpInput *msg)
                 }
                 justRender = TRUE;
             } else
-            if((ie->ie_Code & 0x7f)==0x46)
+            if(k==0x46)
             {
                 /* suppr key (forward delete): shift rest of line left, cursor stays */
                 if (inst->screen && inst->screenbuf && inst->style) {

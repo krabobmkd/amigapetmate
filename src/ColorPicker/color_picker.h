@@ -26,9 +26,10 @@
 #define CPA_SelectedColor (CPA_Dummy + 2)   /* UBYTE 0..15                */
 #define CPA_ColorsPerWidth (CPA_Dummy + 3)   /* 4 or 8   */
 #define CPA_ColorRole (CPA_Dummy + 4)   /*  currently managing that color */
-
+#define CPA_NumPadKeys (CPA_Dummy + 5) /* receive keys even when not activated */
 /* need for popup cancelation */
-#define CPA_Deactivated (CPA_Dummy + 5)
+#define CPA_Deactivated (CPA_Dummy + 6)
+
 
 
 extern Class *ColorPickerClass;

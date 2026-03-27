@@ -16,6 +16,7 @@
 
   @{" Introduction        " link INTRO}       What is PetMate?
   @{" Requirements        " link REQUIRE}     Minimum system requirements
+  @{" Amiga Settings      " link TOOLTYPES}   Tooltypes and application settings
   @{" Interface Overview  " link INTERFACE}   The main window layout
   @{" Drawing Tools       " link TOOLS}       The six drawing modes
   @{" Color Palettes      " link PALETTES}    C64 color palette options
@@ -78,6 +79,60 @@
   AmigaOS 3.2.3 provides better system library support and is the
   recommended platform for the best experience. The application
   runs on OS 3.9 but some system features may be limited.
+
+  @{" Back to Contents " link MAIN}
+
+@endnode
+
+
+@node TOOLTYPES "Amiga Settings (Tooltypes)"
+
+@{b}Amiga Settings (Tooltypes)@{ub}
+
+  Tooltypes are an Amiga-specific way of storing settings, inside
+  the information page of the application icon. PetMate saves its
+  settings automatically via tooltypes. You can also edit them
+  manually by selecting the PetMate icon on the Workbench, opening
+  Icons > Information from the menu, and navigating to the
+  Tooltypes text page.
+
+  All tooltypes are optional. Unknown tooltypes are ignored.
+
+  ---------------------------------------------------------------
+
+  @{b}Screen Mode@{ub}
+
+    FSUSEWBMODEID
+      When set, full screen mode uses the same screen mode as
+      Workbench. Takes precedence over SCREENMODEID.
+
+    SCREENMODEID=<hex>
+      Hexadecimal value of the screen mode to use in full screen.
+      Example: SCREENMODEID=0x00029000
+
+  ---------------------------------------------------------------
+
+  @{b}Interface Appearance@{ub}
+
+    USEONECLORBG
+      When set, the empty parts of the interface are filled with a
+      single plain color. If not set, the BOOPSI preference pattern
+      image defined in Sys:Prefs/Reaction is used instead.
+
+    BGIMAGE=<path>
+      Absolute path of an image file readable by the datatypes
+      system, used as the interface background image.
+      Example: BGIMAGE=Work:Images/mybg.png
+
+  ---------------------------------------------------------------
+
+  @{b}Palette@{ub}
+
+    PALETTE=(PetMate|Colodore|Pepto|VICE)
+      Sets the active color palette on startup.
+      Example: PALETTE=Colodore
+
+  ---------------------------------------------------------------
 
   @{" Back to Contents " link MAIN}
 
@@ -723,6 +778,18 @@
     G         Toggle grid overlay
     P         Open settings
     F10       Toggle full screen
+
+  @{b}Character Selector@{ub}
+
+    Arrow keys   Navigate the character selector grid to change the
+                 currently selected drawing character.
+    Tab          Swap the current character for its inverse.
+    Return       Swap the current character for its inverse.
+
+  @{b}Color Selection@{ub}
+
+    Numeric pad  The numeric keypad keys select one of the 16
+                 drawing colors from the current palette.
 
   @{" Back to Contents " link MAIN}
 

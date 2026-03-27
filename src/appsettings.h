@@ -12,7 +12,6 @@
 #define APPSETTINGS_MAX_RECENT 4
 
 typedef struct AppSettings {
-    char *tempDir;                              /* AllocVec-managed path */
     char *recentFiles[APPSETTINGS_MAX_RECENT];  /* [0] = most recent */
     int   recentCount;
 
@@ -38,14 +37,8 @@ void AppSettings_Save(AppSettings *as);
 /* Free all allocated strings and call ToolTypePrefs_Close. */
 void AppSettings_Close(AppSettings *as);
 
-/* Set temp directory (duplicates string). */
-void AppSettings_SetTempDir(AppSettings *as, const char *path);
-
 /* Set background image path (duplicates string; NULL clears it). */
 void AppSettings_SetBgImagePath(AppSettings *as, const char *path);
-
-/* Get current temp directory (may return NULL). */
-const char *AppSettings_GetTempDir(AppSettings *as);
 
 /* Add a file path to top of recent list. Moves to top if already present. */
 void AppSettings_AddRecentFile(AppSettings *as, const char *path);

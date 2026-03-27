@@ -23,7 +23,6 @@ static char *StrDup(const char *s)
 }
 
 /* Tooltype key names */
-#define TT_TEMPDIR       "TEMPDIR"
 #define TT_RECENT        "RECENT"        /* RECENT0, RECENT1, ... RECENT7 */
 #define TT_USE_WORKBENCH "FSUSEWBMODEID" /* "1" or "0" */
 #define TT_SCREENMODEID  "SCREENMODEID"  /* 8 hex digits, e.g. "00029000" */
@@ -40,12 +39,6 @@ void AppSettings_Load(AppSettings *as)
     if(!as) return;
 
     /* ToolTypePrefs_Init is to be done at ebgining of main. */
-
-    /* Load temp directory */
-    val = ToolTypePrefs_Get(TT_TEMPDIR);
-    if(val && val[0] != '\0') {
-        as->tempDir = StrDup(val);
-    }
 
     /* Load screen mode settings */
     val = ToolTypePrefs_Get(TT_USE_WORKBENCH);
@@ -151,11 +144,6 @@ void AppSettings_Save(AppSettings *as)
         ToolTypePrefs_Remove(TT_BGIMAGE);
     }
 
-    /* Save temp directory */
-    if(as->tempDir) {
-        ToolTypePrefs_Set(TT_TEMPDIR, as->tempDir);
-    }
-
     if(app->mainwindow.fullscreen)
     {
         ToolTypePrefs_Set("FULLSCREEN",NULL);
@@ -189,9 +177,6 @@ void AppSettings_Close(AppSettings *as)
     int i;
     if(!as) return;
 
-    FreeVec(as->tempDir);
-    as->tempDir = NULL;
-
     FreeVec(as->bgImagePath);
     as->bgImagePath = NULL;
 
@@ -204,19 +189,6 @@ void AppSettings_Close(AppSettings *as)
     ToolTypePrefs_Close();
 }
 
-void AppSettings_SetTempDir(AppSettings *as, const char *path)
-{
-    if(!as) return;
-
-    FreeVec(as->tempDir);
-    as->tempDir = path ? StrDup(path) : NULL;
-}
-
-const char *AppSettings_GetTempDir(AppSettings *as)
-{
-    if(!as) return NULL;
-    return as->tempDir;
-}
 
 void AppSettings_AddRecentFile(AppSettings *as, const char *path)
 {

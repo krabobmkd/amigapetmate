@@ -18,7 +18,7 @@
     we can just define our own messages with attribs enums or any sort of enum and values to precise parameters.
 
 */
-static ULONG ColorPicker_NotifyAttribChange(Class *cl,Object *Gad, struct GadgetInfo *GInfo)
+ULONG ColorPicker_NotifyAttribChange(Class *cl,Object *Gad, struct GadgetInfo *GInfo)
 {
     ColorPickerData *inst;
     struct opUpdate notifymsg;
